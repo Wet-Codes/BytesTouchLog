@@ -4,7 +4,7 @@
 
 <v-card elevation="8" class="pa-lg-10 mx-md-auto" width="400">
 
-  <img alt="Temp logo" style="width:250px;height:250px;">
+
   
   <br>
   <v-text-field class="w-250" label="USERNAME" variant="solo-inverted" v-model="U">
@@ -39,16 +39,16 @@ export default {
     
 },
 
-//methods: {
-  //async login () {
+methods: {
+  async login () {
     //const response = await AuthServices.login({
       //U: this.U ,
-      //P: this.P
+     // P: this.P
     //})
-    //console.log(response.data)
-  //}
+    console.log('wow')
+  }
 
-//},
+},
 name:'app',
 components: {
   PageHeader
