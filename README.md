@@ -31,7 +31,6 @@ This project is a desktop application with a web-based interface that uses a bio
 - **Real-time Attendance Tracking:** Provides instant updates and logs for student attendance.
 - **Event Management:** Supports attendance tracking for multiple events and sessions.
 - **User-friendly Interface:** Intuitive design for easy navigation and usage.
-- **Data Security:** Ensures the security and privacy of user data with robust database management.
 
 ---
 
@@ -71,13 +70,13 @@ This project is a desktop application with a web-based interface that uses a bio
 
 ```
 bytes-touch-log/
-├── backend/
+├── server/
 │   ├── config/
 │   ├── controllers/
 │   ├── models/
 │   ├── routes/
-│   └── server.js
-├── frontend/
+│   └── app.js
+├── bytes/
 │   ├── public/
 │   ├── src/
 │   ├── components/
