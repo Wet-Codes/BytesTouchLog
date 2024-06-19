@@ -9,9 +9,9 @@ app.use(morgan('combined'))
 app.use(bodyParser.json())
 app.use(cors())
 
-app.get('status', (req, res) => {
+app.post('/', (req, res) => {
     res.send({
-        message: '1st week start!!'
+         message: 'Hi ' + req.body.U + ', This is the 1st week just started!!'
     })
 
 })

@@ -11,8 +11,7 @@ const routes = [
     path: '/user',
     name: 'user',
     component: UserPage
-  }
-  ,
+  },
   {
     path: '/about',
     name: 'about',

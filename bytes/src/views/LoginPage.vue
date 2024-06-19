@@ -20,16 +20,27 @@
 </template>
 
 <script>
+import AuthServices from '@/services/AuthServices'; //import auth services from back end
 import PageHeader from '@/components/HeaderNav.vue';
 
 export default {
   data() {
     return {
       backgroundImage: "https://cdn.vuetifyjs.com/images/backgrounds/vbanner.jpg",
-      U: '',
-      P: ''
+      U:'',
+      P:''
     };
   },
+  methods: {
+    async login() {
+      const response = await AuthServices.login({
+        U: this.U ,
+        P: this.P
+      })
+      console.log(response.data);
+    }
+  },
+
   computed: {
     backgroundStyle() {
       return {
@@ -40,11 +51,6 @@ export default {
         margin: 0,
         padding: 0,
       };
-    }
-  },
-  methods: {
-    async login() {
-      console.log('wow');
     }
   },
   name: 'app',
