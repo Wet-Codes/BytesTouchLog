@@ -12,7 +12,7 @@
 **Title:** Bytes Touch Log: A Web-based Fingerprint Biometric Application as an Attendance Recorder System in Events for the CICS Bytes Office
 
 **Front End:** Vue.js via JavaScript  
-**Back End:** Nodemon.js  
+**Back End:** Express.js via Javascript  
 **Database:** Sequelize/MongoDB
 
 ---
