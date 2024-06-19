@@ -1,26 +1,36 @@
 <template>
 <div>
 
-    <v-toolbar :elevation="8"
-      image="https://cdn.vuetifyjs.com/images/backgrounds/vbanner.jpg"
+    <v-toolbar :elevation="8" 
       dark
       prominent
       id="v"
+      style="background-color: navy;"
     >
-    <v-btn :to="{ name: 'login' }">
-      <v-toolbar-title id="v" class="text-h4 font-weight-black">
-        BYTES TOUCH LOG
-      </v-toolbar-title>
-    
-    </v-btn>
-
-      <v-toolbar-items>
-        <v-btn>
+    <v-toolbar-items>
+        <v-btn :to="{ name: 'user' }">
           <h3>Users</h3>
         </v-btn>
       </v-toolbar-items>
 
+      <v-toolbar-items>
+        <v-btn :to="{ name: 'user' }">
+          <h3>Admin</h3>
+        </v-btn>
+      </v-toolbar-items>
+
       <v-spacer></v-spacer>
+
+    <v-btn :to="{ name: 'login' }" class="bytesbutton">
+      <v-toolbar-title id="v" class="text-h4 font-weight-black">
+        BYTES TOUCH LOG
+      </v-toolbar-title>
+    </v-btn>
+
+      
+
+    <v-spacer></v-spacer>
+      
       
       <v-toolbar-items>
         <v-btn :to="{ name: 'about' }">
@@ -39,7 +49,7 @@
 
 
 <script>
-  
+
     
 </script>
 
@@ -47,7 +57,7 @@
 
 <style>
 #v {
-    text-align: left;
+    text-align: center;
     color: azure;
     font-family: 'Times New Roman', Times, serif;
 }

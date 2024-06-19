@@ -1,7 +1,7 @@
 <template>
   <page-header />
-  <div class="about">
-    <h1>This is an about page</h1>
+  <div>
+    <h1>This is admin</h1>
   </div>
 </template>
 
@@ -19,6 +19,7 @@ export default {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style>
+
 #bp {
   margin: 0;
   padding: 0;
