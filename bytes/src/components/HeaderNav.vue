@@ -18,6 +18,12 @@
           <h3>Admin</h3>
         </v-btn>
       </v-toolbar-items>
+      
+      <v-toolbar-items>
+        <v-btn :to="{ name: 'about' }">
+         <h3>ABOUT</h3>
+        </v-btn>
+      </v-toolbar-items>
 
       <v-spacer></v-spacer>
 
@@ -26,20 +32,6 @@
         BYTES TOUCH LOG
       </v-toolbar-title>
     </v-btn>
-
-      
-
-    <v-spacer></v-spacer>
-      
-      
-      <v-toolbar-items>
-        <v-btn :to="{ name: 'about' }">
-        
-         <h3>ABOUT</h3>
-        
-        </v-btn>
-      </v-toolbar-items>
-   
       
   </v-toolbar>
 
@@ -57,7 +49,7 @@
 
 <style>
 #v {
-    text-align: center;
+
     color: azure;
     font-family: 'Times New Roman', Times, serif;
 }

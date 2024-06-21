@@ -2,7 +2,7 @@
   <div>
     <!-- Page header component -->
     <page-header />
-    <!-- Main content area -->
+    <!-- Main content area with gradient background -->
     <div :style="mainContentStyle">
       <v-card elevation="2" class="pa-5 mx-auto" max-width="600">
         <v-card-title>
@@ -27,14 +27,14 @@ export default {
   components: {
     PageHeader
   },
-  computed: { 
+  computed: {
     mainContentStyle() {
       return {
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
         height: '100vh',
-        background: 'linear-gradient(to bottom, navy, white)',
+        background: 'linear-gradient(to bottom, navy, white)', // Define gradient colors here
         padding: '20px'
       };
     }
@@ -42,6 +42,5 @@ export default {
 };
 </script>
 
-<!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
 </style>
