@@ -22,15 +22,27 @@ const routes = [
     name: 'admin',
     component: AdminDashboard
   },
+  
   {
     path: '/manage-users',
     name: 'manage-users',
     component: ManageUsers
   },
+  
   {
     path: '/view-reports',
     name: 'view-reports',
     component: ViewReports
+  },
+  {
+    path: '/Account',
+    name: 'Account',
+    component: UserPage
+  },
+  {
+    path: '/Logout',
+    name: 'Logout',
+    component: UserPage
   },
   {
     path: '/about',

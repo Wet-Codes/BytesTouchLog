@@ -21,7 +21,7 @@
 </template>
 
 <script>
-import PageHeader from '@/components/HeaderNav.vue';
+import PageHeader from '@/components/CustomHeaderNav.vue';
 
 export default {
   components: {
