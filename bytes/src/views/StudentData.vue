@@ -7,22 +7,16 @@
           <!-- Student Accounts Table -->
           <v-col cols="6">
             <v-card>
-              <v-card-title>
-                <div class="d-flex align-center justify-space-between">
-                  <span>Student Accounts</span>
-                  <v-btn small color="primary" @click="editStudentAccounts">Edit</v-btn>
-                </div>
+              <v-card-title class="d-flex justify-space-between align-center">
+                <span>Student Accounts</span>
+                <v-btn small color="primary" @click="editStudent">Edit</v-btn>
               </v-card-title>
               <v-card-text>
                 <v-data-table
                   :headers="studentAccountHeaders"
                   :items="studentAccounts"
                   class="elevation-1"
-                >
-                  <template v-slot:item.action="{ item }">
-                    <!-- No action buttons in the content -->
-                  </template>
-                </v-data-table>
+                ></v-data-table>
               </v-card-text>
             </v-card>
           </v-col>
@@ -30,27 +24,40 @@
           <!-- Student FA Table -->
           <v-col cols="6">
             <v-card>
-              <v-card-title>
-                <div class="d-flex align-center justify-space-between">
-                  <span>Student FA</span>
-                  <v-btn small color="success" @click="uploadDocument">Upload</v-btn>
-                </div>
+              <v-card-title class="d-flex justify-space-between align-center">
+                <span>Student FA</span>
+                <v-btn small color="success" @click="openUploadDialog">Upload</v-btn>
               </v-card-title>
               <v-card-text>
                 <v-data-table
                   :headers="studentFAHeaders"
                   :items="studentFA"
                   class="elevation-1"
-                >
-                  <template v-slot:item.action="{ item }">
-                    <!-- No action buttons in the content -->
-                  </template>
-                </v-data-table>
+                ></v-data-table>
               </v-card-text>
             </v-card>
           </v-col>
         </v-row>
       </v-container>
+
+      <!-- Upload Dialog -->
+      <v-dialog v-model="uploadDialog" width="50%">
+        <v-sheet>
+          <v-card>
+            <v-card-title>Upload Document</v-card-title>
+            <v-card-text>
+              <v-form>
+                <v-file-input label="Select File"></v-file-input>
+              </v-form>
+            </v-card-text>
+            <v-card-actions>
+              <v-spacer></v-spacer>
+              <v-btn color="primary" @click="uploadDocument">Upload</v-btn>
+              <v-btn color="secondary" @click="closeUploadDialog">Cancel</v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-sheet>
+      </v-dialog>
     </div>
   </div>
 </template>
@@ -64,13 +71,13 @@ export default {
   },
   data() {
     return {
+      uploadDialog: false,
       studentAccountHeaders: [
         { text: 'Fname', value: 'fname' },
         { text: 'M.I', value: 'mi' },
         { text: 'Lname', value: 'lname' },
         { text: 'Course', value: 'course' },
-        { text: 'Year', value: 'year' },
-        { text: 'Action', value: 'action', sortable: false }
+        { text: 'Year', value: 'year' }
       ],
       studentAccounts: [
         { fname: 'Al-shiolla', mi: 'H.', lname: 'Haron', course: 'IT', year: '3rd' },
@@ -82,24 +89,30 @@ export default {
         { text: 'Date', value: 'date' },
         { text: 'Login', value: 'login' },
         { text: 'Logout', value: 'logout' },
-        { text: 'All-Fund', value: 'allFund' },
-        { text: 'Action', value: 'action', sortable: false }
+        { text: 'All-Fund', value: 'allFund' }
       ],
       studentFA: [
         { event: 'Orientation', date: '2024-06-01', login: '08:00 AM', logout: '10:00 AM', allFund: '100' },
-        { event: 'Acquintance', date: '2024-06-15', login: '09:00 AM', logout: '11:00 AM', allFund: '200' },
+        { event: 'Acquaintance', date: '2024-06-15', login: '09:00 AM', logout: '11:00 AM', allFund: '200' },
         { event: 'Kasadya', date: '2024-06-20', login: '10:00 AM', logout: '12:00 PM', allFund: '150' }
       ]
     };
   },
   methods: {
-    editStudentAccounts() {
-      // Handle edit logic for student accounts
-      console.log('Editing student accounts');
+    editStudent() {
+      // Handle edit logic here
+      console.log('Editing student');
     },
-    uploadDocument(item) {
-      // Handle upload logic for student FA
-      console.log('Uploading document for event:', item.event);
+    openUploadDialog() {
+      this.uploadDialog = true;
+    },
+    closeUploadDialog() {
+      this.uploadDialog = false;
+    },
+    uploadDocument() {
+      // Handle upload logic here
+      console.log('Uploading document...');
+      this.closeUploadDialog();
     }
   }
 };
@@ -108,14 +121,5 @@ export default {
 <style scoped>
 .content {
   padding: 20px;
-}
-
-.align-center {
-  display: flex;
-  align-items: center;
-}
-
-.justify-space-between {
-  justify-content: space-between;
 }
 </style>
