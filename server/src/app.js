@@ -4,16 +4,34 @@ const bodyParser = require('body-parser')
 const cors = require('cors')
 const morgan = require('morgan')
 
+//OBTAINING 
+const config = require('./config/config')
+const {sequelize} = require ('./models')
+
+
+
+
 const app = express()
 app.use(morgan('combined'))
 app.use(bodyParser.json())
 app.use(cors())
 
-app.post('/', (req, res) => {
-    res.send({
-         message: 'Hi ' + req.body.U + ', This is the 1st week just started!!'
+require('./routes')(app)
+
+
+//SYNCING
+sequelize.sync()
+    .then (() => {
+        app.listen(process.env.PORT || 2002)
+        console.log('SERVER STARTED ON PORT '+ config.port)
+
     })
 
-})
-
-app.listen(process.env.PORT || 2002)
+//Test connection
+    sequelize.authenticate()
+    .then(() => {
+      console.log('Connection has been established successfully.');
+    })
+    .catch(err => {
+      console.error('Unable to connect to the database:', err);
+    });

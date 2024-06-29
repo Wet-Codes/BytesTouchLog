@@ -5,7 +5,7 @@ import AdminDashboard from '../views/AdminDashboard.vue';
 import ManageUsers from '../views/ManageUsers.vue';
 import ViewReports from '../views/ViewReports.vue';
 import AboutView from '../views/AboutView.vue';
-
+import Test from '../views/TestPager.vue';
 const routes = [
   {
     path: '/',
@@ -21,6 +21,11 @@ const routes = [
     path: '/admin',
     name: 'admin',
     component: AdminDashboard
+  },
+  {
+    path: '/test',
+    name: 'test',
+    component: Test
   },
   
   {
