@@ -2,8 +2,8 @@ import { createRouter, createWebHashHistory } from 'vue-router';
 import LoginPage from '../views/LoginPage.vue';
 import UserPage from '../views/UserPage.vue';
 import AdminDashboard from '../views/AdminDashboard.vue';
-import ManageUsers from '../views/ManageUsers.vue';
-import ViewReports from '../views/ViewReports.vue';
+import StudentData from '../views/StudentData.vue';
+import StudentFine from '../views/StudentFine.vue';
 import AboutView from '../views/AboutView.vue';
 
 const routes = [
@@ -26,13 +26,13 @@ const routes = [
   {
     path: '/manage-users',
     name: 'manage-users',
-    component: ManageUsers
+    component: StudentData
   },
   
   {
     path: '/view-reports',
     name: 'view-reports',
-    component: ViewReports
+    component: StudentFine
   },
   {
     path: '/Account',
@@ -48,6 +48,12 @@ const routes = [
     path: '/about',
     name: 'about',
     component: AboutView
+  },
+
+  {
+    path: '/application-status',
+    name: 'Application Status',
+    component: StudentData
   }
 ];
 

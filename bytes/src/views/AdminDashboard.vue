@@ -10,8 +10,8 @@
           <p>Welcome to the admin dashboard. Here you can manage users, view reports, and perform other administrative tasks.</p>
         </v-card-text>
         <v-card-actions>
-          <v-btn color="primary" @click="navigateTo('manage-users')">Manage Users</v-btn>
-          <v-btn color="secondary" @click="navigateTo('view-reports')">View Reports</v-btn>
+          <v-btn color="primary" @click="navigateTo('manage-users')">Student Data</v-btn>
+          <v-btn color="secondary" @click="navigateTo('view-reports')">Student Fines</v-btn>
         </v-card-actions>
       </v-card>
     </div>
@@ -19,7 +19,7 @@
 </template>
 
 <script>
-import PageHeader from '@/components/HeaderNav.vue';
+import PageHeader from '@/components/CustomHeaderNav.vue';
 
 export default {
   components: {

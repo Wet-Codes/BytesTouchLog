@@ -2,14 +2,14 @@
   <div>
     <page-header />
     <div>
-      <h1>View Reports</h1>
+      <h1>Student Fines</h1>
       <!-- Content for viewing reports -->
     </div>
   </div>
 </template>
 
 <script>
-import PageHeader from '@/components/HeaderNav.vue';
+import PageHeader from '@/components/CustomHeader2.vue';
 
 export default {
   components: {

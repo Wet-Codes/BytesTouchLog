@@ -6,14 +6,14 @@
     <div :style="mainContentStyle">
       <v-card elevation="2" class="pa-5 mx-auto" max-width="600">
         <v-card-title>
-          <h1 class="text-h5">User Dashboard</h1>
+          <h1 class="text-h5">Admin Dashboard</h1>
         </v-card-title>
         <v-card-text>
-          <p>Welcome to the user dashboard. Here you can manage users, view reports, and perform other tasks.</p>
+          <p>Welcome to the Admin dashboard. Here you can manage users, view reports, and perform other tasks.</p>
         </v-card-text>
         <v-card-actions>
-          <v-btn color="primary" @click="navigateTo('manage-users')">Manage Users</v-btn>
-          <v-btn color="secondary" @click="navigateTo('view-reports')">View Reports</v-btn>
+          <v-btn color="primary" @click="navigateTo('manage-users')">Student Data</v-btn>
+          <v-btn color="secondary" @click="navigateTo('view-reports')">Student Fines</v-btn>
         </v-card-actions>
       </v-card>
     </div>
