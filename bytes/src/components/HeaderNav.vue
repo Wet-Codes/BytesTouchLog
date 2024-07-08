@@ -1,8 +1,8 @@
 <template>
   <v-toolbar :elevation="8" dark prominent style="background-color: navy;">
     <v-toolbar-items>
-      <v-btn :to="{ name: 'admin' }" class="toolbar-btn">
-        <h3>Admin</h3>
+      <v-btn :to="{ name: 'user' }" class="toolbar-btn">
+        <h3>user</h3>
       </v-btn>
     </v-toolbar-items>
 
