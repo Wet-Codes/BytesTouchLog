@@ -14,14 +14,20 @@
 
     <v-spacer></v-spacer>
 
-    <v-btn class="bytesbutton">
+    <v-btn class="bytesbutton" @click="goToLogin">
       <v-toolbar-title class="text-h4 font-weight-black">BYTES TOUCH LOG</v-toolbar-title>
     </v-btn>
   </v-toolbar>
 </template>
 
 <script>
-export default {};
+export default {
+  methods: {
+    goToLogin() {
+      this.$router.push({ name: 'login' });
+    }
+  }
+};
 </script>
 
 <style scoped>

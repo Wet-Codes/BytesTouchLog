@@ -1,14 +1,14 @@
 <template>
   <div>
     <page-header />
-    <div class="content">
-      <h1>Student Fines</h1>
+    <div :style="mainContentStyle">
+      <h1 class="page-title">Student Fines</h1>
       <v-container>
         <v-row>
           <v-col cols="4" v-for="(fine, index) in studentFines" :key="index">
-            <v-card>
-              <v-card-title>{{ fine.name }}</v-card-title>
-              <v-card-text>
+            <v-card class="fine-card">
+              <v-card-title class="white--text">{{ fine.name }}</v-card-title>
+              <v-card-text class="white--text">
                 <div>Event: {{ fine.event }}</div>
                 <div>Fee per Entry: {{ fine.feePerEntry }}</div>
                 <div>Total Fee: {{ fine.totalFee }}</div>
@@ -23,9 +23,9 @@
           </v-col>
           <!-- Add new fine box -->
           <v-col cols="4">
-            <v-card class="d-flex align-center justify-center flex-column" @click="openAddDialog" style="height: 150px;">
+            <v-card class="d-flex align-center justify-center flex-column fine-card" @click="openAddDialog" style="height: 150px;">
               <v-icon large>mdi-plus</v-icon>
-              <div>Create</div>
+              <div class="white--text">Create</div>
             </v-card>
           </v-col>
         </v-row>
@@ -111,6 +111,21 @@ export default {
       editIndex: null
     };
   },
+  computed: {
+    mainContentStyle() {
+      return {
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'flex-start',
+        minHeight: '100vh',
+        backgroundImage: `url('https://cdn.vuetifyjs.com/images/backgrounds/vbanner.jpg')`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        padding: '20px',
+      };
+    }
+  },
   methods: {
     openAddDialog() {
       this.addDialog = true;
@@ -146,7 +161,124 @@ export default {
 </script>
 
 <style scoped>
-.content {
-  padding: 20px;
+@import url('https://fonts.googleapis.com/css?family=Poppins:300');
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: 'Poppins', sans-serif;
+  background: linear-gradient(#30142b, #2772a1);
+}
+
+.page-title {
+  color: white;
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 2rem;
+  margin-top: 20px; /* Adjust this value to control the space from the top */
+}
+
+.fine-card {
+  background: rgba(0, 0, 0, .5);
+  box-shadow: 0 15px 25px rgba(0, 0, 0, .6);
+  border-radius: 10px;
+  color: white;
+}
+
+.v-card-title {
+  font-weight: 600;
+}
+
+.v-card .v-btn {
+  color: #289bb8;
+  transition: .5s;
+}
+
+.v-card .v-btn:hover {
+  background: #289bb8;
+  color: #fff;
+  border-radius: 5px;
+  box-shadow: 0 0 5px #289bb8, 0 0 25px #289bb8, 0 0 50px #289bb8, 0 0 100px #289bb8;
+}
+
+.v-card .v-btn span {
+  position: absolute;
+  display: block;
+}
+
+.v-card .v-btn span:nth-child(1) {
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #289bb8);
+  animation: btn-anim1 1s linear infinite;
+}
+
+@keyframes btn-anim1 {
+  0% {
+    left: -100%;
+  }
+  50%, 100% {
+    left: 100%;
+  }
+}
+
+.v-card .v-btn span:nth-child(2) {
+  top: -100%;
+  right: 0;
+  width: 2px;
+  height: 100%;
+  background: linear-gradient(180deg, transparent, #289bb8);
+  animation: btn-anim2 1s linear infinite;
+  animation-delay: .25s;
+}
+
+@keyframes btn-anim2 {
+  0% {
+    top: -100%;
+  }
+  50%, 100% {
+    top: 100%;
+  }
+}
+
+.v-card .v-btn span:nth-child(3) {
+  bottom: 0;
+  right: -100%;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(270deg, transparent, #289bb8);
+  animation: btn-anim3 1s linear infinite;
+  animation-delay: .5s;
+}
+
+@keyframes btn-anim3 {
+  0% {
+    right: -100%;
+  }
+  50%, 100% {
+    right: 100%;
+  }
+}
+
+.v-card .v-btn span:nth-child(4) {
+  bottom: -100%;
+  left: 0;
+  width: 2px;
+  height: 100%;
+  background: linear-gradient(360deg, transparent, #289bb8);
+  animation: btn-anim4 1s linear infinite;
+  animation-delay: .75s;
+}
+
+@keyframes btn-anim4 {
+  0% {
+    bottom: -100%;
+  }
+  50%, 100% {
+    bottom: 100%;
+  }
 }
 </style>

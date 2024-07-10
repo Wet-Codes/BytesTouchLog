@@ -1,12 +1,12 @@
 <template>
   <div>
     <page-header />
-    <div class="content">
+    <div :style="mainContentStyle">
       <v-container>
         <v-row>
           <!-- Student Accounts Table -->
           <v-col cols="6">
-            <v-card>
+            <v-card class="form idle" elevation="2">
               <v-card-title class="d-flex justify-space-between align-center">
                 <span>Student Accounts</span>
                 <v-btn color="primary" @click="editStudentAccounts">Edit</v-btn>
@@ -17,6 +17,7 @@
                   :items="studentAccounts"
                   class="elevation-1"
                   :header-props="{ color: 'white', class: 'blue-grey darken-1' }"
+                  @click:row="selectStudent"
                 >
                 </v-data-table>
               </v-card-text>
@@ -25,15 +26,15 @@
 
           <!-- Student FA Table -->
           <v-col cols="6">
-            <v-card>
+            <v-card v-if="selectedStudent" class="form idle" elevation="2">
               <v-card-title class="d-flex justify-space-between align-center">
-                <span>Student FA</span>
+                <span>Student FA {{ selectedStudent.fname }} {{ selectedStudent.lname }}</span>
                 <v-btn color="success" @click="openFormDialog">Upload</v-btn>
               </v-card-title>
               <v-card-text>
                 <v-data-table
                   :headers="studentFAHeaders"
-                  :items="studentFA"
+                  :items="selectedStudent.studentFA"
                   class="elevation-1"
                   :header-props="{ color: 'white', class: 'blue-grey darken-1' }"
                 >
@@ -42,42 +43,61 @@
             </v-card>
           </v-col>
         </v-row>
-      </v-container>
 
-      <!-- Form Dialog for Adding New Account -->
-      <v-dialog v-model="formDialog" max-width="500px">
-        <v-card>
-          <v-card-title>
-            <span class="text-h5">Add New Student FA</span>
-          </v-card-title>
-          <v-card-text>
-            <v-container>
-              <v-row>
-                <v-col cols="12">
-                  <v-text-field v-model="newFA.event" label="Event"></v-text-field>
-                </v-col>
-                <v-col cols="12">
-                  <v-text-field v-model="newFA.date" label="Date"></v-text-field>
-                </v-col>
-                <v-col cols="12">
-                  <v-text-field v-model="newFA.login" label="Login"></v-text-field>
-                </v-col>
-                <v-col cols="12">
-                  <v-text-field v-model="newFA.logout" label="Logout"></v-text-field>
-                </v-col>
-                <v-col cols="12">
-                  <v-text-field v-model="newFA.allFund" label="All-Fund"></v-text-field>
-                </v-col>
-              </v-row>
-            </v-container>
-          </v-card-text>
-          <v-card-actions>
-            <v-spacer></v-spacer>
-            <v-btn color="primary" @click="saveNewFA">Save</v-btn>
-            <v-btn color="secondary" @click="closeFormDialog">Cancel</v-btn>
-          </v-card-actions>
-        </v-card>
-      </v-dialog>
+        <!-- Info Tab for Description -->
+        <v-row no-gutters>
+          <v-col cols="12">
+            <v-card class="info-tab form idle" elevation="2">
+              <v-card-title class="text-h6 white-text">
+                System Information
+              </v-card-title>
+              <v-card-text>
+                <p class="white-text">
+                  <strong>Student Accounts:</strong> This section provides an overview of all student accounts, displaying essential information such as the student's name, course, and year level.
+                </p>
+                <p class="white-text">
+                  <strong>Student FA:</strong> This section tracks the attendance and participation of individual students in various events. It ensures accurate records of student activities and their engagement levels.
+                </p>
+              </v-card-text>
+            </v-card>
+          </v-col>
+        </v-row>
+
+        <!-- Form Dialog for Adding New Account -->
+        <v-dialog v-model="formDialog" max-width="500px">
+          <v-card class="form idle" elevation="2">
+            <v-card-title>
+              <span class="text-h5 white-text">Add New Student FA</span>
+            </v-card-title>
+            <v-card-text>
+              <v-container>
+                <v-row>
+                  <v-col cols="12">
+                    <v-text-field v-model="newFA.event" label="Event"></v-text-field>
+                  </v-col>
+                  <v-col cols="12">
+                    <v-text-field v-model="newFA.date" label="Date"></v-text-field>
+                  </v-col>
+                  <v-col cols="12">
+                    <v-text-field v-model="newFA.login" label="Login"></v-text-field>
+                  </v-col>
+                  <v-col cols="12">
+                    <v-text-field v-model="newFA.logout" label="Logout"></v-text-field>
+                  </v-col>
+                  <v-col cols="12">
+                    <v-text-field v-model="newFA.allFund" label="All-Fund"></v-text-field>
+                  </v-col>
+                </v-row>
+              </v-container>
+            </v-card-text>
+            <v-card-actions>
+              <v-spacer></v-spacer>
+              <v-btn color="primary" @click="saveNewFA">Save</v-btn>
+              <v-btn color="secondary" @click="closeFormDialog">Cancel</v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
+      </v-container>
     </div>
   </div>
 </template>
@@ -122,8 +142,23 @@ export default {
         { event: 'Orientation', date: '2024-06-01', login: '08:00 AM', logout: '10:00 AM', allFund: '100' },
         { event: 'Acquaintance', date: '2024-06-15', login: '09:00 AM', logout: '11:00 AM', allFund: '200' },
         { event: 'Kasadya', date: '2024-06-20', login: '10:00 AM', logout: '12:00 PM', allFund: '150' }
-      ]
+      ],
+      selectedStudent: null,
     };
+  },
+  computed: {
+    mainContentStyle() {
+      return {
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: '100vh',
+        backgroundImage: `url('https://cdn.vuetifyjs.com/images/backgrounds/vbanner.jpg')`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        padding: '20px',
+      };
+    }
   },
   methods: {
     openFormDialog() {
@@ -134,7 +169,7 @@ export default {
       this.resetForm();
     },
     saveNewFA() {
-      this.studentFA.push({ ...this.newFA });
+      this.selectedStudent.studentFA.push({ ...this.newFA });
       this.closeFormDialog();
     },
     resetForm() {
@@ -148,13 +183,149 @@ export default {
     },
     editStudentAccounts() {
       console.log('Editing student accounts logic here');
+    },
+    selectStudent(student) {
+      this.selectedStudent = student;
     }
   }
 };
 </script>
 
 <style scoped>
+@import url('https://fonts.googleapis.com/css?family=Poppins:300');
+
+html, body {
+  height: 50%;
+  margin: 0;
+  padding: 0;
+  font-family: 'Poppins', sans-serif;
+  background: linear-gradient(#30142b, #2772a1);
+}
+
 .content {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 10px;
+}
+
+.v-card {
+  position: relative;
+  z-index: 1;
+  text-align: center;
   padding: 20px;
+  background: rgba(0, 0, 0, .5);
+  box-sizing: border-box;
+  box-shadow: 0 15px 25px rgba(0, 0, 0, .6);
+  border-radius: 10px;
+}
+
+.v-card-title {
+  color: white;
+}
+
+.v-card-text {
+  color: white;
+}
+
+.info-tab .v-card-title,
+.info-tab .v-card-text {
+  color: white;
+}
+
+.v-card-title span {
+  font-weight: 600;
+}
+
+.v-card .v-btn {
+  color: #289bb8;
+  transition: .5s;
+}
+
+.v-card .v-btn:hover {
+  background: #289bb8;
+  color: #fff;
+  border-radius: 5px;
+  box-shadow: 0 0 5px #289bb8, 0 0 25px #289bb8, 0 0 50px #289bb8, 0 0 100px #289bb8;
+}
+
+.v-card .v-btn span {
+  position: absolute;
+  display: block;
+}
+
+.v-card .v-btn span:nth-child(1) {
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #289bb8);
+  animation: btn-anim1 1s linear infinite;
+}
+
+@keyframes btn-anim1 {
+  0% {
+    left: -100%;
+  }
+  50%, 100% {
+    left: 100%;
+  }
+}
+
+.v-card .v-btn span:nth-child(2) {
+  top: -100%;
+  right: 0;
+  width: 2px;
+  height: 100%;
+  background: linear-gradient(180deg, transparent, #289bb8);
+  animation: btn-anim2 1s linear infinite;
+  animation-delay: .25s;
+}
+
+@keyframes btn-anim2 {
+  0% {
+    top: -100%;
+  }
+  50%, 100% {
+    top: 100%;
+  }
+}
+
+.v-card .v-btn span:nth-child(3) {
+  bottom: 0;
+  right: -100%;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(270deg, transparent, #289bb8);
+  animation: btn-anim3 1s linear infinite;
+  animation-delay: .5s;
+}
+
+@keyframes btn-anim3 {
+  0% {
+    right: -100%;
+  }
+  50%, 100% {
+    right: 100%;
+  }
+}
+
+.v-card .v-btn span:nth-child(4) {
+  bottom: -100%;
+  left: 0;
+  width: 2px;
+  height: 100%;
+  background: linear-gradient(360deg, transparent, #289bb8);
+  animation: btn-anim4 1s linear infinite;
+  animation-delay: .75s;
+}
+
+@keyframes btn-anim4 {
+  0% {
+    bottom: -100%;
+  }
+  50%, 100% {
+    bottom: 100%;
+  }
 }
 </style>
