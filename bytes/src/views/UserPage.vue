@@ -9,25 +9,21 @@
 
       <div class="d-flex flex-row">
         <!-- Admin Section -->
-        <div class="d-flex flex-column">
+        <div class="d-flex flex-column section">
           <button class="btn" prepend-icon="mdi-account" @click="tab = 'option-1'">Admin</button>
-          <v-card v-if="tab === 'option-1'" flat>
+          <v-card v-show="tab === 'option-1'" flat>
             <v-card-text>
-              <p>Admins have full access to manage all user accounts within the system.</p>
-                <p>They can add, edit, or delete account details, ensuring data accuracy.</p>
-              <p class="mb-0">Admins are also able to generate, view, and export comprehensive reports for analysis.</p>
+              <p class="mb-0">Admins have full access to manage all user accounts within the system. They can add, edit, or delete account details, ensuring data accuracy. Admins are also able to generate, view, and export comprehensive reports for analysis.</p>
             </v-card-text>
           </v-card>
         </div>
 
         <!-- User Section -->
-        <div class="d-flex flex-column">
+        <div class="d-flex flex-column section">
           <button class="btn" prepend-icon="mdi-lock" @click="tab = 'option-2'">User</button>
-          <v-card v-if="tab === 'option-2'" flat>
+          <v-card v-show="tab === 'option-2'" flat>
             <v-card-text>
-              <p>Users can view and update their personal profiles and account information.</p>
-              <p>They have access to track their account status, activities, and transaction history.</p>
-              <p class="mb-0">Users can request changes or support through the system's integrated help desk.</p>
+              <p class="mb-0">Users can view and update their personal profiles and account information. They have access to track their account status, activities, and transaction history. Users can request changes or support through the system's integrated help desk.</p>
             </v-card-text>
           </v-card>
         </div>
@@ -141,8 +137,8 @@ html, body {
 }
 
 .v-card {
-  width: 72%;
-  border-radius: 15px;
+  width: 75%;
+  border-radius: 10px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
@@ -152,5 +148,10 @@ html, body {
 
 .text-h5 {
   font-weight: 800;
+}
+
+.section {
+  flex: 1;
+  min-width: 0;
 }
 </style>

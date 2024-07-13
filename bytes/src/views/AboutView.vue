@@ -1,6 +1,7 @@
 <template>
   <div>
-    <page-header />
+    <PageHeader/>
+
     <div :style="mainContentStyle">
       <div class="about">
         <h1 class="page-header">Bytes Touch Log</h1>
@@ -24,6 +25,7 @@
         </p>
       </div>
     </div>
+
   </div>
 </template>
 
@@ -34,14 +36,21 @@ export default {
   components: {
     PageHeader
   },
+  data() {
+    return {
+      backgroundImage: "https://cdn.vuetifyjs.com/images/backgrounds/vbanner.jpg"
+    };
+  },
   computed: {
     mainContentStyle() {
       return {
+        background: `url(${this.backgroundImage})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        minHeight: 'calc(100vh - 64px)', // Adjusted to accommodate the header height
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
-        minHeight: 'calc(100vh - 64px)', // Adjusted to accommodate the header height
-        background: 'linear-gradient(to bottom, navy, white)',
         padding: '20px'
       };
     }
@@ -53,19 +62,25 @@ export default {
 .about {
   margin: 20px;
   padding: 20px;
-  background-color: #f0f0f0;
-  border-radius: 8px;
+  background-color: rgba(0, 0, 0, 0.5); /* Updated background color with transparency */
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
 }
 
 .about h1 {
-  font-size: 24px;
-  margin-bottom: 10px;
+  font-size: 32px; /* Increased font size */
+  color: #1e88e5; /* Updated color */
+  margin-bottom: 30px;
+  text-align: center;
+  font-family: 'Arial', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 .about p {
-  font-size: 16px;
-  line-height: 1.6;
+  font-size: 18px; /* Increased font size */
+  line-height: 1.8; /* Adjusted line height */
+  color: #fff; /* Changed text color to white */
 }
 
 .about ul {
@@ -74,12 +89,23 @@ export default {
 }
 
 .page-header {
-  font-size: 32px;
-  color: #1e88e5;
-  margin-bottom: 30px;
+  font-size: 40px; /* Increased font size */
+  color: #fff; /* Changed text color to white */
+  margin-bottom: 50px; /* Increased margin */
   text-align: center;
   font-family: 'Arial', sans-serif;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Poppins', sans-serif;
+  background: linear-gradient(#30142b, #2772a1);
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 </style>

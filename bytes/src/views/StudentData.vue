@@ -29,7 +29,10 @@
             <v-card v-if="selectedStudent" class="form idle" elevation="2">
               <v-card-title class="d-flex justify-space-between align-center">
                 <span>Student FA {{ selectedStudent.fname }} {{ selectedStudent.lname }}</span>
-                <v-btn color="success" @click="openFormDialog">Upload</v-btn>
+                <div>
+                  <v-btn color="primary" @click="editStudentFA">Edit</v-btn>
+                  <v-btn color="success" @click="openFormDialog" class="ml-2">Upload</v-btn>
+                </div>
               </v-card-title>
               <v-card-text>
                 <v-data-table
@@ -39,6 +42,10 @@
                   :header-props="{ color: 'white', class: 'blue-grey darken-1' }"
                 >
                 </v-data-table>
+                <!-- Generate Attendance Table Button -->
+                <v-btn color="primary" @click="openGenerateTableDialog" class="mt-4">
+                  Generate Attendance Table
+                </v-btn>
               </v-card-text>
             </v-card>
           </v-col>
@@ -67,9 +74,40 @@
         <v-dialog v-model="formDialog" max-width="500px">
           <v-card class="form idle" elevation="2">
             <v-card-title>
-              <span class="text-h5 white-text">Add New Student FA</span>
+              <span class="text-h5 white-text">{{ dialogTitle }}</span>
             </v-card-title>
-            <v-card-text>
+            <v-card-text v-if="dialogType === 'upload'">
+              <v-container>
+                <v-row>
+                  <v-col cols="12">
+                    <!-- Upload fingerprint -->
+                    <v-btn icon large color="primary">
+                      <v-icon>mdi-fingerprint</v-icon>
+                    </v-btn>
+                    <span class="text-h6 white--text">Upload fingerprint</span>
+                  </v-col>
+                  <v-col cols="12">
+                    <!-- Upload student data -->
+                    <v-btn icon large color="primary">
+                      <v-icon>mdi-file</v-icon>
+                    </v-btn>
+                    <span class="text-h6 white--text">Upload student data</span>
+                  </v-col>
+                </v-row>
+              </v-container>
+            </v-card-text>
+            <v-card-text v-else-if="dialogType === 'generateTable'">
+              <v-container>
+                <v-row>
+                  <v-col cols="12">
+                    <span class="text-h6 white--text">Select your fines:</span>
+                    <!-- List of fines/events -->
+                    <v-select v-model="selectedFine" :items="fineOptions" label="Select fines" outlined></v-select>
+                  </v-col>
+                </v-row>
+              </v-container>
+            </v-card-text>
+            <v-card-text v-else>
               <v-container>
                 <v-row>
                   <v-col cols="12">
@@ -90,9 +128,11 @@
                 </v-row>
               </v-container>
             </v-card-text>
-            <v-card-actions>
+            <v-card-actions v-if="dialogType !== 'upload'">
               <v-spacer></v-spacer>
-              <v-btn color="primary" @click="saveNewFA">Save</v-btn>
+              <v-btn color="primary" @click="dialogType === 'generateTable' ? generateAttendanceTable() : saveNewFA">
+                {{ dialogType === 'generateTable' ? 'Generate Table' : 'Save' }}
+              </v-btn>
               <v-btn color="secondary" @click="closeFormDialog">Cancel</v-btn>
             </v-card-actions>
           </v-card>
@@ -144,6 +184,9 @@ export default {
         { event: 'Kasadya', date: '2024-06-20', login: '10:00 AM', logout: '12:00 PM', allFund: '150' }
       ],
       selectedStudent: null,
+      dialogType: 'upload', // Set default dialog type to upload
+      fineOptions: ['Orientation', 'Acquaintance', 'Kasadya'], // Example list of fines/events
+      selectedFine: null,
     };
   },
   computed: {
@@ -158,10 +201,18 @@ export default {
         backgroundPosition: 'center',
         padding: '20px',
       };
+    },
+    dialogTitle() {
+      return this.dialogType === 'upload' ? 'Upload Options' : 'Add New Student FA';
     }
   },
   methods: {
     openFormDialog() {
+      this.dialogType = 'upload';
+      this.formDialog = true;
+    },
+    openGenerateTableDialog() {
+      this.dialogType = 'generateTable';
       this.formDialog = true;
     },
     closeFormDialog() {
@@ -186,6 +237,14 @@ export default {
     },
     selectStudent(student) {
       this.selectedStudent = student;
+    },
+    generateAttendanceTable() {
+      // Logic to generate attendance table based on selected fines
+      console.log('Generating attendance table with fines:', this.selectedFine);
+      this.closeFormDialog();
+    },
+    editStudentFA() {
+      console.log('Editing student FA logic here');
     }
   }
 };
