@@ -1,0 +1,15 @@
+{
+  "name": "BytesTouchLog",
+  "version": "1.0.0",
+  "description": "CAPSTONE 2",
+  "scripts": {
+    "bytes": "cd bytes && npm run serve",
+    "server": "cd server && npm start",
+    "all": "npm run bytes && server",
+    "test": "cd server && cd src && cd test && node testhash.js"
+  },
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "bluebird": "^3.7.2"
+  }
+}

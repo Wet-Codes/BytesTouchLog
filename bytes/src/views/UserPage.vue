@@ -2,13 +2,15 @@
   <page-header />
   <div :style="backgroundStyle" class="main-content idle">
     <v-card class="form idle">
-      
       <v-toolbar color="primary">
-        <v-toolbar-title>User Profile</v-toolbar-title>
+
+      <v-toolbar-title>User Profile</v-toolbar-title>
+
       </v-toolbar>
 
       <div class="d-flex flex-row">
         <!-- Admin Section -->
+        
         <div class="d-flex flex-column section">
           <button class="btn" prepend-icon="mdi-account" @click="tab = 'option-1'">Admin</button>
           <v-card v-show="tab === 'option-1'" flat>
@@ -19,6 +21,7 @@
         </div>
 
         <!-- User Section -->
+
         <div class="d-flex flex-column section">
           <button class="btn" prepend-icon="mdi-lock" @click="tab = 'option-2'">User</button>
           <v-card v-show="tab === 'option-2'" flat>
@@ -27,8 +30,9 @@
             </v-card-text>
           </v-card>
         </div>
-      </div>
-    </v-card>
+
+        </div>
+      </v-card>
   </div>
 </template>
 

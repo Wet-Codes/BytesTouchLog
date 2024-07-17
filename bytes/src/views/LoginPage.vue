@@ -3,11 +3,17 @@
 
     <div :style="backgroundStyle" id="bp"> <!-- Login Page Body -->
       <div class="form">
-        <form class="login-form">
+        <form class="login-form"  @submit.prevent="login">
           <h2>Login</h2>
-          <input type="text" v-model="U" placeholder="Username" required />
-          <input type="password" v-model="P" placeholder="Password" required/>
-          
+            <div>
+              <input type="text" v-model="User" placeholder="Username" required />
+              <p v-if="errors.username" class="error">{{ errors.username }}</p>
+           </div>
+           <div>
+             <input type="password" v-model="Pass" placeholder="Password" required/>
+             <p v-if="errors.password" class="error">{{ errors.password }}</p>
+           </div>
+
             <button class="btn" dark @click="login" rounded="xl" size="x-large" block>
             <span></span>
             <span></span>
@@ -17,7 +23,7 @@
           </button>
           <p class="message">Not an Admin? let an admin know in the <a href="/#/admin">Admin Tab</a></p>
         </form>
-        <p v-if="message">{{ message }}</p>
+        
       </div>
     </div>
 
@@ -31,33 +37,43 @@
     data() {
       return {
         backgroundImage: "https://cdn.vuetifyjs.com/images/backgrounds/vbanner.jpg",
-      U:'',
-      P:''
+      User:'',
+      Pass:'',
+      errors: {}
       };
     },
+    watch: {
+  User() {
+    this.errors.username = null;
+  },
+  Pass() {
+    this.errors.password = null;
+  }
+},
     methods: {
 
-
-      
-    async login() {
-     
-        try {
-          const response = await AuthServices.login({
-          U: this.U,
-          P: this.P,
-          message:''
+      async login() {
+      this.errors = {}; // Reset errors before new attempt
+      try {
+        const response = await AuthServices.login({
+          username: this.User,
+          password: this.Pass,
         });
-        this.$store.dispatch('setToken', response.data.token)
-        this.$store.dispatch('setUser', response.data.user)
-
-
-       // this.message = response.data.message;
-       // this.$router.push('/admin');
+        this.$store.dispatch('setToken', response.data.token);
+        this.$store.dispatch('setUser', response.data.user);
+        this.$router.push('/admin');
+        // Handle successful login, for example, redirect to another page
       } catch (error) {
-        this.message = error.response.data.error;
-        console.error('Login failed', error);
-        alert('Login failed. Please check your credentials and try again.');
-      
+        if (error.response && error.response.data && error.response.data.error) {
+          const errorMessage = error.response.data.error;
+          if (errorMessage.includes('Username')) {
+            this.errors.username = errorMessage;
+          } else if (errorMessage.includes('Password')) {
+            this.errors.password = errorMessage;
+          }
+        } else {
+          alert('An unexpected error occurred.');
+        }
       }
     }
         
@@ -133,6 +149,13 @@
     outline: none;
     background: transparent;
   }
+
+  .form .error {
+  color: red;
+  margin: 0 0 10px;
+  font-size: 12px;
+}
+
   h2 {
     color: white;
   }

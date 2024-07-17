@@ -1,48 +1,48 @@
-const Promise = require('bluebird')
-const bcrypt = Promise.promisifyAll(require('bcrypt-nodejs'))
+const Promise = require('bluebird');
+const bcrypt = Promise.promisifyAll(require('bcrypt-nodejs'));
 
-// for hashing the password 
-function hashPassword (user //,options    
-) {
-    const SALT_FACTOR = 8
+// Function to hash the password 
+function hashPassword(user) {
+    const SALT_FACTOR = 8;
 
-    if(!user.changed('password')){
+    if (!user.changed('password')) {
         return;
     }
 
+    console.log('Hashing password:', user.password); // Log password before hashing
+
     return bcrypt
     .genSaltAsync(SALT_FACTOR)
-    .then(salt => bcrypt.hashAsync(user.password, salt, null))
-    .then(hash =>{
-        user.setDataValue('password', hash)
+    .then(salt => {
+        console.log('Generated salt:', salt); // Log the salt
+        return bcrypt.hashAsync(user.password, salt, null)
     })
+    .then(hash => {
+        console.log('Generated hash:', hash); // Log the hash
+        user.setDataValue('password', hash);
+    });
 }
 
-//start of user model
 module.exports = (sequelize, DataTypes) => {
-
-// Defines the user contains, username and Password
     const User = sequelize.define('User', {
         username: {
-         type: DataTypes.STRING,
-         allowNull: false,
-         unique: true
+            type: DataTypes.STRING,
+            unique: true
         },
-        password:  DataTypes.STRING,
-        allowNull: false
- 
-    },// const user
-        { //hashing the password
-            hooks:{
-                beforeCreate: hashPassword,
-                beforeUpdate: hashPassword,
-                beforeSave: hashPassword
-            }
-    }) 
+        password: DataTypes.STRING,
+    }, {
+        hooks: {
+            beforeCreate: hashPassword,
+            beforeUpdate: hashPassword
+        }
+    });
 
-//Encrypting the password  (hashing the password)
-    User.prototype.comparePassword = function (password) {
-        return bcrypt.compareAsync(password, this.password)
-    }
-    return User
-}
+    // Correctly comparing the password
+    User.prototype.comparePassword = function(password) {
+        console.log('Comparing entered password:', password); // Log entered password
+        console.log('With stored hashed password:', this.password); // Log stored hash
+        return bcrypt.compareAsync(password, this.password);
+    };
+
+    return User;
+};

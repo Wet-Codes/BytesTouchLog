@@ -6,7 +6,6 @@ const Login = Joi.object({
   //username
   username: Joi.string().min(3).required()
   .messages({
-    'string.base': 'Username should be a type of text',
     'string.empty': 'Username cannot be empty',
     'string.min': 'Username should have a minimum length of {#limit}',
     'any.required': 'Username is required',
@@ -14,7 +13,6 @@ const Login = Joi.object({
   //password
   password: Joi.string().min(8).required()
   .messages({
-    'string.base': 'Password should be a type of text',
     'string.empty': 'Password cannot be empty',
     'string.min': 'Password should have a minimum length of {#limit}',
     'any.required': 'Password is required',

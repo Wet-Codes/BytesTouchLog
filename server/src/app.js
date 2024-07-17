@@ -51,21 +51,20 @@ sequelize.sync()
         //console.log('Sequelize models:', sequelize.models);
         //console.log(User === sequelize.models.User); // Should log `true`
         
-        const existingUser = await User.findOne({ where: { username: 'admin' } });
-        if (!existingUser) {
-            await User.create({ username: 'admin', password: '123' });
-            
-            console.log('Database synced and default user created');
-        } else {
-            console.log('Default user already exists');
+        
+        const existingUser = await User.findOne({ where: { username: 'admin'} });
+        if (existingUser) {
+          await existingUser.destroy();
+          console.log('Existing user destroyed');
         }
-    } catch (error) {
+        const newUser = await User.create({ username: 'admin', password: '2024BytesLog!' });
+        console.log('New user created with hashed password:', newUser.password);
+        console.log('Database synced and default user created');
+      } catch (error) {
         console.error('Error checking or creating default user:', error);
-    }
-
-
-  });
+      }
+    });
+    
     app.listen(process.env.PORT || 2002, () => {
       console.log('SERVER STARTED ON PORT ' + config.port)
     })
-
