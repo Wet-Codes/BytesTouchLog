@@ -2,13 +2,14 @@
   <v-toolbar :elevation="8" dark prominent style="background-color: navy;">
     <v-toolbar-items>
       <v-btn :to="{ name: 'user' }" class="toolbar-btn">
-        <h3>user</h3>
+        <img src="https://img.icons8.com/ios-filled/50/ffffff/user.png" alt="Account Icon" class="icon">
       </v-btn>
     </v-toolbar-items>
 
     <v-toolbar-items>
       <v-btn :to="{ name: 'about' }" class="toolbar-btn">
-        <h3>About</h3>
+        <img src="https://img.icons8.com/ios-filled/50/ffffff/info.png" alt="About Icon" class="icon"> <!-- Updated to About icon -->
+        <span class="toolbar-text">About</span>
       </v-btn>
     </v-toolbar-items>
 
@@ -39,5 +40,9 @@ export default {
 .bytesbutton {
   color: white;
   font-family: 'Times New Roman', Times, serif;
+}
+.icon {
+  width: 24px; /* Adjust size as needed */
+  height: 24px; /* Adjust size as needed */
 }
 </style>

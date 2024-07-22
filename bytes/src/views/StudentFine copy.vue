@@ -7,8 +7,9 @@
         <v-row>
           <v-col cols="4" v-for="(fine, index) in studentFines" :key="index">
             <v-card class="fine-card">
-              <v-card-title class="event-title white--text">{{ fine.event }}</v-card-title>
+              <v-card-title class="white--text">{{ fine.name }}</v-card-title>
               <v-card-text class="white--text">
+                <div>Event: {{ fine.event }}</div>
                 <div>Fee per Entry: {{ fine.feePerEntry }}</div>
                 <div>Total Fee: {{ fine.totalFee }}</div>
                 <div>Date: {{ fine.date }}</div>
@@ -36,6 +37,7 @@
             <v-card-title>Add Student Fine</v-card-title>
             <v-card-text>
               <v-form ref="form">
+                <v-text-field label="Name" v-model="newFine.name"></v-text-field>
                 <v-text-field label="Event" v-model="newFine.event"></v-text-field>
                 <v-text-field label="Fee per Entry" v-model="newFine.feePerEntry"></v-text-field>
                 <v-text-field label="Total Fee" v-model="newFine.totalFee"></v-text-field>
@@ -57,6 +59,7 @@
             <v-card-title>Edit Student Fine</v-card-title>
             <v-card-text>
               <v-form ref="editForm">
+                <v-text-field label="Name" v-model="editedFine.name"></v-text-field>
                 <v-text-field label="Event" v-model="editedFine.event"></v-text-field>
                 <v-text-field label="Fee per Entry" v-model="editedFine.feePerEntry"></v-text-field>
                 <v-text-field label="Total Fee" v-model="editedFine.totalFee"></v-text-field>
@@ -87,21 +90,23 @@ export default {
       addDialog: false,
       editDialog: false,
       newFine: {
+        name: '',
         event: '',
         feePerEntry: '',
         totalFee: '',
         date: ''
       },
       editedFine: {
+        name: '',
         event: '',
         feePerEntry: '',
         totalFee: '',
         date: ''
       },
       studentFines: [
-        { event: 'Orientation', feePerEntry: '100', totalFee: '1000', date: '2024-06-01' },
-        { event: 'Acquaintance', feePerEntry: '200', totalFee: '2000', date: '2024-06-15' },
-        { event: 'Kasadya', feePerEntry: '150', totalFee: '1500', date: '2024-06-20' }
+        { name: 'Al-shiolla Haron', event: 'Orientation', feePerEntry: '100', totalFee: '1000', date: '2024-06-01' },
+        { name: 'Aiman Pumbaya', event: 'Acquaintance', feePerEntry: '200', totalFee: '2000', date: '2024-06-15' },
+        { name: 'Sodais Macapantao', event: 'Kasadya', feePerEntry: '150', totalFee: '1500', date: '2024-06-20' }
       ],
       editIndex: null
     };
@@ -130,7 +135,7 @@ export default {
     },
     addFine() {
       this.studentFines.push({ ...this.newFine });
-      this.newFine = { event: '', feePerEntry: '', totalFee: '', date: '' };
+      this.newFine = { name: '', event: '', feePerEntry: '', totalFee: '', date: '' };
       this.closeAddDialog();
     },
     editFine(index) {

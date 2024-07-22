@@ -5,6 +5,8 @@ import AdminDashboard from '../views/AdminDashboard.vue';
 import StudentData from '../views/StudentData.vue';
 import StudentFine from '../views/StudentFine.vue';
 import AboutView from '../views/AboutView.vue';
+import AttendanceHistory from '@/views/AttendanceHistory.vue'
+
 
 const routes = [
   {
@@ -54,7 +56,13 @@ const routes = [
     path: '/application-status',
     name: 'Application Status',
     component: StudentData
-  }
+  },
+
+  {
+    path: '/attendance-history',
+    name: 'attendance-history',
+    component: AttendanceHistory
+  },
 ];
 
 const router = createRouter({

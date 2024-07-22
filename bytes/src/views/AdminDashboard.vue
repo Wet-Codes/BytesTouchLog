@@ -2,18 +2,82 @@
   <div>
     <page-header />
     <div :style="mainContentStyle">
-      <v-card class="form idle" elevation="2">
-        <v-card-title>
-          <h1 class="text-h5">Admin Dashboard</h1>
-        </v-card-title>
-        <v-card-text class="white-text">
-          <p>Welcome to the admin dashboard. Here you can manage users, view reports, and perform other administrative tasks.</p>
-        </v-card-text>
-        <v-card-actions>
-          <v-btn color="primary" @click="navigateTo('manage-users')">Student Data</v-btn>
-          <v-btn color="secondary" @click="navigateTo('view-reports')">Student Fines</v-btn>
-        </v-card-actions>
-      </v-card>
+      <v-container>
+        <v-row>
+          <!-- Main Dashboard Card (Left Side) -->
+          <v-col cols="6" class="d-flex align-center">
+            <v-card class="form idle" elevation="2">
+              <v-card-title>
+                <h1 class="text-h5">Admin Dashboard</h1>
+              </v-card-title>
+              <v-card-text class="white-text">
+                <p>Welcome to the admin dashboard. Here you can manage users, view reports, and perform other administrative tasks.</p>
+              </v-card-text>
+              <v-card-actions>
+                <v-btn class="small-button" color="primary" @click="navigateTo('manage-users')">Student Data</v-btn>
+                <v-spacer></v-spacer>
+                <v-btn class="small-button" color="secondary" @click="navigateTo('view-reports')">Student Fines</v-btn>
+              </v-card-actions>
+            </v-card>
+          </v-col>
+
+          <!-- Right Side -->
+          <v-col cols="6">
+            <v-row>
+              <!-- Note Card (Top) -->
+              <v-col cols="12" class="d-flex justify-center">
+                <v-card class="note-card" elevation="2">
+                  <v-card-title>
+                    <h3 class="text-h6">Note</h3>
+                  </v-card-title>
+                  <v-card-text>
+                    <v-textarea
+                      rows="3"
+                      placeholder="Leave a note here..."
+                      class="note-textarea"
+                    ></v-textarea>
+                  </v-card-text>
+                  <v-card-actions>
+                    <v-btn class="small-button" color="primary" @click="saveNote">Save Note</v-btn>
+                  </v-card-actions>
+                </v-card>
+              </v-col>
+            </v-row>
+
+            <v-row>
+              <!-- Data Statistics Card (Below Note) -->
+              <v-col cols="12" class="d-flex justify-center">
+                <v-card class="form idle" elevation="2">
+                  <v-card-title>
+                    <h2 class="text-h6">Data Statistics about the Last Attendance</h2>
+                  </v-card-title>
+                  <v-card-text>
+                    <p class="white-text">Here you can find the data statistics related to the last attendance records.</p>
+                    <v-divider></v-divider>
+                    <v-list>
+                      <v-list-item>
+                        <v-list-item-content>
+                          <v-list-item-title>Attendance Rate:</v-list-item-title>
+                          <v-list-item-subtitle>85%</v-list-item-subtitle>
+                        </v-list-item-content>
+                      </v-list-item>
+                      <v-list-item>
+                        <v-list-item-content>
+                          <v-list-item-title>Total Events:</v-list-item-title>
+                          <v-list-item-subtitle>12</v-list-item-subtitle>
+                        </v-list-item-content>
+                      </v-list-item>
+                    </v-list>
+                  </v-card-text>
+                  <v-card-actions class="data-statistics-actions">
+                    <v-btn class="small-button" color="success" @click="navigateTo('attendance-history')">Attendance History Log</v-btn>
+                  </v-card-actions>
+                </v-card>
+              </v-col>
+            </v-row>
+          </v-col>
+        </v-row>
+      </v-container>
     </div>
   </div>
 </template>
@@ -43,6 +107,10 @@ export default {
   methods: {
     navigateTo(page) {
       this.$router.push({ name: page });
+    },
+    saveNote() {
+      // Add logic to save the note
+      alert('Note saved!');
     }
   }
 };
@@ -71,12 +139,27 @@ html, body {
   position: relative;
   z-index: 1;
   text-align: center;
-  width: 600px;
-  padding: 40px;
+  width: 100%;
+  max-width: 600px;
+  padding: 10px;
   background: rgba(0, 0, 0, .5);
   box-sizing: border-box;
   box-shadow: 0 15px 25px rgba(0, 0, 0, .6);
   border-radius: 10px;
+}
+
+.note-card {
+  width: 100%;
+  max-width: 600px;
+  padding: 1px;
+  background: rgba(0, 0, 0, .6);
+  box-shadow: 0 8px 12px rgba(0, 0, 0, .5);
+  border-radius: 8px;
+}
+
+.note-textarea {
+  background: rgba(0, 0, 0, .7);
+  color: white;
 }
 
 .v-card-title {
@@ -87,36 +170,40 @@ html, body {
   color: white;
 }
 
-.text-h5 {
+.text-h5, .text-h6 {
   font-weight: 600;
 }
 
-.btn {
+.small-button {
+  padding: 1px 10px; /* Smaller padding */
+  font-size: 14px; /* Smaller font size */
+}
+
+.v-btn {
   position: relative;
   display: inline-block;
-  padding: 10px 20px;
   color: #289bb8;
-  font-size: 16px;
   text-decoration: none;
   overflow: hidden;
-  transition: .5s;
-  margin-top: 15px;
+  transition: 0.3s ease;
   letter-spacing: 2px;
+  border-radius: 5px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-.btn:hover {
+.v-btn:hover {
   background: #289bb8;
   color: #fff;
-  border-radius: 5px;
-  box-shadow: 0 0 5px #289bb8, 0 0 25px #289bb8, 0 0 50px #289bb8, 0 0 100px #289bb8;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3), 0 0 20px #289bb8;
+  transform: scale(1.05);
 }
 
-.btn span {
+.v-btn span {
   position: absolute;
   display: block;
 }
 
-.btn span:nth-child(1) {
+.v-btn span:nth-child(1) {
   top: 0;
   left: -100%;
   width: 100%;
@@ -134,7 +221,7 @@ html, body {
   }
 }
 
-.btn span:nth-child(2) {
+.v-btn span:nth-child(2) {
   top: -100%;
   right: 0;
   width: 2px;
@@ -153,7 +240,7 @@ html, body {
   }
 }
 
-.btn span:nth-child(3) {
+.v-btn span:nth-child(3) {
   bottom: 0;
   right: -100%;
   width: 100%;
@@ -172,7 +259,7 @@ html, body {
   }
 }
 
-.btn span:nth-child(4) {
+.v-btn span:nth-child(4) {
   bottom: -100%;
   left: 0;
   width: 2px;
