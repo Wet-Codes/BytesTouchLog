@@ -14,7 +14,7 @@
                 <p>Welcome to the admin dashboard. Here you can manage users, view reports, and perform other administrative tasks.</p>
               </v-card-text>
               <v-card-actions>
-                <v-btn class="small-button" color="primary" @click="navigateTo('manage-users')">Student Data</v-btn>
+                <v-btn class="small-button" color="primary" @click="navigateTo('students')">Student Data</v-btn>
                 <v-spacer></v-spacer>
                 <v-btn class="small-button" color="secondary" @click="navigateTo('view-reports')">Student Fines</v-btn>
               </v-card-actions>

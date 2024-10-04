@@ -16,14 +16,14 @@ module.exports = {
             const user = await User.findOne({ where: { username } });
 
             if (!user) {
-                console.log('User not found:', username); // Log if user is not found
+                //console.log('User not found:', username); // Log if user is not found
                 return res.status(403).send({
                     error: 'Unrecognized Username'
                 });
             }
 
             const isPasswordValid = await user.comparePassword(password);
-            console.log(`Password valid: ${isPasswordValid}`); // Log if password is valid
+            //console.log(`Password valid: ${isPasswordValid}`); // Log if password is valid
 
             if (!isPasswordValid) {
                 return res.status(403).send({

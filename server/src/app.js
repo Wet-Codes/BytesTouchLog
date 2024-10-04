@@ -57,9 +57,9 @@ sequelize.sync()
           await existingUser.destroy();
           console.log('Existing user destroyed');
         }
-        const newUser = await User.create({ username: 'admin', password: '2024BytesLog!' });
-        console.log('New user created with hashed password:', newUser.password);
-        console.log('Database synced and default user created');
+         await User.create({ username: 'admin', password: '2024BytesLog!' });
+        //console.log('New user created with hashed password:', newUser.password);
+       //console.log('Database synced and default user created');
       } catch (error) {
         console.error('Error checking or creating default user:', error);
       }
