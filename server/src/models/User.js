@@ -1,5 +1,5 @@
-const Promise = require('bluebird');
-const bcrypt = Promise.promisifyAll(require('bcrypt-nodejs'));
+const Promise = require('bluebird');//
+const bcrypt = Promise.promisifyAll(require('bcrypt-nodejs'));//
 
 // Function to hash the password 
 function hashPassword(user) {

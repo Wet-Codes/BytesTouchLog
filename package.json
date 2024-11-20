@@ -9,7 +9,5 @@
     "test": "cd server && cd src && cd test && node testhash.js"
   },
   "dependencies": {
-    "bcrypt": "^5.1.1",
-    "bluebird": "^3.7.2"
   }
 }

@@ -1,20 +1,19 @@
 
-//Obtain the needed
-const express = require('express')
-const bodyParser = require('body-parser')
-const cors = require('cors')
-const morgan = require('morgan')
+//Import Object
+const express = require('express') // Web Server
+//Request
+const bodyParser = require('body-parser')//JSON BODY REQUEST
+const cors = require('cors') //API SECURE REQUEST
+const morgan = require('morgan') //HTTP REQUEST DEBUG LOG
 
-
-
-//OBTAINING 
+//Import folders
 const config = require('./config/config')
 const {sequelize, User} = require ('./models')
 
 
 
 
-//call for an object
+//use object
 const app = express()
 app.use(morgan('combined'))
 app.use(bodyParser.json())

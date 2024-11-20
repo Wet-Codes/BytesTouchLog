@@ -1,4 +1,4 @@
-const fs = require ('fs') // acrediting file to the system
+const fs = require ('fs') // acredited file to the system
 const path = require ('path') //paths conjuction
 const Sequelize = require('sequelize') //Sequilize object connection to the db
 const config = require('../config/config.js') //Config port
@@ -15,7 +15,7 @@ const sequelize = new Sequelize(
 )
 
 
-//The Js way to acredite the file to the system
+//The Js way to acredited the file to the system
 fs
     .readdirSync(__dirname)
     .filter((file) =>

@@ -12,7 +12,7 @@ app.use(fileUpload());
 module.exports = (app) =>{
      app.post('/',
           ValidateLogin,
-          Authcontroller.Login,
+          Authcontroller.Login
           );
 //Student Model Upload controller
      app.get('/students', studentController.getAllStudents);

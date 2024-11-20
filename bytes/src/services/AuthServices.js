@@ -1,5 +1,5 @@
 import Api from '@/services/Api'
-
+//Services Requested for front End
 export default {
     login (credentials) {
         return Api().post('/', credentials)
