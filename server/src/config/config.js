@@ -1,7 +1,7 @@
 module.exports = {
     port: process.env.DB_PORT || 2002,
     db: {
-      database: process.env.DB_NAME || 'BytesTouchLogs',
+      database: process.env.DB_NAME || 'user_db',
       user: process.env.DB_USER || 'BytesAdmin',
       password: process.env.DB_PASS || '1234',
       options: {

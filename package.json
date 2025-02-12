@@ -9,5 +9,6 @@
     "test": "cd server && cd src && cd test && node testhash.js"
   },
   "dependencies": {
+    "bcrypt-nodejs": "^0.0.3"
   }
 }

@@ -59,22 +59,35 @@
           username: this.User,
           password: this.Pass,
         });
-        this.$store.dispatch('setToken', response.data.token);
+        console.log('Login response:', response); //debug
         this.$store.dispatch('setUser', response.data.user);
         this.$router.push('/admin');
         // Handle successful login, for example, redirect to another page
-      } catch (error) {
-        if (error.response && error.response.data && error.response.data.error) {
-          const errorMessage = error.response.data.error;
-          if (errorMessage.includes('Username')) {
-            this.errors.username = errorMessage;
-          } else if (errorMessage.includes('Password')) {
-            this.errors.password = errorMessage;
-          }
+      }catch (error) {
+    //console.error('Login error:', error); // Log the error for debugging
+    if (error.response) {
+        // If error.response exists, handle it
+        const errorMessage = error.response.data?.error; // Use optional chaining for safety
+
+        if (errorMessage) {
+            // Check if the error message contains specific keywords
+            if (errorMessage.includes('Unrecognized Username')) {
+                this.errors.username = errorMessage; // Set error for username
+            } else if (errorMessage.includes('do not match')) {
+                this.errors.password = errorMessage; // Set error for password
+            } else {
+                alert(errorMessage); // Alert for any other error messages
+            }
         } else {
-          alert('An unexpected error occurred.');
+            alert('An unexpected error occurred.'); // Alert for unexpected error
         }
-      }
+    } else {
+        // Handle cases where error.response is undefined
+        alert('Login error: ' + error.message); // Show the error message
+    }
+}
+      
+
     }
         
 

@@ -9,7 +9,7 @@ function hashPassword(user) {
         return;
     }
 
-   // console.log('Hashing password:', user.password); // Log password before hashing
+   console.log('Hashing password:', user.password); // Log password before hashing
 
     return bcrypt
     .genSaltAsync(SALT_FACTOR)
@@ -18,7 +18,7 @@ function hashPassword(user) {
         return bcrypt.hashAsync(user.password, salt, null)
     })
     .then(hash => {
-       // console.log('Generated hash:', hash); // Log the hash
+       console.log('Generated hash:', hash); // Log the hash
         user.setDataValue('password', hash);
     });
 }
@@ -39,8 +39,8 @@ module.exports = (sequelize, DataTypes) => {
 
     // Correctly comparing the password
     User.prototype.comparePassword = function(password) {
-       // console.log('Comparing entered password:', password); // Log entered password
-       // console.log('With stored hashed password:', this.password); // Log stored hash
+       //console.log('Comparing entered password:', password); // Log entered password
+       //console.log('With stored hashed password:', this.password); // Log stored hash
         return bcrypt.compareAsync(password, this.password);
     };
 

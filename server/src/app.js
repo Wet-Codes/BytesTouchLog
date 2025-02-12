@@ -8,7 +8,7 @@ const morgan = require('morgan') //HTTP REQUEST DEBUG LOG
 
 //Import folders
 const config = require('./config/config')
-const {sequelize, User} = require ('./models')
+const {sequelize} = require ('./models')
 
 
 
@@ -40,30 +40,13 @@ console.log('Back End Start (SYNCING)')
 
 //SYNCING
 sequelize.sync()
-   .then(
-    async () => {
-
-      try {
-        // Logging to verify model import
-        //console.log('User model:', User);
-        //console.log('User methods:', Object.getOwnPropertyNames(User));
-        //console.log('Sequelize models:', sequelize.models);
-        //console.log(User === sequelize.models.User); // Should log `true`
-        
-        
-        const existingUser = await User.findOne({ where: { username: 'admin'} });
-        if (existingUser) {
-          await existingUser.destroy();
-          console.log('Existing user destroyed');
-        }
-         await User.create({ username: 'admin', password: '2024BytesLog!' });
-        //console.log('New user created with hashed password:', newUser.password);
-       //console.log('Database synced and default user created');
-      } catch (error) {
-        console.error('Error checking or creating default user:', error);
-      }
-    });
     
     app.listen(process.env.PORT || 2002, () => {
       console.log('SERVER STARTED ON PORT ' + config.port)
+      console.log("")
+      console.log("--Some Random Prep Info--")
     })
+    setTimeout(() => {
+      console.log("")
+      console.log('             -READY TO START-');
+  }, 2000);
