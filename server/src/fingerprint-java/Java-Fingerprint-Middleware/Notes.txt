@@ -1,0 +1,9 @@
+Recompile after every changes
+javac -cp "lib/dpuareu.jar" FingerprintMiddleware.java
+
+
+and runs 
+java -cp ".;lib/dpuareu.jar" -Djava.library.path="lib" FingerprintMiddleware
+ 
+
+ to start the middle ware
