@@ -6,7 +6,7 @@ import StudentData from '../views/StudentData.vue';
 import StudentFine from '../views/StudentFine.vue';
 import AboutView from '../views/AboutView.vue';
 import AttendanceHistory from '@/views/AttendanceHistory.vue'
-
+import Fp from "../views/CaptureFingerPrint.vue"
 
 const routes = [
   {
@@ -63,6 +63,12 @@ const routes = [
     name: 'attendance-history',
     component: AttendanceHistory
   },
+
+  {
+    path: '/fp',
+    name: "FingerPrint",
+    component: Fp
+  }
 ];
 
 const router = createRouter({

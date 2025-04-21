@@ -2,6 +2,7 @@
 //Import Object
 const express = require('express') // Web Server
 //Request
+const fileUpload = require('express-fileupload'); // ✅ File upload middleware
 const bodyParser = require('body-parser')//JSON BODY REQUEST
 const cors = require('cors') //API SECURE REQUEST
 const morgan = require('morgan') //HTTP REQUEST DEBUG LOG
@@ -14,9 +15,14 @@ const {sequelize} = require ('./models')
 
 
 //use object
+
 const app = express()
 app.use(morgan('combined'))
-app.use(bodyParser.json())
+app.use(fileUpload()); // ✅ Enable file uploads
+//Increase Because its sucks
+app.use(bodyParser.json({ limit: "50mb" }));
+app.use(bodyParser.urlencoded({ limit: "50mb", extended: true }));
+
 app.use(cors())
 
 require('./routes')(app)

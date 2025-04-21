@@ -3,6 +3,7 @@ const { ValidateLogin } = require ('./policies/AuthPolicy.js')
 const express = require('express');
 const fileUpload = require('express-fileupload');
 const studentController = require('./controllers/AuthUpload');
+const FingerprintController = require('./controllers/FingerprintController');
 
 const app = express();
 //Upload handling
@@ -22,4 +23,9 @@ module.exports = (app) =>{
 
 //Upload Controller
      app.post('/students/upload', studentController.upload);
+
+//FingerPrint Controller
+     app.post("/fingerprint/upload", FingerprintController.uploadFingerprint);
+     app.post("/fingerprint/authorize", FingerprintController.authorizeFingerprint);
+     app.post("/fingerprint/scan", FingerprintController.scanFingerprint);
 }
