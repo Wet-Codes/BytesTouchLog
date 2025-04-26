@@ -7,3 +7,4 @@ java -cp ".;lib/dpuareu.jar" -Djava.library.path="lib" FingerprintMiddleware
  
 
  to start the middle ware
+ http://localhost:8000/readers
