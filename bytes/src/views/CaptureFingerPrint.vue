@@ -19,13 +19,28 @@
       <div v-else>
         <p>Selected Reader: {{ selectedReader }}</p>
 
-        <button class="btn" @click="enrollFingerprint">
-          Enroll Fingerprint
-        </button>
+        <!-- Name input for enrollment -->
+        <div v-if="showNameInput">
+          <input
+            v-model="enrollName"
+            type="text"
+            placeholder="Enter name for enrollment"
+            class="name-input"
+          />
+          <button class="btn" @click="submitEnroll">
+            Submit & Enroll
+          </button>
+        </div>
+        
+        <div v-else>
+          <button class="btn" @click="showEnrollInput">
+            Enroll Fingerprint
+          </button>
 
-        <button class="btn" @click="identifyFingerprint">
-          Identify Fingerprint
-        </button>
+          <button class="btn" @click="identifyFingerprint">
+            Identify Fingerprint
+          </button>
+        </div>
       </div>
 
       <h3>Status: {{ statusMessage }}</h3>
@@ -44,6 +59,8 @@ export default {
       selectedReaderName: "",
       selectedReader: null,
       statusMessage: "Waiting...",
+      showNameInput: false,
+      enrollName: "",
     };
   },
   computed: {
@@ -85,29 +102,48 @@ export default {
         this.statusMessage = "Failed to select reader.";
       }
     },
-    
-    async enrollFingerprint() {
-    try {
-      await fetch("http://localhost:8000/set-action", {
-        method: "POST",
-        body: "enroll",
-      });
-      this.statusMessage = "Waiting for fingerprint to enroll...";
-    } catch (error) {
-      this.statusMessage = "Failed to set enroll action.";
+
+    showEnrollInput() {
+      this.showNameInput = true;
+    },
+
+    async submitEnroll() {
+      if (!this.enrollName) {
+        this.statusMessage = "⚠️ Please enter a name first.";
+        return;
+      }
+      try {
+        // Step 1: Set name
+        await fetch("http://localhost:8000/set-name", {
+          method: "POST",
+          body: this.enrollName,
+        });
+
+        // Step 2: Set action to enroll
+        await fetch("http://localhost:8000/set-action", {
+          method: "POST",
+          body: "enroll",
+        });
+
+        this.statusMessage = "Waiting for fingerprint to enroll...";
+        this.showNameInput = false;
+        this.enrollName = "";
+      } catch (error) {
+        this.statusMessage = "Failed to start enrollment.";
+      }
+    },
+
+    async identifyFingerprint() {
+      try {
+        await fetch("http://localhost:8000/set-action", {
+          method: "POST",
+          body: "identify",
+        });
+        this.statusMessage = "Waiting for fingerprint to identify...";
+      } catch (error) {
+        this.statusMessage = "Failed to set identify action.";
+      }
     }
-  },
-  async identifyFingerprint() {
-    try {
-      await fetch("http://localhost:8000/set-action", {
-        method: "POST",
-        body: "identify",
-      });
-      this.statusMessage = "Waiting for fingerprint to identify...";
-    } catch (error) {
-      this.statusMessage = "Failed to set identify action.";
-    }
-}
 
   },
   mounted() {
@@ -164,5 +200,14 @@ h2 {
   color: white;
   border-radius: 5px;
   box-shadow: 0 0 5px #289bb8, 0 0 25px #289bb8;
+}
+
+/* Name input styling */
+.name-input {
+  width: 80%;
+  margin: 10px auto;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
 }
 </style>
