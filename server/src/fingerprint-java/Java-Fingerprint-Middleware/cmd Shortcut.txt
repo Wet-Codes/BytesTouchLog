@@ -1,0 +1,4 @@
+@echo off
+<insert the code for cmd execution>
+Echo.
+pause

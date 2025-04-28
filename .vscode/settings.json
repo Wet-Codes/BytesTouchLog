@@ -1,0 +1,24 @@
+{
+    "java.project.sourcePaths": [
+        "server\\src\\fingerprint-java\\Java-Fingerprint-Middleware",
+        "server\\src\\fingerprint-java\\UareUSampleJava"
+    ],
+    "java.project.referencedLibraries": [
+        "d:\\Projects\\Visual Studio\\CAPSTONE 2\\BytesTouchLog\\server\\src\\fingerprint-java\\Java\\dpuareu.jar"
+    ],
+    "cSpell.words": [
+        "accomodate",
+        "Capturefinger",
+        "debbug",
+        "digitalpersona",
+        "falsematch",
+        "falsepositive",
+        "fmds",
+        "getcaps",
+        "Hande",
+        "prefmd",
+        "Uare",
+        "uareu",
+        "vgap"
+    ]
+}

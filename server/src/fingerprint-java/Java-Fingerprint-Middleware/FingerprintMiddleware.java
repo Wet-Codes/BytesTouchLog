@@ -1,36 +1,46 @@
+//library
 import com.digitalpersona.uareu.*;
 import com.sun.net.httpserver.HttpServer;
 import com.sun.net.httpserver.HttpExchange;
 
+//java stuff
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.URLDecoder;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Executors;
 
+//public class start
 public class FingerprintMiddleware {
 
+    //private static initializers
     private static com.digitalpersona.uareu.Reader selectedReader;
-    private static final Engine engine = UareUGlobal.GetEngine();
-    private static volatile String pendingAction = null; // "enroll" or "identify"
-    private static volatile boolean readyToScan = false;
-    private static volatile String pendingName = null; // <-- added for enrollment name
-    private static String enrolledName = null;
-    
+    private static boolean readyToScan = false;
+    private static String pendingAction = null;
+    private static String enrollName = "Unknown"; //<- new!
+    private static Engine engine = UareUGlobal.GetEngine();
+    private static int captureFailures = 0;
+
+    //starting code
     public static void main(String[] args) throws Exception {
         HttpServer server = HttpServer.create(new InetSocketAddress(8000), 0);
 
+        //server 
         server.createContext("/readers", FingerprintMiddleware::handleListReaders);
         server.createContext("/select-reader", FingerprintMiddleware::handleSelectReader);
         server.createContext("/set-action", FingerprintMiddleware::handleSetAction);
-        server.createContext("/set-name", FingerprintMiddleware::handleSetName); // New!
-
-        server.setExecutor(null);
+        server.setExecutor(Executors.newFixedThreadPool(4));
+        server.createContext("/enroll-status", FingerprintMiddleware::handleEnrollStatus);
+        server.createContext("/identify-status", FingerprintMiddleware::handleIdentifyStatus);
+        
+        //starting the middleware
         server.start();
         System.out.println("Fingerprint middleware server running on port 8000");
     }
 
-    //Handle List Reader
-    private static void handleListReaders(HttpExchange exchange) throws IOException {
+     //Handle List Reader
+     private static void handleListReaders(HttpExchange exchange) throws IOException {
         try {
             ReaderCollection readers = UareUGlobal.GetReaderCollection();
             readers.GetReaders();
@@ -49,8 +59,8 @@ public class FingerprintMiddleware {
             sendResponse(exchange, 500, "Error listing readers: " + e.getMessage());
         }
     }
-
-    //Handle: select reader
+    
+    //Handle select reader
     private static void handleSelectReader(HttpExchange exchange) throws IOException {
         if (!"POST".equals(exchange.getRequestMethod())) {
             sendResponse(exchange, 405, "Method Not Allowed");
@@ -58,27 +68,13 @@ public class FingerprintMiddleware {
         }
 
         BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody()));
-        String line = reader.readLine();
-        if (line == null) {
-            sendResponse(exchange, 400, "No reader name provided");
-            return;
-        }
-        String selectedName = URLDecoder.decode(line, "UTF-8");
+        String selectedName = URLDecoder.decode(reader.readLine(), "UTF-8");
 
         try {
             if (selectedReader != null && selectedReader.GetDescription().name.equals(selectedName)) {
                 System.out.println("✅ Reader already selected, no need to reselect.");
                 sendResponse(exchange, 200, "Reader already selected and ready.");
                 return;
-            }
-
-            // Close previous reader safely
-            if (selectedReader != null) {
-                try {
-                    selectedReader.Close();
-                } catch (UareUException e) {
-                    e.printStackTrace();
-                }
             }
 
             readyToScan = false;
@@ -107,37 +103,138 @@ public class FingerprintMiddleware {
 
     //Hande : Set action
     private static void handleSetAction(HttpExchange exchange) throws IOException {
+        System.out.println("🌐 Incoming request to /set-action");
+        System.out.println("Request Method: " + exchange.getRequestMethod());
+        System.out.println("Request Headers: " + exchange.getRequestHeaders());
+    
         if (!"POST".equals(exchange.getRequestMethod())) {
             sendResponse(exchange, 405, "Method Not Allowed");
             return;
         }
-
-        BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody()));
+    
+        BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody(), "UTF-8"));
         String line = reader.readLine();
-        if (line == null) {
-            sendResponse(exchange, 400, "No action provided");
-            return;
-        }
-        pendingAction = URLDecoder.decode(line, "UTF-8");
-
-        sendResponse(exchange, 200, "Action set to " + pendingAction);
-    }
-
-    // New: handle set-name
-    private static void handleSetName(HttpExchange exchange) throws IOException {
-        if (!"POST".equals(exchange.getRequestMethod())) {
-            sendResponse(exchange, 405, "Method Not Allowed");
+    
+        if (line == null || line.trim().isEmpty()) {
+            sendResponse(exchange, 400, "Bad Request: Empty action");
+            System.out.println("❌ Received empty action.");
             return;
         }
     
-        BufferedReader reader = new BufferedReader(new InputStreamReader(exchange.getRequestBody()));
-        enrolledName = URLDecoder.decode(reader.readLine(), "UTF-8");
+        String action = URLDecoder.decode(line, "UTF-8");
     
-        System.out.println("✅ Enroll Name Set: " + enrolledName);
-        sendResponse(exchange, 200, "Name set to: " + enrolledName);
+        if (action.startsWith("enroll:")) {
+            pendingAction = "enroll";
+            enrollName = action.substring(7).trim(); // Get everything after "enroll:"
+    
+            if (enrollName.isEmpty()) {
+                sendResponse(exchange, 400, "Bad Request: Enroll name missing");
+                System.out.println("❌ Enroll name missing.");
+                return;
+            }
+    
+            System.out.println("✅ Enroll Name Set: " + enrollName);
+        } else {
+            pendingAction = action.trim();
+            System.out.println("✅ Action set to: " + pendingAction);
+        }
+    
+        sendResponse(exchange, 200, "Action set: " + action);
+    }
+    
+
+    //Handle Enroll
+    private static void handleEnrollStatus(HttpExchange exchange) throws IOException {
+        String response;
+        if (!readyToScan && pendingAction == null) {
+            response = "{\"completed\": true}";
+        } else {
+            response = "{\"completed\": false}";
+        }
+        sendResponse(exchange, 200, response);
+    }
+    
+    // New endpoint for identify-status
+    private static void handleIdentifyStatus(HttpExchange exchange) throws IOException {
+        // For simplicity, just assume that after identification attempt, it will reset
+        String response = "{\"success\": false, \"failed\": true}";  // default response
+    
+        // TODO: Implement real matching results from backend if you want
+    
+        sendResponse(exchange, 200, response);
     }
 
-    //Capturefinger
+
+    // Start Capture
+        private static void startCapture() {
+    new Thread(() -> {
+        try {
+            // Check if the selectedReader is initialized (not null)
+            if (selectedReader == null) {
+                System.out.println("❌ Fingerprint reader is not initialized.");
+                return;  // Early exit if the reader is not initialized.
+            }
+
+            // Try to open the reader
+            try {
+                selectedReader.Open(com.digitalpersona.uareu.Reader.Priority.COOPERATIVE);
+            } catch (Exception e) {
+                System.out.println("❌ Failed to open the fingerprint reader: " + e.getMessage());
+                return;  // Exit if unable to open the reader
+            }
+
+            captureFailures = 0;
+
+            while (readyToScan) {
+                if (pendingAction == null) {
+                    Thread.sleep(500);
+                    continue;
+                }
+
+                if ("enroll".equals(pendingAction)) {
+                    List<Fmd> fingerprintSamples = new ArrayList<>();
+
+                    System.out.println("📥 Starting enrollment process...");
+
+                    while (fingerprintSamples.size() < 4) {
+                        Fid fid = captureFinger(selectedReader);
+                        if (fid != null) {
+                            Fmd fmd = engine.CreateFmd(fid, Fmd.Format.ANSI_378_2004);
+                            fingerprintSamples.add(fmd);
+                            System.out.println("✅ Captured fingerprint " + fingerprintSamples.size() + "/4");
+                        } else {
+                            System.out.println("⚠️ Waiting for a good fingerprint scan...");
+                        }
+
+                        Thread.sleep(500);
+                    }
+
+                    uploadEnrollmentToNode(fingerprintSamples, enrollName);
+                    pendingAction = null;
+                    readyToScan = false;
+                    break;
+                } else if ("identify".equals(pendingAction)) {
+                    Fid fid = captureFinger(selectedReader);
+                    if (fid != null) {
+                        Fmd fmd = engine.CreateFmd(fid, Fmd.Format.ANSI_378_2004);
+                        identifyFingerprintWithNode(fmd);
+                        pendingAction = null;
+                        readyToScan = false;
+                        break;
+                    }
+                    Thread.sleep(500);
+                }
+            }
+
+            selectedReader.Close();  // Close reader after done
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }).start();
+}
+
+
+    //Capture Finger
     private static Fid captureFinger(com.digitalpersona.uareu.Reader reader) {
         try {
             com.digitalpersona.uareu.Reader.CaptureResult result = reader.Capture(
@@ -151,143 +248,83 @@ public class FingerprintMiddleware {
                 if (result.quality == com.digitalpersona.uareu.Reader.CaptureQuality.GOOD && result.image != null) {
                     System.out.println("✅ Good fingerprint captured!");
                     return result.image;
-                } else if (result.quality == com.digitalpersona.uareu.Reader.CaptureQuality.CANCELED) {
-                    System.out.println("⚠️ Capture canceled by user or system.");
-                    return null;
                 } else {
-                    System.out.println("❌ Bad quality fingerprint capture, retrying...");
                     return null;
                 }
             } else {
-                System.out.println("❌ Null result from Capture, retrying...");
                 return null;
             }
-
         } catch (UareUException e) {
             System.out.println("❌ Capture exception: " + e.getMessage());
             return null;
+        } catch (Exception e) {
+            System.out.println("❌ Unexpected capture failure: " + e.getMessage());
+            return null;
         }
     }
-
-    //start capture
-    private static void startCapture() {
-        new Thread(() -> {
-            try {
-                selectedReader.Open(com.digitalpersona.uareu.Reader.Priority.COOPERATIVE);
-                try {
-                    while (readyToScan) {
-                        if (pendingAction == null) {
-                            Thread.sleep(500);
-                            continue;
-                        }
-
-                        Fid fid = captureFinger(selectedReader);
-                        if (fid != null) {
-                            Fmd fmd = engine.CreateFmd(fid, Fmd.Format.ANSI_378_2004);
-
-                            if ("enroll".equals(pendingAction)) {
-                                if (pendingName == null || pendingName.trim().isEmpty()) {
-                                    System.out.println("⚠️ No name provided for enrollment.");
-                                } else {
-                                    uploadFingerprintToNode(fmd, pendingName);
-                                }
-                                pendingAction = null;
-                                pendingName = null;
-                                readyToScan = false;
-                            } else if ("identify".equals(pendingAction)) {
-                                identifyFingerprintWithNode(fmd);
-                                pendingAction = null;
-                                readyToScan = false;
-                            }
-                        } else {
-                            System.out.println("Waiting for a good fingerprint scan...");
-                        }
-
-                        Thread.sleep(500);
-                    }
-                } finally {
-                    selectedReader.Close();
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }).start();
-    }
+   
 
     //Upload Node
-    private static boolean uploadFingerprintToNode(Fmd fmd, String name) {
+    private static void uploadEnrollmentToNode(List<Fmd> samples, String userName) {
         try {
-            String base64Fmd = Base64.getEncoder().encodeToString(fmd.getData());
-            String payload = "{ \"name\": \"" + enrolledName + "\", \"fingerprintMinutiae\": [{ \"Data\": \"" + base64Fmd + "\" }] }";
-
-
             java.net.URL url = new java.net.URL("http://localhost:2002/fingerprint/upload");
-            java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("POST");
-            conn.setRequestProperty("Content-Type", "application/json");
-            conn.setDoOutput(true);
+            java.net.HttpURLConnection con = (java.net.HttpURLConnection) url.openConnection();
+            con.setRequestMethod("POST");
+            con.setRequestProperty("Content-Type", "application/json");
+            con.setDoOutput(true);
 
-            OutputStream os = conn.getOutputStream();
-            os.write(payload.getBytes("UTF-8"));
-            os.close();
+            StringBuilder json = new StringBuilder();
+            json.append("{\"name\":\"").append(userName).append("\",\"fingerprintMinutiae\":[");
 
-            int responseCode = conn.getResponseCode();
-            InputStream is = (responseCode == 200) ? conn.getInputStream() : conn.getErrorStream();
-            BufferedReader reader = new BufferedReader(new InputStreamReader(is));
-            StringBuilder response = new StringBuilder();
-            String line;
-            while ((line = reader.readLine()) != null) {
-                response.append(line);
+            for (int i = 0; i < samples.size(); i++) {
+                Fmd fmd = samples.get(i);
+                json.append("{\"Data\":").append(new String(fmd.getData())).append("}");
+                if (i < samples.size() - 1) json.append(",");
             }
-            System.out.println("Server Response: " + response.toString());
 
-            conn.disconnect();
-            return responseCode == 200;
-        } catch (Exception e) {
+            json.append("]}");
+
+            try (OutputStream os = con.getOutputStream()) {
+                byte[] input = json.toString().getBytes("utf-8");
+                os.write(input, 0, input.length);
+            }
+
+            System.out.println("✅ Enrollment data sent to Node backend.");
+            con.getResponseCode();
+        } catch (IOException e) {
             e.printStackTrace();
-            return false;
         }
     }
 
     //identify node
-    private static String identifyFingerprintWithNode(Fmd fmd) {
+    private static void identifyFingerprintWithNode(Fmd fmd) {
         try {
-            String base64Fmd = Base64.getEncoder().encodeToString(fmd.getData());
-            String payload = "{ \"fingerprintMinutiae\": { \"Data\": \"" + base64Fmd + "\" } }";
-
             java.net.URL url = new java.net.URL("http://localhost:2002/fingerprint/authorize");
-            java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("POST");
-            conn.setRequestProperty("Content-Type", "application/json");
-            conn.setDoOutput(true);
+            java.net.HttpURLConnection con = (java.net.HttpURLConnection) url.openConnection();
+            con.setRequestMethod("POST");
+            con.setRequestProperty("Content-Type", "application/json");
+            con.setDoOutput(true);
 
-            OutputStream os = conn.getOutputStream();
-            os.write(payload.getBytes("UTF-8"));
-            os.close();
+            String json = String.format("{\"fingerprintMinutiae\":{\"Data\":%s}}", new String(fmd.getData()));
 
-            InputStream is = (conn.getResponseCode() == 200) ? conn.getInputStream() : conn.getErrorStream();
-            BufferedReader reader = new BufferedReader(new InputStreamReader(is));
-            StringBuilder response = new StringBuilder();
-            String line;
-            while ((line = reader.readLine()) != null) {
-                response.append(line);
+            try (OutputStream os = con.getOutputStream()) {
+                byte[] input = json.getBytes("utf-8");
+                os.write(input, 0, input.length);
             }
-            conn.disconnect();
 
-            return response.toString();
-        } catch (Exception e) {
+            System.out.println("✅ Identification fingerprint sent to Node backend.");
+            con.getResponseCode();
+        } catch (IOException e) {
             e.printStackTrace();
-            return "Identification failed";
         }
     }
 
 
     //responses
-    private static void sendResponse(HttpExchange exchange, int code, String response) throws IOException {
-        byte[] respBytes = response.getBytes("UTF-8");
-        exchange.sendResponseHeaders(code, respBytes.length);
+    private static void sendResponse(HttpExchange exchange, int statusCode, String response) throws IOException {
+        exchange.sendResponseHeaders(statusCode, response.length());
         OutputStream os = exchange.getResponseBody();
-        os.write(respBytes);
+        os.write(response.getBytes());
         os.close();
     }
 }

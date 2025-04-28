@@ -1,0 +1,2 @@
+# Ignore Java-embedded folder
+/server/src/fingerprint-java/

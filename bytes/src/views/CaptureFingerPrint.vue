@@ -61,6 +61,9 @@ export default {
       statusMessage: "Waiting...",
       showNameInput: false,
       enrollName: "",
+      pollingInterval: null,
+      enrollInProgress: false,
+      enrollStep: 0,
     };
   },
   computed: {
@@ -108,30 +111,28 @@ export default {
     },
 
     async submitEnroll() {
-      if (!this.enrollName) {
-        this.statusMessage = "⚠️ Please enter a name first.";
-        return;
-      }
-      try {
-        // Step 1: Set name
-        await fetch("http://localhost:8000/set-name", {
-          method: "POST",
-          body: this.enrollName,
-        });
+  if (!this.enrollName) {
+    this.statusMessage = "⚠️ Please enter a name first.";
+    return;
+  }
+  try {
+    // Directly set action with name included
+    await fetch("http://localhost:8000/set-action", {
+      method: "POST",
+      body: `enroll:${this.enrollName}`,
+    });
 
-        // Step 2: Set action to enroll
-        await fetch("http://localhost:8000/set-action", {
-          method: "POST",
-          body: "enroll",
-        });
+    this.statusMessage = "Waiting for fingerprint to enroll...";
+    this.showNameInput = false;
+    this.enrollName = "";
+    this.enrollStep = 1;
+    this.enrollInProgress = true;
 
-        this.statusMessage = "Waiting for fingerprint to enroll...";
-        this.showNameInput = false;
-        this.enrollName = "";
-      } catch (error) {
-        this.statusMessage = "Failed to start enrollment.";
-      }
-    },
+    this.startPollingEnrollStatus();
+  } catch (error) {
+    this.statusMessage = "Failed to start enrollment.";
+  }
+},
 
     async identifyFingerprint() {
       try {
@@ -140,11 +141,63 @@ export default {
           body: "identify",
         });
         this.statusMessage = "Waiting for fingerprint to identify...";
+
+        this.startPollingIdentifyStatus();
       } catch (error) {
         this.statusMessage = "Failed to set identify action.";
       }
-    }
+    },
 
+    startPollingEnrollStatus() {
+      this.pollingInterval = setInterval(async () => {
+        if (!this.enrollInProgress) {
+          clearInterval(this.pollingInterval);
+          return;
+        }
+        try {
+          const res =await fetch("http://localhost:8000/set-action", {
+           method: "POST",
+           headers: {
+            "Content-Type": "text/plain",  // <--- ADD THIS
+          },
+             body: `enroll:${this.enrollName}`,  // <- like this
+          });
+          
+          const data = await res.json();
+          if (data.completed) {
+            this.statusMessage = "✅ Enrollment completed!";
+            this.enrollInProgress = false;
+            clearInterval(this.pollingInterval);
+          } else {
+            this.enrollStep = data.step;
+            this.statusMessage = `Capturing fingerprint ${this.enrollStep}/4...`;
+          }
+        } catch (error) {
+          this.statusMessage = "⚠️ Lost connection to middleware.";
+          this.enrollInProgress = false;
+          clearInterval(this.pollingInterval);
+        }
+      }, 1000);
+    },
+
+    startPollingIdentifyStatus() {
+      this.pollingInterval = setInterval(async () => {
+        try {
+          const res = await fetch("http://localhost:8000/identify-status");
+          const data = await res.json();
+          if (data.success) {
+            this.statusMessage = `✅ Identified: ${data.name}`;
+            clearInterval(this.pollingInterval);
+          } else if (data.failed) {
+            this.statusMessage = "❌ Fingerprint not recognized.";
+            clearInterval(this.pollingInterval);
+          }
+        } catch (error) {
+          this.statusMessage = "⚠️ Lost connection to middleware.";
+          clearInterval(this.pollingInterval);
+        }
+      }, 1000);
+    }
   },
   mounted() {
     this.loadReaders();
@@ -183,6 +236,12 @@ h2 {
   color: white;
 }
 
+h3 {
+  color: white;
+  font-size: 16px;
+  margin-top: 10px;
+}
+
 .btn {
   position: relative;
   display: inline-block;
@@ -195,6 +254,7 @@ h2 {
   font-size: 16px;
   transition: .5s;
 }
+
 .btn:hover {
   background: #289bb8;
   color: white;

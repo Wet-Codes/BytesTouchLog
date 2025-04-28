@@ -1,0 +1,4 @@
+@echo off
+<insert cmd stuff here for shortcut>
+Echo.
+pause
