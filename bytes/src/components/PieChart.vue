@@ -1,6 +1,6 @@
 <template>
-  <div class="bar-chart-container">
-    <canvas ref="barChart"></canvas>
+  <div class="pie-chart-container">
+    <canvas ref="pieChart"></canvas>
   </div>
 </template>
 
@@ -8,10 +8,10 @@
 import { Chart, registerables } from 'chart.js';
 
 export default {
-  name: 'BarChart',
+  name: 'PieChart',
   props: {
     data: {
-      type: Object,
+      type: Array,
       required: true
     }
   },
@@ -35,34 +35,22 @@ export default {
         this.chart.destroy();
       }
       
-      const ctx = this.$refs.barChart.getContext('2d');
+      const ctx = this.$refs.pieChart.getContext('2d');
       
       this.chart = new Chart(ctx, {
-        type: 'bar',
-        data: this.data,
+        type: 'pie',
+        data: {
+          labels: this.data.map(item => item.name),
+          datasets: [{
+            data: this.data.map(item => item.value),
+            backgroundColor: this.data.map(item => item.color || '#3498db'),
+            borderColor: 'rgba(255, 255, 255, 0.2)',
+            borderWidth: 2
+          }]
+        },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          scales: {
-            x: {
-              stacked: true,
-              grid: {
-                color: 'rgba(255, 255, 255, 0.1)'
-              },
-              ticks: {
-                color: 'white'
-              }
-            },
-            y: {
-              stacked: true,
-              grid: {
-                color: 'rgba(255, 255, 255, 0.1)'
-              },
-              ticks: {
-                color: 'white'
-              }
-            }
-          },
           plugins: {
             legend: {
               position: 'bottom',
@@ -77,7 +65,7 @@ export default {
             tooltip: {
               callbacks: {
                 label: function(context) {
-                  return `${context.dataset.label}: ${context.raw}`;
+                  return `${context.label}: ${context.raw}%`;
                 }
               }
             }
@@ -95,7 +83,7 @@ export default {
 </script>
 
 <style scoped>
-.bar-chart-container {
+.pie-chart-container {
   position: relative;
   height: 300px;
   width: 100%;
