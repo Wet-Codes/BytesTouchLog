@@ -1,3 +1,4 @@
+<!-- src/components/PieChart.vue -->
 <template>
   <div class="pie-chart-container">
     <canvas ref="pieChart"></canvas>
@@ -11,8 +12,12 @@ export default {
   name: 'PieChart',
   props: {
     data: {
-      type: Array,
+      type: Object,
       required: true
+    },
+    options: {
+      type: Object,
+      default: () => ({})
     }
   },
   mounted() {
@@ -24,13 +29,18 @@ export default {
         this.renderChart();
       },
       deep: true
+    },
+    options: {
+      handler() {
+        this.renderChart();
+      },
+      deep: true
     }
   },
   methods: {
     renderChart() {
       Chart.register(...registerables);
       
-      // Destroy previous chart if it exists
       if (this.chart) {
         this.chart.destroy();
       }
@@ -39,21 +49,13 @@ export default {
       
       this.chart = new Chart(ctx, {
         type: 'pie',
-        data: {
-          labels: this.data.map(item => item.name),
-          datasets: [{
-            data: this.data.map(item => item.value),
-            backgroundColor: this.data.map(item => item.color || '#3498db'),
-            borderColor: 'rgba(255, 255, 255, 0.2)',
-            borderWidth: 2
-          }]
-        },
+        data: this.data,
         options: {
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
             legend: {
-              position: 'bottom',
+              position: 'right',
               labels: {
                 color: 'white',
                 font: {
@@ -63,13 +65,19 @@ export default {
               }
             },
             tooltip: {
+              backgroundColor: 'rgba(0, 0, 0, 0.8)',
+              titleColor: '#2196F3',
+              bodyColor: 'white',
+              borderColor: '#2196F3',
+              borderWidth: 1,
               callbacks: {
                 label: function(context) {
-                  return `${context.label}: ${context.raw}%`;
+                  return `${context.label}: ${context.raw}`;
                 }
               }
             }
-          }
+          },
+          ...this.options
         }
       });
     }

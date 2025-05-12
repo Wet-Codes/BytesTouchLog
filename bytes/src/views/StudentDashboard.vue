@@ -7,7 +7,7 @@
           <v-col cols="12">
             <v-card class="fine-card" elevation="2">
               <v-card-title class="d-flex justify-space-between align-center">
-                <span class="page-title">DASHBOARD</span>
+                <h1 class="table-title">STUDENT MANAGEMENT</h1>
                 <v-btn 
                   color="teal" 
                   dark
@@ -20,8 +20,10 @@
                 <!-- Graphs Section -->
                 <v-row v-if="!showStudentList" class="mb-4">
                   <v-col cols="12" md="6">
-                    <v-card class="graph-card">
-                      <v-card-title>
+                    <v-card class="graph-card improved-chart">
+                      <v-card-title class="chart-title">
+                        <v-icon color="#2196F3" class="mr-2">mdi-chart-bar</v-icon>
+                        Attendance Statistics
                         <v-select
                           v-model="selectedAttendanceEvent"
                           :items="attendanceEvents"
@@ -29,17 +31,23 @@
                           outlined
                           dense
                           dark
-                          class="event-selector"
+                          class="event-selector ml-auto"
+                          hide-details
                         />
                       </v-card-title>
-                      <v-card-text>
-                        <BarChart :data="attendanceBarData" />
+                      <v-card-text class="chart-container">
+                        <BarChart 
+                          :data="attendanceBarData" 
+                          :options="barChartOptions"
+                        />
                       </v-card-text>
                     </v-card>
                   </v-col>
                   <v-col cols="12" md="6">
-                    <v-card class="graph-card">
-                      <v-card-title>
+                    <v-card class="graph-card improved-chart">
+                      <v-card-title class="chart-title">
+                        <v-icon color="#2196F3" class="mr-2">mdi-chart-pie</v-icon>
+                        Fines Distribution
                         <v-select
                           v-model="selectedFineEvent"
                           :items="attendanceEvents"
@@ -47,11 +55,15 @@
                           outlined
                           dense
                           dark
-                          class="event-selector"
+                          class="event-selector ml-auto"
+                          hide-details
                         />
                       </v-card-title>
-                      <v-card-text>
-                        <PieChart :data="fineData" />
+                      <v-card-text class="chart-container">
+                        <PieChart 
+                          :data="pieChartData" 
+                          :options="pieChartOptions"
+                        />
                       </v-card-text>
                     </v-card>
                   </v-col>
@@ -63,7 +75,6 @@
                     <v-card class="student-list-card">
                       <v-card-text>
                         <v-row class="mb-4" align="center">
-                          <!-- Filters -->
                           <v-col cols="12" class="d-flex">
                             <v-col cols="6">
                               <v-select
@@ -88,13 +99,13 @@
                           </v-col>
                         </v-row>
 
-                        <!-- Student Fines Table -->
                         <div class="student-list-header">
                           <span class="col-fname">First Name</span>
-                          <span class="col-lname">Last Name</span>
                           <span class="col-mi">M.I.</span>
+                          <span class="col-lname">Last Name</span>
                           <span class="col-course">Course</span>
                           <span class="col-year">Year Level</span>
+                          <span class="col-status">Status</span>
                           <span class="col-actions">Actions</span>
                         </div>
                         <v-data-table
@@ -108,15 +119,18 @@
                         >
                           <template v-slot:item="{ item }">
                             <tr>
-                              <td class="col-fname text-left">{{ item.fname }}</td>
-                              <td class="col-lname text-left">{{ item.lname }}</td>
+                              <td class="col-fname text-center">{{ item.fname }}</td>
                               <td class="col-mi text-center">{{ item.mi }}</td>
-                              <td class="col-course text-left">{{ item.course }}</td>
-                              <td class="col-year text-left">{{ item.year }}</td>
+                              <td class="col-lname text-center">{{ item.lname }}</td>
+                              <td class="col-course text-center">{{ item.course }}</td>
+                              <td class="col-year text-center">{{ item.year }}</td>
+                              <td class="col-status text-center">
+                                <v-chip small :color="getStatusColor(item.status)">{{ item.status }}</v-chip>
+                              </td>
                               <td class="col-actions text-center">
                                 <div class="action-buttons">
-                                  <v-btn small color="primary" @click="viewFine(item)">
-                                    {{ selectedStudent && selectedStudent.id === item.id ? 'Hide Details' : 'View Fine' }}
+                                  <v-btn small color="primary" @click="viewFine(item)" class="action-btn">
+                                    {{ selectedStudent && selectedStudent.id === item.id ? 'Hide' : 'View' }}
                                   </v-btn>
                                 </div>
                               </td>
@@ -127,25 +141,19 @@
                     </v-card>
                   </v-col>
 
-                  <!-- Student Fine Details -->
                   <v-col v-if="selectedStudent" cols="4">
                     <v-card class="right-side-card">
                       <div class="details-header">
-                        <v-card-title>
+                        <v-card-title class="details-title">
                           {{ selectedStudent.fname }} {{ selectedStudent.lname }}'s Fines
                         </v-card-title>
-                        <v-btn 
-                          color="success" 
-                          class="paid-btn"
-                          @click="clearFines"
-                        >
-                          Mark as Paid
-                        </v-btn>
                       </div>
                       <v-card-text>
                         <div class="fine-details-header">
                           <span class="col-event">Event</span>
+                          <span class="col-semester">Semester</span>
                           <span class="col-fine">Fine Amount</span>
+                          <span class="col-date">Date</span>
                         </div>
                         <v-data-table
                           :headers="fineDetailsHeaders"
@@ -158,7 +166,9 @@
                           <template v-slot:item="{ item }">
                             <tr>
                               <td class="col-event">{{ item.event }}</td>
+                              <td class="col-semester">{{ item.semester }}</td>
                               <td class="col-fine">{{ item.fine }}</td>
+                              <td class="col-date">{{ formatDate(item.date) }}</td>
                             </tr>
                           </template>
                         </v-data-table>
@@ -182,6 +192,7 @@
 import PageHeader from '@/components/CustomHeader2.vue';
 import PieChart from '@/components/PieChart.vue';
 import BarChart from '@/components/BarChart.vue';
+import { format } from 'date-fns';
 
 export default {
   components: {
@@ -201,49 +212,168 @@ export default {
       selectedAttendanceEvent: 'Today',
       selectedFineEvent: 'Today',
       fineDetailsHeaders: [
-        { text: 'Event Name', value: 'event' },
-        { text: 'Fine Amount', value: 'fine', align: 'end' }
+        { text: 'Event Name', value: 'event', width: '30%' },
+        { text: 'Semester', value: 'semester', width: '20%' },
+        { text: 'Fine Amount', value: 'fine', width: '25%' },
+        { text: 'Date', value: 'date', width: '25%' }
       ],
       fineDetails: [],
       courses: ['All', 'BSIT', 'BSIS', 'BSCS'],
       yearLevels: ['All', '1st Year', '2nd Year', '3rd Year', '4th Year'],
+      statusOptions: ['Regular', 'Irregular', 'Shifted', 'Graduated', 'Dropped'],
       studentFinesHeaders: [
-        { text: 'First Name', value: 'fname', align: 'start', width: '20%' },
-        { text: 'Last Name', value: 'lname', align: 'start', width: '20%' },
+        { text: 'First Name', value: 'fname', align: 'center', width: '15%' },
         { text: 'M.I.', value: 'mi', align: 'center', width: '5%' },
-        { text: 'Course', value: 'course', align: 'start', width: '20%' },
-        { text: 'Year Level', value: 'year', align: 'start', width: '15%' },
+        { text: 'Last Name', value: 'lname', align: 'center', width: '15%' },
+        { text: 'Course', value: 'course', align: 'center', width: '15%' },
+        { text: 'Year Level', value: 'year', align: 'center', width: '15%' },
+        { text: 'Status', value: 'status', align: 'center', width: '15%' },
         { text: 'Actions', value: 'actions', align: 'center', width: '20%', sortable: false }
       ],
       studentFines: [
-        { id: 1, fname: 'Al-shiolla', mi: 'H.', lname: 'Haron', course: 'BSIT', year: '3rd Year', hasFine: true },
-        { id: 2, fname: 'Jane', mi: 'A.', lname: 'Batuhan', course: 'BSIT', year: '4th Year', hasFine: false },
-        { id: 3, fname: 'Aiman', mi: 'C.', lname: 'Pumbaya', course: 'BSIT', year: '3rd Year', hasFine: true },
-        { id: 4, fname: 'Sodais', mi: 'M.', lname: 'Macapantao', course: 'BSIS', year: '2nd Year', hasFine: false },
-        { id: 5, fname: 'Abdulazis', mi: 'D.', lname: 'Mapandi', course: 'BSCS', year: '1st Year', hasFine: true },
-        { id: 6, fname: 'Faiz', mi: 'A.', lname: 'Rataban', course: 'BSCS', year: '3rd Year', hasFine: false },
-        { id: 7, fname: 'Doms', mi: 'M.', lname: 'Benito', course: 'BSIS', year: '2nd Year', hasFine: true }
+        { 
+          id: 1, 
+          fname: 'Al-shiolla', 
+          mi: 'H.', 
+          lname: 'Haron', 
+          course: 'BSIT', 
+          year: '3rd Year', 
+          status: 'Regular',
+          hasFine: true,
+          hasFingerprint: true,
+          fingerprintDate: '2023-05-15'
+        },
+        { 
+          id: 2, 
+          fname: 'Jane', 
+          mi: 'A.', 
+          lname: 'Batuhan', 
+          course: 'BSIT', 
+          year: '4th Year', 
+          status: 'Graduated',
+          hasFine: false,
+          hasFingerprint: false
+        },
+        { 
+          id: 3, 
+          fname: 'Aiman', 
+          mi: 'C.', 
+          lname: 'Pumbaya', 
+          course: 'BSIT', 
+          year: '3rd Year', 
+          status: 'Regular',
+          hasFine: true,
+          hasFingerprint: true,
+          fingerprintDate: '2023-06-20'
+        },
+        { 
+          id: 4, 
+          fname: 'Sodais', 
+          mi: 'M.', 
+          lname: 'Macapantao', 
+          course: 'BSIS', 
+          year: '2nd Year', 
+          status: 'Irregular',
+          hasFine: false,
+          hasFingerprint: false
+        },
+        { 
+          id: 5, 
+          fname: 'Abdulazis', 
+          mi: 'D.', 
+          lname: 'Mapandi', 
+          course: 'BSCS', 
+          year: '1st Year', 
+          status: 'Regular',
+          hasFine: true,
+          hasFingerprint: false
+        },
+        { 
+          id: 6, 
+          fname: 'Faiz', 
+          mi: 'A.', 
+          lname: 'Rataban', 
+          course: 'BSCS', 
+          year: '3rd Year', 
+          status: 'Shifted',
+          hasFine: false,
+          hasFingerprint: true,
+          fingerprintDate: '2023-04-10'
+        },
+        { 
+          id: 7, 
+          fname: 'Doms', 
+          mi: 'M.', 
+          lname: 'Benito', 
+          course: 'BSIS', 
+          year: '2nd Year', 
+          status: 'Regular',
+          hasFine: true,
+          hasFingerprint: false
+        }
       ],
       attendanceEvents: ['Today', 'Event A', 'Event B'],
-      attendanceBarData: {
-        labels: ['BSIT', 'BSIS', 'BSCS'],
-        datasets: [
-          {
-            label: 'Attended',
-            backgroundColor: '#4CAF50',
-            data: [42, 28, 35]
+      barChartOptions: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            grid: {
+              color: 'rgba(255, 255, 255, 0.1)'
+            },
+            ticks: {
+              color: 'white'
+            }
           },
-          {
-            label: 'Absent',
-            backgroundColor: '#F44336',
-            data: [8, 12, 5]
+          y: {
+            grid: {
+              color: 'rgba(255, 255, 255, 0.1)'
+            },
+            ticks: {
+              color: 'white'
+            }
           }
-        ]
+        },
+        plugins: {
+          legend: {
+            labels: {
+              color: 'white',
+              font: {
+                size: 14
+              }
+            }
+          },
+          tooltip: {
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            titleColor: '#2196F3',
+            bodyColor: 'white',
+            borderColor: '#2196F3',
+            borderWidth: 1
+          }
+        }
       },
-      fineData: [
-        { name: 'With Fines', value: 40, color: '#FF9800' },
-        { name: 'No Fines', value: 60, color: '#2196F3' }
-      ]
+      pieChartOptions: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'right',
+            labels: {
+              color: 'white',
+              font: {
+                size: 14
+              }
+            }
+          },
+          tooltip: {
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            titleColor: '#2196F3',
+            bodyColor: 'white',
+            borderColor: '#2196F3',
+            borderWidth: 1
+          }
+        }
+      }
     };
   },
   computed: {
@@ -263,6 +393,36 @@ export default {
         minHeight: '100vh',
         padding: '20px 0'
       };
+    },
+    attendanceBarData() {
+      return {
+        labels: ['BSIT', 'BSIS', 'BSCS'],
+        datasets: [
+          {
+            label: 'Attended',
+            backgroundColor: '#2196F3',
+            data: [42, 28, 35],
+            borderRadius: 6
+          },
+          {
+            label: 'Absent',
+            backgroundColor: '#F44336',
+            data: [8, 12, 5],
+            borderRadius: 6
+          }
+        ]
+      };
+    },
+    pieChartData() {
+      return {
+        labels: ['No Fines', 'With Fines'],
+        datasets: [{
+          data: [60, 40],
+          backgroundColor: ['#2196F3', '#F44336'],
+          borderWidth: 0,
+          hoverOffset: 10
+        }]
+      };
     }
   },
   watch: {
@@ -274,6 +434,16 @@ export default {
     }
   },
   methods: {
+    getStatusColor(status) {
+      const colors = {
+        'Regular': 'green',
+        'Irregular': 'orange',
+        'Shifted': 'blue',
+        'Graduated': 'purple',
+        'Dropped': 'red'
+      };
+      return colors[status] || 'gray';
+    },
     calculateTotalFines() {
       const total = this.fineDetails.reduce((sum, item) => {
         return sum + parseFloat(item.fine.replace('₱', ''));
@@ -287,36 +457,18 @@ export default {
       }
     },
     updateFineData(event) {
-      // Simulate different data for different events
       const baseValue = event === 'Today' ? 40 : 
                        event === 'Event A' ? 35 : 45;
-      this.fineData = [
-        { name: 'With Fines', value: baseValue, color: '#FF9800' },
-        { name: 'No Fines', value: 100 - baseValue, color: '#2196F3' }
-      ];
+      this.pieChartData.datasets[0].data = [100 - baseValue, baseValue];
     },
     updateAttendanceData(event) {
-      // Simulate different data for different events
       const attended = event === 'Today' ? [42, 28, 35] :
                       event === 'Event A' ? [38, 25, 32] : [45, 30, 28];
       const absent = event === 'Today' ? [8, 12, 5] :
                      event === 'Event A' ? [12, 15, 8] : [5, 10, 12];
       
-      this.attendanceBarData = {
-        labels: ['BSIT', 'BSIS', 'BSCS'],
-        datasets: [
-          {
-            label: 'Attended',
-            backgroundColor: '#4CAF50',
-            data: attended
-          },
-          {
-            label: 'Absent',
-            backgroundColor: '#F44336',
-            data: absent
-          }
-        ]
-      };
+      this.attendanceBarData.datasets[0].data = attended;
+      this.attendanceBarData.datasets[1].data = absent;
     },
     viewFine(student) {
       if (this.selectedStudent && this.selectedStudent.id === student.id) {
@@ -326,26 +478,29 @@ export default {
         this.fineDetails = this.generateMockFineDetails();
       }
     },
-    clearFines() {
-      this.fineDetails = [];
-      alert(`${this.selectedStudent.fname} ${this.selectedStudent.lname}'s fines have been marked as paid!`);
-    },
     generateMockFineDetails() {
       const events = ['Orientation', 'Seminar', 'Workshop', 'Meeting'];
+      const semesters = ['1st Semester', '2nd Semester'];
       const details = [];
       
       for (let i = 0; i < 3; i++) {
         const randomEvent = events[Math.floor(Math.random() * events.length)];
+        const randomSemester = semesters[Math.floor(Math.random() * semesters.length)];
         const randomDate = new Date();
         randomDate.setDate(randomDate.getDate() - Math.floor(Math.random() * 30));
         
         details.push({
           event: randomEvent,
-          fine: '₱' + (Math.random() * 500).toFixed(2)
+          semester: randomSemester,
+          fine: '₱' + (Math.random() * 500).toFixed(2),
+          date: randomDate.toISOString()
         });
       }
       
       return details;
+    },
+    formatDate(dateString) {
+      return dateString ? format(new Date(dateString), 'MMM dd, yyyy') : 'N/A';
     }
   }
 };
@@ -354,12 +509,20 @@ export default {
 <style scoped>
 @import url('https://fonts.googleapis.com/css?family=Poppins:300');
 
-.page-title {
+.table-title {
   color: white;
-  text-align: center;
-  margin-bottom: 20px;
   font-size: 2rem;
-  margin-top: 20px;
+  margin: 0;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.details-title {
+  font-size: 1.5rem !important;
+  padding: 16px !important;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .fine-card {
@@ -369,13 +532,33 @@ export default {
   color: white;
 }
 
-.graph-card {
-  background: rgba(0, 0, 0, 0.3);
-  box-shadow: 0 15px 25px rgba(0, 0, 0, .4);
-  border-radius: 10px;
-  color: white;
-  margin-bottom: 20px;
-  height: 100%;
+.improved-chart {
+  background: rgba(0, 0, 0, 0.3) !important;
+  border: 1px solid rgba(40, 155, 184, 0.5);
+  border-radius: 12px !important;
+  transition: all 0.3s ease;
+}
+
+.improved-chart:hover {
+  box-shadow: 0 8px 25px rgba(40, 155, 184, 0.3) !important;
+  transform: translateY(-2px);
+}
+
+.chart-title {
+  color: white !important;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 500;
+  padding: 16px 20px !important;
+  border-bottom: 1px solid rgba(40, 155, 184, 0.3);
+}
+
+.chart-container {
+  padding: 16px !important;
+  height: 350px;
+}
+
+.event-selector {
+  max-width: 200px;
 }
 
 .student-list-card {
@@ -393,7 +576,6 @@ export default {
   height: 100%;
 }
 
-/* Student List Header */
 .student-list-header {
   display: flex;
   padding: 12px 16px;
@@ -401,43 +583,44 @@ export default {
   color: #289bb8;
   font-weight: 600;
   border-radius: 4px 4px 0 0;
+  text-align: center;
 }
 
 .student-list-header span {
   padding: 0 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.student-list-header .col-fname {
-  width: 20%;
-  text-align: left;
-}
-
-.student-list-header .col-lname {
-  width: 20%;
-  text-align: left;
-}
-
-.student-list-header .col-mi {
-  width: 5%;
-  text-align: center;
-}
-
-.student-list-header .col-course {
-  width: 20%;
-  text-align: left;
-}
-
-.student-list-header .col-year {
+.col-fname {
   width: 15%;
-  text-align: left;
 }
 
-.student-list-header .col-actions {
+.col-mi {
+  width: 5%;
+}
+
+.col-lname {
+  width: 15%;
+}
+
+.col-course {
+  width: 15%;
+}
+
+.col-year {
+  width: 15%;
+}
+
+.col-status {
+  width: 15%;
+}
+
+.col-actions {
   width: 20%;
-  text-align: center;
 }
 
-/* Fine Details Header */
 .fine-details-header {
   display: flex;
   padding: 12px 16px;
@@ -452,16 +635,25 @@ export default {
 }
 
 .fine-details-header .col-event {
-  width: 70%;
+  width: 30%;
   text-align: left;
 }
 
+.fine-details-header .col-semester {
+  width: 20%;
+  text-align: center;
+}
+
 .fine-details-header .col-fine {
-  width: 30%;
+  width: 25%;
   text-align: right;
 }
 
-/* Student Fines Table Styling */
+.fine-details-header .col-date {
+  width: 25%;
+  text-align: right;
+}
+
 .student-fines-table {
   background-color: rgba(0, 0, 0, 0.3) !important;
   color: white !important;
@@ -480,40 +672,9 @@ export default {
   border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
   padding: 12px 8px !important;
   vertical-align: middle !important;
+  text-align: center !important;
 }
 
-.student-fines-table .col-fname {
-  width: 20%;
-  text-align: left;
-  padding-left: 16px !important;
-}
-
-.student-fines-table .col-lname {
-  width: 20%;
-  text-align: left;
-}
-
-.student-fines-table .col-mi {
-  width: 5%;
-  text-align: center;
-}
-
-.student-fines-table .col-course {
-  width: 20%;
-  text-align: left;
-}
-
-.student-fines-table .col-year {
-  width: 15%;
-  text-align: left;
-}
-
-.student-fines-table .col-actions {
-  width: 20%;
-  text-align: center;
-}
-
-/* Fine Details Table Styling */
 .fine-details-table {
   background-color: rgba(0, 0, 0, 0.3) !important;
   color: white !important;
@@ -535,13 +696,24 @@ export default {
 }
 
 .fine-details-table .col-event {
-  width: 70%;
+  width: 30%;
   text-align: left;
   padding-left: 16px !important;
 }
 
+.fine-details-table .col-semester {
+  width: 20%;
+  text-align: center;
+}
+
 .fine-details-table .col-fine {
-  width: 30%;
+  width: 25%;
+  text-align: right;
+  padding-right: 16px !important;
+}
+
+.fine-details-table .col-date {
+  width: 25%;
   text-align: right;
   padding-right: 16px !important;
 }
@@ -559,12 +731,20 @@ export default {
 .action-buttons {
   display: flex;
   justify-content: center;
-  gap: 8px;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: nowrap;
 }
 
-.action-buttons .v-btn {
-  margin: 0;
-  min-width: 100px;
+.action-btn {
+  min-width: 90px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  padding: 0 8px;
+  margin: 0 2px;
 }
 
 .details-header {
@@ -572,11 +752,6 @@ export default {
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-}
-
-.paid-btn {
-  background-color: #4CAF50 !important;
-  color: white !important;
 }
 
 .student-fines-table >>> .v-data-footer {
@@ -609,7 +784,28 @@ body {
   margin-top: 16px;
 }
 
-.event-selector {
-  max-width: 250px;
+@media (max-width: 960px) {
+  .student-list-header .col-fname,
+  .student-list-header .col-lname,
+  .student-fines-table .col-fname,
+  .student-fines-table .col-lname {
+    width: 20%;
+  }
+  
+  .student-list-header .col-status,
+  .student-fines-table .col-status {
+    display: none;
+  }
+  
+  .action-btn {
+    min-width: 70px;
+    font-size: 0.7rem;
+    padding: 0 4px;
+  }
+
+  .details-title {
+    font-size: 1.2rem !important;
+    padding: 12px !important;
+  }
 }
 </style>

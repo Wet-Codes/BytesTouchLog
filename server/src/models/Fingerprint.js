@@ -10,8 +10,15 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
     },
     minutiaeData: {
-      type: DataTypes.JSON, // ✅ Now stores an array of 4 minutiae samples
-      allowNull: false
+      type: DataTypes.JSON,
+      allowNull: false,
+      validate: {
+        isValid(value) {
+          if (!Array.isArray(value) || value.length !== 4) {
+            throw new Error('Exactly 4 fingerprint samples required');
+          }
+        }
+      }
     },
   }, {
     tableName: "fingerprints",

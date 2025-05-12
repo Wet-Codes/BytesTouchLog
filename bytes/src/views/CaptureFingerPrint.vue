@@ -15,11 +15,10 @@
         </button>
       </div>
 
-      <!-- If reader is selected -->
+      <!-- Actions once reader is selected -->
       <div v-else>
         <p>Selected Reader: {{ selectedReader }}</p>
 
-        <!-- Name input for enrollment -->
         <div v-if="showNameInput">
           <input
             v-model="enrollName"
@@ -31,12 +30,11 @@
             Submit & Enroll
           </button>
         </div>
-        
+
         <div v-else>
           <button class="btn" @click="showEnrollInput">
             Enroll Fingerprint
           </button>
-
           <button class="btn" @click="identifyFingerprint">
             Identify Fingerprint
           </button>
@@ -61,9 +59,9 @@ export default {
       statusMessage: "Waiting...",
       showNameInput: false,
       enrollName: "",
-      pollingInterval: null,
-      enrollInProgress: false,
       enrollStep: 0,
+      enrollInProgress: false,
+      pollingInterval: null,
     };
   },
   computed: {
@@ -84,13 +82,14 @@ export default {
       try {
         const res = await fetch("http://localhost:8000/readers");
         this.readers = await res.json();
-      } catch (error) {
-        this.statusMessage = "Failed to load readers.";
+      } catch {
+        this.statusMessage = "⚠️ Failed to load readers.";
       }
     },
+
     async selectReader() {
       if (!this.selectedReaderName) {
-        this.statusMessage = "Please select a reader first.";
+        this.statusMessage = "⚠️ Please select a reader first.";
         return;
       }
       try {
@@ -101,8 +100,8 @@ export default {
         const text = await res.text();
         this.selectedReader = this.selectedReaderName;
         this.statusMessage = text;
-      } catch (error) {
-        this.statusMessage = "Failed to select reader.";
+      } catch {
+        this.statusMessage = "⚠️ Failed to select reader.";
       }
     },
 
@@ -111,92 +110,96 @@ export default {
     },
 
     async submitEnroll() {
-  if (!this.enrollName) {
-    this.statusMessage = "⚠️ Please enter a name first.";
-    return;
-  }
-  try {
-    // Directly set action with name included
-    await fetch("http://localhost:8000/set-action", {
-      method: "POST",
-      body: `enroll:${this.enrollName}`,
-    });
+      if (!this.enrollName) {
+        this.statusMessage = "⚠️ Please enter a name first.";
+        return;
+      }
 
-    this.statusMessage = "Waiting for fingerprint to enroll...";
-    this.showNameInput = false;
-    this.enrollName = "";
-    this.enrollStep = 1;
-    this.enrollInProgress = true;
+      try {
+        // ✅ Send action to backend — no need to parse response as JSON
+        await fetch("http://localhost:8000/set-action", {
+          method: "POST",
+          headers: {
+            "Content-Type": "text/plain",
+          },
+          body: `enroll:${this.enrollName}`,
+        });
 
-    this.startPollingEnrollStatus();
-  } catch (error) {
-    this.statusMessage = "Failed to start enrollment.";
-  }
-},
+        this.statusMessage = "Waiting for fingerprint 1/4...";
+        this.enrollStep = 1;
+        this.enrollInProgress = true;
+        this.showNameInput = false;
+        this.startPollingEnrollStatus();
+      } catch {
+        this.statusMessage = "⚠️ Failed to start enrollment.";
+      }
+    },
+
+    // In CaptureFingerPrint.vue
+
+    async startPollingEnrollStatus() {
+        // In startPollingEnrollStatus()
+    this.pollingInterval = setInterval(async () => {
+    try {
+        const res = await fetch("http://localhost:8000/enroll-status");
+        if (!res.ok) {
+            const error = await res.text();
+            throw new Error(`Server error: ${error}`);
+        }
+        
+        const data = await res.json();
+        
+        // Handle different states explicitly
+        if (data.completed) {
+            this.statusMessage = "✅ Enrollment complete!";
+            clearInterval(this.pollingInterval);
+        } else if (data.step > 0) {
+            this.statusMessage = `Capturing fingerprint ${data.step}/4...`;
+        } else {
+            this.statusMessage = "Place finger FIRMLY on scanner";
+        }
+        
+    } catch (error) {
+        console.error("Polling error:", error);
+        this.statusMessage = error.message || "Connection error";
+        clearInterval(this.pollingInterval);
+    }
+    }, 1000); // Reduced polling frequency // Reduced from 300ms to 800ms
+    },
+
 
     async identifyFingerprint() {
       try {
         await fetch("http://localhost:8000/set-action", {
           method: "POST",
+          headers: {
+            "Content-Type": "text/plain",
+          },
           body: "identify",
         });
+
         this.statusMessage = "Waiting for fingerprint to identify...";
 
-        this.startPollingIdentifyStatus();
-      } catch (error) {
-        this.statusMessage = "Failed to set identify action.";
+        this.pollingInterval = setInterval(async () => {
+          try {
+            const res = await fetch("http://localhost:8000/identify-status");
+            const data = await res.json();
+
+            if (data.success) {
+              this.statusMessage = `✅ Identified: ${data.name}`;
+              clearInterval(this.pollingInterval);
+            } else if (data.failed) {
+              this.statusMessage = "❌ Fingerprint not recognized.";
+              clearInterval(this.pollingInterval);
+            }
+          } catch {
+            this.statusMessage = "⚠️ Middleware disconnected during identify.";
+            clearInterval(this.pollingInterval);
+          }
+        }, 1000);
+      } catch {
+        this.statusMessage = "⚠️ Failed to start identification.";
       }
-    },
-
-    startPollingEnrollStatus() {
-      this.pollingInterval = setInterval(async () => {
-        if (!this.enrollInProgress) {
-          clearInterval(this.pollingInterval);
-          return;
-        }
-        try {
-          const res =await fetch("http://localhost:8000/set-action", {
-           method: "POST",
-           headers: {
-            "Content-Type": "text/plain",  // <--- ADD THIS
-          },
-             body: `enroll:${this.enrollName}`,  // <- like this
-          });
-          
-          const data = await res.json();
-          if (data.completed) {
-            this.statusMessage = "✅ Enrollment completed!";
-            this.enrollInProgress = false;
-            clearInterval(this.pollingInterval);
-          } else {
-            this.enrollStep = data.step;
-            this.statusMessage = `Capturing fingerprint ${this.enrollStep}/4...`;
-          }
-        } catch (error) {
-          this.statusMessage = "⚠️ Lost connection to middleware.";
-          this.enrollInProgress = false;
-          clearInterval(this.pollingInterval);
-        }
-      }, 1000);
-    },
-
-    startPollingIdentifyStatus() {
-      this.pollingInterval = setInterval(async () => {
-        try {
-          const res = await fetch("http://localhost:8000/identify-status");
-          const data = await res.json();
-          if (data.success) {
-            this.statusMessage = `✅ Identified: ${data.name}`;
-            clearInterval(this.pollingInterval);
-          } else if (data.failed) {
-            this.statusMessage = "❌ Fingerprint not recognized.";
-            clearInterval(this.pollingInterval);
-          }
-        } catch (error) {
-          this.statusMessage = "⚠️ Lost connection to middleware.";
-          clearInterval(this.pollingInterval);
-        }
-      }, 1000);
     }
   },
   mounted() {
@@ -236,12 +239,6 @@ h2 {
   color: white;
 }
 
-h3 {
-  color: white;
-  font-size: 16px;
-  margin-top: 10px;
-}
-
 .btn {
   position: relative;
   display: inline-block;
@@ -254,7 +251,6 @@ h3 {
   font-size: 16px;
   transition: .5s;
 }
-
 .btn:hover {
   background: #289bb8;
   color: white;
@@ -262,7 +258,6 @@ h3 {
   box-shadow: 0 0 5px #289bb8, 0 0 25px #289bb8;
 }
 
-/* Name input styling */
 .name-input {
   width: 80%;
   margin: 10px auto;

@@ -70,6 +70,11 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/fp',
+    name: "FingerPrint",
+    component: Fp
+  },
+  {
     path: '/fingerprint/:studentId?',
     name: 'fingerprint',
     component: Fp,
@@ -83,17 +88,5 @@ const router = createRouter({
   routes
 });
 
-router.beforeEach((to, from, next) => {
-  const isAuthenticated = localStorage.getItem('authToken');
-  const isAdmin = localStorage.getItem('userRole') === 'admin';
-
-  if (to.meta.requiresAuth && !isAuthenticated) {
-    next({ name: 'login' });
-  } else if (to.meta.adminOnly && !isAdmin) {
-    next({ name: 'user' });
-  } else {
-    next();
-  }
-});
 
 export default router;

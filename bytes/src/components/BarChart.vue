@@ -1,3 +1,4 @@
+<!-- src/components/BarChart.vue -->
 <template>
   <div class="bar-chart-container">
     <canvas ref="barChart"></canvas>
@@ -13,6 +14,10 @@ export default {
     data: {
       type: Object,
       required: true
+    },
+    options: {
+      type: Object,
+      default: () => ({})
     }
   },
   mounted() {
@@ -24,13 +29,18 @@ export default {
         this.renderChart();
       },
       deep: true
+    },
+    options: {
+      handler() {
+        this.renderChart();
+      },
+      deep: true
     }
   },
   methods: {
     renderChart() {
       Chart.register(...registerables);
       
-      // Destroy previous chart if it exists
       if (this.chart) {
         this.chart.destroy();
       }
@@ -45,7 +55,7 @@ export default {
           maintainAspectRatio: false,
           scales: {
             x: {
-              stacked: true,
+              stacked: false,
               grid: {
                 color: 'rgba(255, 255, 255, 0.1)'
               },
@@ -54,7 +64,7 @@ export default {
               }
             },
             y: {
-              stacked: true,
+              stacked: false,
               grid: {
                 color: 'rgba(255, 255, 255, 0.1)'
               },
@@ -65,23 +75,28 @@ export default {
           },
           plugins: {
             legend: {
-              position: 'bottom',
               labels: {
                 color: 'white',
                 font: {
                   family: "'Poppins', sans-serif",
-                  size: 12
+                  size: 14
                 }
               }
             },
             tooltip: {
+              backgroundColor: 'rgba(0, 0, 0, 0.8)',
+              titleColor: '#2196F3',
+              bodyColor: 'white',
+              borderColor: '#2196F3',
+              borderWidth: 1,
               callbacks: {
                 label: function(context) {
                   return `${context.dataset.label}: ${context.raw}`;
                 }
               }
             }
-          }
+          },
+          ...this.options
         }
       });
     }
