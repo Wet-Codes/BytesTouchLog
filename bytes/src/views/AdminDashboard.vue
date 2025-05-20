@@ -63,6 +63,12 @@ export default {
           route: 'manage-events', 
           color: 'black-transparent', 
           icon: 'mdi-calendar-multiple' 
+        },
+        { 
+          text: 'History Log', 
+          route: 'history-log', 
+          color: 'black-transparent', 
+          icon: 'mdi-history' 
         }
       ]
     };

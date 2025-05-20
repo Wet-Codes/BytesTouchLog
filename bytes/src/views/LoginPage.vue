@@ -21,7 +21,7 @@
             <span></span>
             log in
           </button>
-          <p class="message">Not an Admin? let an admin know in the <a href="/#/admin">Admin Tab</a></p>
+          <p class="message">Not an Admin? let an admin know in the <a href="/admin">Admin Tab</a></p>
         </form>
         
       </div>
@@ -30,7 +30,7 @@
   </template>
   
   <script>
-  import AuthServices from '@/services/AuthServices'; // import auth services from backend
+  //import AuthServices from '@/services/AuthServices'; // import auth services from backend
   import PageHeader from '@/components/HeaderNav.vue';
 
   export default {
@@ -53,42 +53,36 @@
     methods: {
 
       async login() {
-      this.errors = {}; // Reset errors before new attempt
-      try {
-        const response = await AuthServices.login({
-          username: this.User,
-          password: this.Pass,
-        });
-        console.log('Login response:', response); //debug
-        this.$store.dispatch('setUser', response.data.user);
-        this.$router.push('/admin');
-        // Handle successful login, for example, redirect to another page
-      }catch (error) {
-    //console.error('Login error:', error); // Log the error for debugging
-    if (error.response) {
-        // If error.response exists, handle it
-        const errorMessage = error.response.data?.error; // Use optional chaining for safety
-
-        if (errorMessage) {
-            // Check if the error message contains specific keywords
-            if (errorMessage.includes('Unrecognized Username')) {
-                this.errors.username = errorMessage; // Set error for username
-            } else if (errorMessage.includes('do not match')) {
-                this.errors.password = errorMessage; // Set error for password
-            } else {
-                alert(errorMessage); // Alert for any other error messages
-            }
-        } else {
-            alert('An unexpected error occurred.'); // Alert for unexpected error
-        }
-    } else {
-        // Handle cases where error.response is undefined
-        alert('Login error: ' + error.message); // Show the error message
-    }
-}
+    this.errors = {};
+    try {
+      await this.$store.dispatch('login', {
+        username: this.User,
+        password: this.Pass
+      });
       
-
+      const redirectPath = this.$store.getters.userRole === 'admin' 
+        ? '/admin' 
+        : '/user';
+      this.$router.push(redirectPath);
+      
+    } catch (error) {
+      if (error.response?.data?.error) {
+        this.handleError(error.response.data.error);
+      } else {
+        console.error('Login error:', error);
+        alert('Login failed. Please try again.');
+      }
     }
+  },
+  handleError(errorMessage) {
+    if (errorMessage.includes('Username')) {
+      this.errors.username = errorMessage;
+    } else if (errorMessage.includes('password')) {
+      this.errors.password = errorMessage;
+    } else {
+      alert(errorMessage);
+    }
+  }
         
 
         // Handle successful login, for example, redirect to another page

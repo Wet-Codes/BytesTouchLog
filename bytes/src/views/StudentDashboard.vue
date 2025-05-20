@@ -19,11 +19,9 @@
               <v-card-text>
                 <!-- Graphs Section -->
                 <v-row v-if="!showStudentList" class="mb-4">
-                  <v-col cols="12" md="6">
-                    <v-card class="graph-card improved-chart">
-                      <v-card-title class="chart-title">
-                        <v-icon color="#2196F3" class="mr-2">mdi-chart-bar</v-icon>
-                        Attendance Statistics
+                  <v-col cols="12">
+                    <v-row>
+                      <v-col cols="12" md="6">
                         <v-select
                           v-model="selectedAttendanceEvent"
                           :items="attendanceEvents"
@@ -31,9 +29,29 @@
                           outlined
                           dense
                           dark
-                          class="event-selector ml-auto"
+                          class="event-selector"
                           hide-details
                         />
+                      </v-col>
+                      <v-col cols="12" md="6">
+                        <v-select
+                          v-model="selectedFineEvent"
+                          :items="attendanceEvents"
+                          label="Select Event"
+                          outlined
+                          dense
+                          dark
+                          class="event-selector"
+                          hide-details
+                        />
+                      </v-col>
+                    </v-row>
+                  </v-col>
+                  <v-col cols="12" md="6">
+                    <v-card class="graph-card improved-chart">
+                      <v-card-title class="chart-title">
+                        <v-icon color="#2196F3" class="mr-2">mdi-chart-bar</v-icon>
+                        Attendance Statistics
                       </v-card-title>
                       <v-card-text class="chart-container">
                         <BarChart 
@@ -48,16 +66,6 @@
                       <v-card-title class="chart-title">
                         <v-icon color="#2196F3" class="mr-2">mdi-chart-pie</v-icon>
                         Fines Distribution
-                        <v-select
-                          v-model="selectedFineEvent"
-                          :items="attendanceEvents"
-                          label="Select Event"
-                          outlined
-                          dense
-                          dark
-                          class="event-selector ml-auto"
-                          hide-details
-                        />
                       </v-card-title>
                       <v-card-text class="chart-container">
                         <PieChart 
@@ -74,7 +82,7 @@
                   <v-col :cols="selectedStudent ? 8 : 12">
                     <v-card class="student-list-card">
                       <v-card-text>
-                        <v-row class="mb-4" align="center">
+                        <v-row class="mb-1" align="center">
                           <v-col cols="12" class="d-flex">
                             <v-col cols="6">
                               <v-select
@@ -97,6 +105,18 @@
                               />
                             </v-col>
                           </v-col>
+                          <v-col cols="12" class="mt-n4">
+                            <v-text-field
+                              v-model="search"
+                              append-icon="mdi-magnify"
+                              label="Search students..."
+                              single-line
+                              hide-details
+                              outlined
+                              dark
+                              class="search-field"
+                            ></v-text-field>
+                          </v-col>
                         </v-row>
 
                         <div class="student-list-header">
@@ -111,8 +131,9 @@
                         <v-data-table
                           :headers="studentFinesHeaders"
                           :items="filteredStudentFines"
-                          :items-per-page="-1"
-                          :hide-default-footer="true"
+                          :search="search"
+                          :items-per-page="10"
+                          v-model:page="page"
                           class="elevation-1 student-fines-table"
                           dark
                           hide-default-header
@@ -135,6 +156,17 @@
                                 </div>
                               </td>
                             </tr>
+                          </template>
+                          <template v-slot:footer>
+                            <div class="text-center pt-2">
+                              <v-pagination
+                                v-model="page"
+                                :length="pageCount"
+                                :total-visible="5"
+                                color="primary"
+                                dark
+                              ></v-pagination>
+                            </div>
                           </template>
                         </v-data-table>
                       </v-card-text>
@@ -207,8 +239,11 @@ export default {
         course: null,
         yearLevel: null,
       },
+      search: '',
       selectedStudent: null,
       showStudentList: false,
+      page: 1,
+      pageCount: 1,
       selectedAttendanceEvent: 'Today',
       selectedFineEvent: 'Today',
       fineDetailsHeaders: [
@@ -381,7 +416,12 @@ export default {
       return this.studentFines.filter((student) => {
         return (
           (this.filter.course === 'All' || !this.filter.course || student.course === this.filter.course) &&
-          (this.filter.yearLevel === 'All' || !this.filter.yearLevel || student.year === this.filter.yearLevel)
+          (this.filter.yearLevel === 'All' || !this.filter.yearLevel || student.year === this.filter.yearLevel) &&
+          (this.search === '' || 
+           student.fname.toLowerCase().includes(this.search.toLowerCase()) || 
+           student.lname.toLowerCase().includes(this.search.toLowerCase()) ||
+           student.course.toLowerCase().includes(this.search.toLowerCase()) ||
+           student.year.toLowerCase().includes(this.search.toLowerCase()))
         );
       });
     },
@@ -431,9 +471,18 @@ export default {
     },
     selectedAttendanceEvent(newVal) {
       this.updateAttendanceData(newVal);
+    },
+    filteredStudentFines() {
+      this.updatePagination();
     }
   },
+  created() {
+    this.updatePagination();
+  },
   methods: {
+    updatePagination() {
+      this.pageCount = Math.ceil(this.filteredStudentFines.length / 10);
+    },
     getStatusColor(status) {
       const colors = {
         'Regular': 'green',
@@ -558,7 +607,7 @@ export default {
 }
 
 .event-selector {
-  max-width: 200px;
+  width: 100%;
 }
 
 .student-list-card {
@@ -754,8 +803,30 @@ export default {
   padding: 16px;
 }
 
-.student-fines-table >>> .v-data-footer {
-  display: none;
+.search-field {
+  margin-top: -15px;
+}
+
+.v-pagination {
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.v-pagination__item {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  min-width: 32px;
+  height: 32px;
+}
+
+.v-pagination__item--active {
+  background: #289bb8 !important;
+  color: white !important;
+}
+
+.v-pagination__navigation {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
 }
 
 .v-card .v-btn {

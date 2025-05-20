@@ -1,13 +1,10 @@
-import { expect } from 'chai'
-import { shallowMount } from '@vue/test-utils'
-import HelloWorld from '@/components/HelloWorld.vue'
+import { mount } from '@vue/test-utils';
+import HeaderNav from '@/src/components/HeaderNav.vue';
 
-describe('HelloWorld.vue', () => {
-  it('renders props.msg when passed', () => {
-    const msg = 'new message'
-    const wrapper = shallowMount(HelloWorld, {
-      props: { msg }
-    })
-    expect(wrapper.text()).to.include(msg)
-  })
-})
+describe('HeaderNav.vue', () => {
+  it('renders properly', () => {
+    const wrapper = mount(HeaderNav);
+    // eslint-disable-next-line no-undef
+    expect(wrapper.exists()).toBe(true);
+  });
+});

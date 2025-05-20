@@ -1,7 +1,28 @@
-import axios from 'axios'//Api Requests for front end
+import axios from 'axios';
+import store from '@/store';
 
-export default() => {
-    return axios.create({
-        baseURL:'http://localhost:2002'
-    })
-}
+const api = axios.create({
+  baseURL: 'http://localhost:2002'
+});
+
+// Request interceptor
+api.interceptors.request.use(config => {
+  const token = store.state.token;
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Response interceptor
+api.interceptors.response.use(
+  response => response,
+  error => {
+    if (error.response.status === 401) {
+      store.dispatch('logout');
+    }
+    return Promise.reject(error);
+  }
+);
+
+export default api;

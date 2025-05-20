@@ -15,9 +15,26 @@
       </v-btn>
     </v-toolbar-items>
 
+    <v-toolbar-items>
+      <v-chip class="ma-2" :color="roleColor" text-color="white">
+        <v-icon left>mdi-account</v-icon>
+        {{ roleText }}
+      </v-chip>
+    </v-toolbar-items>
+
+
     <v-spacer></v-spacer>
 
     <!-- Right Side Buttons -->
+   <v-toolbar-items>
+      <v-btn :to="{ name: 'AccountManagement' }" class="toolbar-btn">
+        <img src="https://img.icons8.com/ios-filled/50/ffffff/info.png" alt="About Icon" class="icon"> <!-- Updated to About icon -->
+        <span class="toolbar-text">AM</span>
+      </v-btn>
+    </v-toolbar-items>
+      
+     
+
     <v-toolbar-items>
       <v-btn class="toolbar-btn" @click="logout">
         <img src="https://img.icons8.com/ios-filled/50/ffffff/logout-rounded-left.png" alt="Logout Icon" class="icon">
@@ -62,6 +79,16 @@
 
 <script>
 export default {
+   computed: {
+      roleText() {
+      if (!this.$store.getters.isAuthenticated) return 'Guest';
+      return this.$store.getters.userRole === 'admin' ? 'Administrator' : 'User';
+    },
+    roleColor() {
+      if (!this.$store.getters.isAuthenticated) return 'grey';
+      return this.$store.getters.userRole === 'admin' ? 'green' : 'blue';
+    }
+  },
   data() {
     return {
       showNoteDialog: false,
@@ -82,6 +109,18 @@ export default {
 </script>
 
 <style scoped>
+.role-status {
+  display: flex;
+  align-items: center;
+  margin: 0 15px;
+  font-size: 0.9rem;
+}
+.status-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
 .toolbar-btn {
   color: white !important;
   font-family: 'Times New Roman', Times, serif;

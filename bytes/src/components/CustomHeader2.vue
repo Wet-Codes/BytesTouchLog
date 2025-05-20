@@ -8,6 +8,8 @@
       </v-btn>
     </v-toolbar-items>
 
+    
+
     <v-toolbar-items>
       <v-btn @click="showAboutDialog = true" class="toolbar-btn">
         <img src="https://img.icons8.com/ios-filled/50/ffffff/info.png" alt="About Icon" class="icon">

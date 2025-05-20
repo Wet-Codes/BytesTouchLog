@@ -32,13 +32,19 @@
         </div>
 
         <div v-else>
-          <button class="btn" @click="showEnrollInput">
-            Enroll Fingerprint
-          </button>
-          <button class="btn" @click="identifyFingerprint">
-            Identify Fingerprint
-          </button>
-        </div>
+    <button class="btn" @click="startEnrollment">
+      Enroll Fingerprint (4 scans)
+    </button>
+    <button class="btn" @click="startIdentification">
+      Identify
+    </button>
+    
+    <!-- SDK's sample fingerprint display -->
+    <div class="fingerprint-display">
+      <img v-if="fingerprintImage" :src="fingerprintImage" 
+           alt="Fingerprint scan" class="fp-image">
+    </div>
+  </div>
       </div>
 
       <h3>Status: {{ statusMessage }}</h3>
@@ -62,6 +68,9 @@ export default {
       enrollStep: 0,
       enrollInProgress: false,
       pollingInterval: null,
+      enrollmentSamples: [],
+      currentAction: null, // 'enroll' or 'identify'
+      fingerprintImage: null
     };
   },
   computed: {
@@ -78,127 +87,81 @@ export default {
     }
   },
   methods: {
-    async loadReaders() {
+    async initializeReader() {
+      await window.DigitalPersona.WebSdk.initialize();
+      this.readers = await window.DigitalPersona.WebSdk.getReaders();
+    },
+
+    async startEnrollment() {
+      this.currentAction = 'enroll';
+      this.enrollmentSamples = [];
+      await this.captureLoop(4); // Your 4-scan requirement
+    },
+
+    async startIdentification() {
+      this.currentAction = 'identify';
+      await this.captureLoop(1);
+    },
+
+    async captureLoop(requiredScans) {
       try {
-        const res = await fetch("http://localhost:8000/readers");
-        this.readers = await res.json();
-      } catch {
-        this.statusMessage = "⚠️ Failed to load readers.";
-      }
-    },
-
-    async selectReader() {
-      if (!this.selectedReaderName) {
-        this.statusMessage = "⚠️ Please select a reader first.";
-        return;
-      }
-      try {
-        const res = await fetch("http://localhost:8000/select-reader", {
-          method: "POST",
-          body: this.selectedReaderName,
-        });
-        const text = await res.text();
-        this.selectedReader = this.selectedReaderName;
-        this.statusMessage = text;
-      } catch {
-        this.statusMessage = "⚠️ Failed to select reader.";
-      }
-    },
-
-    showEnrollInput() {
-      this.showNameInput = true;
-    },
-
-    async submitEnroll() {
-      if (!this.enrollName) {
-        this.statusMessage = "⚠️ Please enter a name first.";
-        return;
-      }
-
-      try {
-        // ✅ Send action to backend — no need to parse response as JSON
-        await fetch("http://localhost:8000/set-action", {
-          method: "POST",
-          headers: {
-            "Content-Type": "text/plain",
-          },
-          body: `enroll:${this.enrollName}`,
-        });
-
-        this.statusMessage = "Waiting for fingerprint 1/4...";
-        this.enrollStep = 1;
-        this.enrollInProgress = true;
-        this.showNameInput = false;
-        this.startPollingEnrollStatus();
-      } catch {
-        this.statusMessage = "⚠️ Failed to start enrollment.";
-      }
-    },
-
-    // In CaptureFingerPrint.vue
-
-    async startPollingEnrollStatus() {
-        // In startPollingEnrollStatus()
-    this.pollingInterval = setInterval(async () => {
-    try {
-        const res = await fetch("http://localhost:8000/enroll-status");
-        if (!res.ok) {
-            const error = await res.text();
-            throw new Error(`Server error: ${error}`);
-        }
+        const reader = await window.DigitalPersona.WebSdk.getReader(this.selectedReader);
         
-        const data = await res.json();
-        
-        // Handle different states explicitly
-        if (data.completed) {
-            this.statusMessage = "✅ Enrollment complete!";
-            clearInterval(this.pollingInterval);
-        } else if (data.step > 0) {
-            this.statusMessage = `Capturing fingerprint ${data.step}/4...`;
-        } else {
-            this.statusMessage = "Place finger FIRMLY on scanner";
-        }
-        
-    } catch (error) {
-        console.error("Polling error:", error);
-        this.statusMessage = error.message || "Connection error";
-        clearInterval(this.pollingInterval);
-    }
-    }, 1000); // Reduced polling frequency // Reduced from 300ms to 800ms
-    },
-
-
-    async identifyFingerprint() {
-      try {
-        await fetch("http://localhost:8000/set-action", {
-          method: "POST",
-          headers: {
-            "Content-Type": "text/plain",
-          },
-          body: "identify",
-        });
-
-        this.statusMessage = "Waiting for fingerprint to identify...";
-
-        this.pollingInterval = setInterval(async () => {
-          try {
-            const res = await fetch("http://localhost:8000/identify-status");
-            const data = await res.json();
-
-            if (data.success) {
-              this.statusMessage = `✅ Identified: ${data.name}`;
-              clearInterval(this.pollingInterval);
-            } else if (data.failed) {
-              this.statusMessage = "❌ Fingerprint not recognized.";
-              clearInterval(this.pollingInterval);
-            }
-          } catch {
-            this.statusMessage = "⚠️ Middleware disconnected during identify.";
-            clearInterval(this.pollingInterval);
+        for (let i = 0; i < requiredScans; i++) {
+          this.statusMessage = `Scan ${i+1}/${requiredScans} - Place finger firmly`;
+          
+          const result = await reader.capture({
+            format: "PNG", // From SDK sample
+            quality: 65 // SDK recommended threshold
+          });
+          
+          this.fingerprintImage = `data:image/png;base64,${result.data}`;
+          
+          if (this.currentAction === 'enroll') {
+            this.enrollmentSamples.push(result.data);
+          } else {
+            await this.identifyUser(result.data);
           }
-        }, 1000);
-      } catch {
-        this.statusMessage = "⚠️ Failed to start identification.";
+        }
+        
+        if (this.currentAction === 'enroll') {
+          await this.completeEnrollment();
+        }
+        
+      } catch (error) {
+        this.statusMessage = `Capture failed: ${error.message}`;
+      }
+    },
+
+    // ========== YOUR WORKFLOW ==========
+    async completeEnrollment() {
+      try {
+        // Send 4 samples to backend
+        await this.$http.post('/fingerprint/enroll', {
+          name: this.enrollName,
+          samples: this.enrollmentSamples
+        });
+        
+        this.statusMessage = "✅ Enrollment successful!";
+        this.enrollmentSamples = [];
+        
+      } catch (error) {
+        this.statusMessage = "⚠️ Enrollment failed";
+      }
+    },
+
+    async identifyUser(sample) {
+      try {
+        const response = await this.$http.post('/fingerprint/identify', { sample });
+        
+        if (response.data.match) {
+          this.statusMessage = `✅ Identified: ${response.data.name}`;
+        } else {
+          this.statusMessage = "❌ No match found";
+        }
+        
+      } catch (error) {
+        this.statusMessage = "⚠️ Identification failed";
       }
     }
   },
@@ -264,5 +227,13 @@ h2 {
   padding: 10px;
   border-radius: 8px;
   border: 1px solid #ccc;
+}
+
+.fp-image {
+  width: 300px;
+  height: 400px;
+  border: 2px solid #289bb8;
+  margin: 20px auto;
+  display: block;
 }
 </style>

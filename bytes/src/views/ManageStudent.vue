@@ -22,7 +22,7 @@
                   <v-col :cols="selectedStudent ? 8 : 12">
                     <v-card class="student-list-card">
                       <v-card-text>
-                        <v-row class="mb-4" align="center">
+                        <v-row class="mb-1" align="center">
                           <v-col cols="12" class="d-flex">
                             <v-col cols="6">
                               <v-select
@@ -45,6 +45,18 @@
                               />
                             </v-col>
                           </v-col>
+                          <v-col cols="12" class="mt-n4">
+                            <v-text-field
+                              v-model="search"
+                              append-icon="mdi-magnify"
+                              label="Search students..."
+                              single-line
+                              hide-details
+                              outlined
+                              dark
+                              class="search-field"
+                            ></v-text-field>
+                          </v-col>
                         </v-row>
 
                         <div class="student-list-header">
@@ -59,8 +71,8 @@
                         <v-data-table
                           :headers="studentFinesHeaders"
                           :items="filteredStudentFines"
-                          :items-per-page="-1"
-                          :hide-default-footer="true"
+                          :search="search"
+                          :items-per-page="10"
                           class="elevation-1 student-fines-table"
                           dark
                           hide-default-header
@@ -77,18 +89,48 @@
                               </td>
                               <td class="col-actions text-center">
                                 <div class="action-buttons">
-                                  <v-btn small color="primary" @click="viewFine(item)" class="action-btn">
+                                  <v-btn 
+                                    small 
+                                    color="primary" 
+                                    @click="viewFine(item)" 
+                                    class="action-btn"
+                                    :disabled="isStudentLocked(item)"
+                                  >
                                     {{ selectedStudent && selectedStudent.id === item.id ? 'Hide' : 'View' }}
                                   </v-btn>
-                                  <v-btn small color="warning" @click="editStudent(item)" class="action-btn">
+                                  <v-btn 
+                                    small 
+                                    color="warning" 
+                                    @click="editStudent(item)" 
+                                    class="action-btn"
+                                    :disabled="isStudentLocked(item)"
+                                  >
                                     Update
                                   </v-btn>
-                                  <v-btn small color="teal" dark @click="openFingerprintDialog(item)" class="action-btn">
+                                  <v-btn 
+                                    small 
+                                    color="teal" 
+                                    dark 
+                                    @click="openFingerprintDialog(item)" 
+                                    class="action-btn"
+                                    :disabled="isStudentLocked(item)"
+                                  >
                                     Fingerprint
                                   </v-btn>
                                 </div>
                               </td>
                             </tr>
+                          </template>
+                          <template v-slot:footer>
+                            <div class="text-center pt-2">
+                              <v-pagination
+                                v-model="page"
+                                :length="pageCount"
+                                :total-visible="5"
+                                color="primary"
+                                dark
+                              ></v-pagination>
+                            </div>
                           </template>
                         </v-data-table>
                       </v-card-text>
@@ -103,13 +145,13 @@
                         </v-card-title>
                       </div>
                       <v-card-text>
-                        <v-form v-if="isEditing" @submit.prevent="saveStudent">
+                        <v-form v-if="isEditing && !isStudentLocked(selectedStudent)" @submit.prevent="checkStatusBeforeSave">
                           <v-text-field v-model="editForm.fname" label="First Name" outlined dense class="mb-2"></v-text-field>
                           <v-text-field v-model="editForm.lname" label="Last Name" outlined dense class="mb-2"></v-text-field>
                           <v-text-field v-model="editForm.mi" label="Middle Initial" outlined dense class="mb-2"></v-text-field>
                           <v-select
                             v-model="editForm.course"
-                            :items="courses"
+                            :items="courses.filter(c => c !== 'All')"
                             label="Course"
                             outlined
                             dense
@@ -117,7 +159,7 @@
                           ></v-select>
                           <v-select
                             v-model="editForm.year"
-                            :items="yearLevels"
+                            :items="yearLevels.filter(y => y !== 'All')"
                             label="Year Level"
                             outlined
                             dense
@@ -131,8 +173,11 @@
                             dense
                             class="mb-2"
                           ></v-select>
-                          <v-btn type="submit" color="success" small>Save</v-btn>
-                          <v-btn @click="cancelEdit" small class="ml-2">Cancel</v-btn>
+
+                          <div class="regular-buttons">
+                            <v-btn type="submit" color="success">Save Changes</v-btn>
+                            <v-btn @click="cancelEdit" class="ml-2">Cancel</v-btn>
+                          </div>
                         </v-form>
 
                         <template v-else>
@@ -142,6 +187,12 @@
                             <p><strong>Status:</strong> 
                               <v-chip small :color="getStatusColor(selectedStudent.status)">{{ selectedStudent.status }}</v-chip>
                             </p>
+                          </div>
+
+                          <div v-if="isStudentLocked(selectedStudent)" class="locked-notice mb-4">
+                            <v-alert type="info" dense>
+                              This student record is locked and cannot be modified.
+                            </v-alert>
                           </div>
 
                           <div class="fine-details-header">
@@ -166,6 +217,7 @@
                                     v-model="item.event"
                                     @save="updateFineDetail"
                                     large
+                                    :disabled="isStudentLocked(selectedStudent)"
                                   >
                                     {{ item.event }}
                                     <template v-slot:input>
@@ -178,19 +230,14 @@
                                   </v-edit-dialog>
                                 </td>
                                 <td class="col-semester">
-                                  <v-select
-                                    v-model="item.semester"
-                                    :items="['1st Semester', '2nd Semester']"
-                                    @change="updateFineDetail"
-                                    dense
-                                    hide-details
-                                  ></v-select>
+                                  {{ item.semester }}
                                 </td>
                                 <td class="col-fine">
                                   <v-edit-dialog
                                     v-model="item.fine"
                                     @save="updateFineDetail"
                                     large
+                                    :disabled="isStudentLocked(selectedStudent)"
                                   >
                                     {{ item.fine }}
                                     <template v-slot:input>
@@ -212,6 +259,7 @@
                                     x-small 
                                     color="error" 
                                     @click="removeFine(item)"
+                                    :disabled="isStudentLocked(selectedStudent)"
                                   >
                                     Remove
                                   </v-btn>
@@ -226,7 +274,7 @@
                             color="success" 
                             class="paid-btn mt-2"
                             @click="clearFines"
-                            :disabled="fineDetails.length === 0"
+                            :disabled="fineDetails.length === 0 || isStudentLocked(selectedStudent)"
                           >
                             Mark All as Paid
                           </v-btn>
@@ -240,6 +288,22 @@
           </v-col>
         </v-row>
       </v-container>
+
+      <!-- Confirmation Dialog -->
+      <v-dialog v-model="confirmDialog" max-width="400">
+        <v-card class="confirm-dialog">
+          <v-card-title class="headline">Warning!</v-card-title>
+          <v-card-text>
+            Changing status to <strong>{{ editForm.status }}</strong> will permanently lock this student record.
+            Are you sure you want to proceed?
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer></v-spacer>
+            <v-btn color="grey" @click="confirmDialog = false">Cancel</v-btn>
+            <v-btn color="red darken-1" @click="confirmAndSave">Confirm</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
 
       <v-dialog v-model="uploadDialog" max-width="600">
         <v-card class="upload-dialog">
@@ -285,6 +349,7 @@
                 color="primary" 
                 class="mt-4"
                 @click="startFingerprintProcess"
+                :disabled="isStudentLocked(fingerprintStudent)"
               >
                 Start Enrollment
               </v-btn>
@@ -329,11 +394,13 @@ export default {
       backgroundImage: "https://cdn.vuetifyjs.com/images/backgrounds/vbanner.jpg",
       filter: {
         course: null,
-        yearLevel: null,
+        yearLevel: null
       },
+      search: '',
       selectedStudent: null,
       isEditing: false,
       editForm: {},
+      confirmDialog: false,
       uploadDialog: false,
       uploadFile: null,
       uploadPreview: [],
@@ -349,10 +416,11 @@ export default {
       fingerprintLoading: false,
       fingerprintMessage: 'Ready to enroll fingerprint',
       fingerprintProgress: 0,
-      statusOptions: ['Regular', 'Irregular', 'Shifted', 'Graduated', 'Dropped'],
+      statusOptions: ['Regular', 'Irregular', 'Graduated', 'Shifted', 'Dropped'],
       fineDetails: [],
       courses: ['All', 'BSIT', 'BSIS', 'BSCS'],
       yearLevels: ['All', '1st Year', '2nd Year', '3rd Year', '4th Year'],
+      semesters: ['1st Semester', '2nd Semester'],
       studentFinesHeaders: [
         { text: 'First Name', value: 'fname', align: 'center', width: '15%' },
         { text: 'M.I.', value: 'mi', align: 'center', width: '5%' },
@@ -362,6 +430,15 @@ export default {
         { text: 'Status', value: 'status', align: 'center', width: '15%' },
         { text: 'Actions', value: 'actions', align: 'center', width: '20%', sortable: false }
       ],
+      fineDetailsHeaders: [
+        { text: 'Event Name', value: 'event', width: '30%' },
+        { text: 'Semester', value: 'semester', width: '20%' },
+        { text: 'Fine Amount', value: 'fine', width: '15%' },
+        { text: 'Date', value: 'date', width: '20%' },
+        { text: 'Actions', value: 'actions', width: '15%' }
+      ],
+      page: 1,
+      pageCount: 3,
       studentFines: [
         { 
           id: 1, 
@@ -370,10 +447,12 @@ export default {
           lname: 'Haron', 
           course: 'BSIT', 
           year: '3rd Year', 
+          semester: '1st Semester',
           status: 'Regular',
           hasFine: true,
           hasFingerprint: true,
-          fingerprintDate: '2023-05-15'
+          fingerprintDate: '2023-05-15',
+          isLocked: false
         },
         { 
           id: 2, 
@@ -382,9 +461,11 @@ export default {
           lname: 'Batuhan', 
           course: 'BSIT', 
           year: '4th Year', 
+          semester: '2nd Semester',
           status: 'Graduated',
           hasFine: false,
-          hasFingerprint: false
+          hasFingerprint: false,
+          isLocked: true
         },
         { 
           id: 3, 
@@ -393,10 +474,12 @@ export default {
           lname: 'Pumbaya', 
           course: 'BSIT', 
           year: '3rd Year', 
+          semester: '1st Semester',
           status: 'Regular',
           hasFine: true,
           hasFingerprint: true,
-          fingerprintDate: '2023-06-20'
+          fingerprintDate: '2023-06-20',
+          isLocked: false
         },
         { 
           id: 4, 
@@ -405,9 +488,11 @@ export default {
           lname: 'Macapantao', 
           course: 'BSIS', 
           year: '2nd Year', 
+          semester: '2nd Semester',
           status: 'Irregular',
           hasFine: false,
-          hasFingerprint: false
+          hasFingerprint: false,
+          isLocked: false
         },
         { 
           id: 5, 
@@ -416,9 +501,11 @@ export default {
           lname: 'Mapandi', 
           course: 'BSCS', 
           year: '1st Year', 
+          semester: '1st Semester',
           status: 'Regular',
           hasFine: true,
-          hasFingerprint: false
+          hasFingerprint: false,
+          isLocked: false
         },
         { 
           id: 6, 
@@ -427,10 +514,12 @@ export default {
           lname: 'Rataban', 
           course: 'BSCS', 
           year: '3rd Year', 
+          semester: '2nd Semester',
           status: 'Shifted',
           hasFine: false,
           hasFingerprint: true,
-          fingerprintDate: '2023-04-10'
+          fingerprintDate: '2023-04-10',
+          isLocked: true
         },
         { 
           id: 7, 
@@ -439,17 +528,12 @@ export default {
           lname: 'Benito', 
           course: 'BSIS', 
           year: '2nd Year', 
+          semester: '1st Semester',
           status: 'Regular',
           hasFine: true,
-          hasFingerprint: false
+          hasFingerprint: false,
+          isLocked: false
         }
-      ],
-      fineDetailsHeaders: [
-        { text: 'Event Name', value: 'event', width: '25%' },
-        { text: 'Semester', value: 'semester', width: '15%' },
-        { text: 'Fine Amount', value: 'fine', width: '20%' },
-        { text: 'Date', value: 'date', width: '20%' },
-        { text: 'Actions', value: 'actions', width: '20%' }
       ]
     };
   },
@@ -458,7 +542,12 @@ export default {
       return this.studentFines.filter((student) => {
         return (
           (this.filter.course === 'All' || !this.filter.course || student.course === this.filter.course) &&
-          (this.filter.yearLevel === 'All' || !this.filter.yearLevel || student.year === this.filter.yearLevel)
+          (this.filter.yearLevel === 'All' || !this.filter.yearLevel || student.year === this.filter.yearLevel) &&
+          (this.search === '' || 
+           student.fname.toLowerCase().includes(this.search.toLowerCase()) || 
+           student.lname.toLowerCase().includes(this.search.toLowerCase()) ||
+           student.course.toLowerCase().includes(this.search.toLowerCase()) ||
+           student.year.toLowerCase().includes(this.search.toLowerCase()))
         );
       });
     },
@@ -473,6 +562,9 @@ export default {
     }
   },
   methods: {
+    isStudentLocked(student) {
+      return student.isLocked || ['Graduated', 'Shifted', 'Dropped'].includes(student.status);
+    },
     getStatusColor(status) {
       const colors = {
         'Regular': 'green',
@@ -500,17 +592,42 @@ export default {
       }
     },
     editStudent(student) {
+      if (this.isStudentLocked(student)) return;
+      
       this.selectedStudent = student;
       this.isEditing = true;
       this.editForm = { ...student };
     },
-    saveStudent() {
+    checkStatusBeforeSave() {
+      if (['Graduated', 'Shifted', 'Dropped'].includes(this.editForm.status)) {
+        this.confirmDialog = true;
+      } else {
+        this.saveStudent();
+      }
+    },
+    confirmAndSave() {
+      this.confirmDialog = false;
+      this.saveStudent(true);
+    },
+    saveStudent(shouldLock = false) {
       const index = this.studentFines.findIndex(s => s.id === this.editForm.id);
       if (index !== -1) {
-        this.studentFines[index] = { ...this.editForm };
+        this.studentFines[index] = { 
+          ...this.editForm,
+          isLocked: shouldLock || this.studentFines[index].isLocked
+        };
+        
+        if (this.selectedStudent.id === this.studentFines[index].id) {
+          this.selectedStudent = { ...this.studentFines[index] };
+        }
+        
+        if (this.$toast) {
+          this.$toast.success(shouldLock 
+            ? `Status changed to ${this.editForm.status} and record locked` 
+            : 'Student updated successfully');
+        }
       }
       this.isEditing = false;
-      this.selectedStudent = { ...this.editForm };
     },
     cancelEdit() {
       this.isEditing = false;
@@ -543,6 +660,8 @@ export default {
       this.uploadDialog = false;
     },
     openFingerprintDialog(student) {
+      if (this.isStudentLocked(student)) return;
+      
       this.fingerprintStudent = { ...student };
       this.fingerprintDialog = true;
       this.fingerprintLoading = false;
@@ -606,20 +725,19 @@ export default {
     },
     generateMockFineDetails() {
       const events = ['Orientation', 'Seminar', 'Workshop', 'Meeting'];
-      const semesters = ['1st Semester', '2nd Semester'];
       const details = [];
       
       for (let i = 0; i < 3; i++) {
         const randomEvent = events[Math.floor(Math.random() * events.length)];
-        const randomSemester = semesters[Math.floor(Math.random() * semesters.length)];
         const randomDate = new Date();
         randomDate.setDate(randomDate.getDate() - Math.floor(Math.random() * 30));
+        const randomSemester = this.semesters[Math.floor(Math.random() * this.semesters.length)];
         
         details.push({
           event: randomEvent,
-          semester: randomSemester,
           fine: '₱' + (Math.random() * 500).toFixed(2),
-          date: randomDate.toISOString()
+          date: randomDate.toISOString(),
+          semester: randomSemester
         });
       }
       
@@ -641,6 +759,29 @@ export default {
   margin-bottom: 20px;
   font-size: 2rem;
   margin-top: 20px;
+}
+
+.confirm-dialog {
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+}
+
+.confirm-dialog .headline {
+  color: #FF5252;
+  font-weight: bold;
+}
+
+.confirm-dialog .v-card__text {
+  font-size: 1.1rem;
+  padding: 20px;
+}
+
+.confirm-dialog .v-card__actions {
+  padding: 16px;
+}
+
+.locked-notice {
+  margin-bottom: 16px;
 }
 
 .table-title {
@@ -686,6 +827,12 @@ export default {
   color: white;
 }
 
+.fingerprint-dialog {
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  text-align: center;
+}
+
 .upload-table {
   background-color: rgba(0, 0, 0, 0.3) !important;
 }
@@ -721,12 +868,6 @@ export default {
 
 .centered-file-input >>> .v-input__prepend-outer {
   margin-right: 8px !important;
-}
-
-.fingerprint-dialog {
-  background: rgba(0, 0, 0, 0.8);
-  color: white;
-  text-align: center;
 }
 
 .fingerprint-icon {
@@ -805,20 +946,24 @@ export default {
 
 .fine-details-header span {
   padding: 0 8px;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .fine-details-header .col-event {
-  width: 25%;
+  width: 30%;
   text-align: left;
 }
 
 .fine-details-header .col-semester {
-  width: 15%;
+  width: 20%;
   text-align: center;
 }
 
 .fine-details-header .col-fine {
-  width: 20%;
+  width: 15%;
   text-align: right;
 }
 
@@ -828,7 +973,7 @@ export default {
 }
 
 .fine-details-header .col-actions {
-  width: 20%;
+  width: 15%;
   text-align: center;
 }
 
@@ -853,18 +998,19 @@ export default {
 }
 
 .fine-details-table .col-event {
-  width: 25%;
+  width: 30%;
   text-align: left;
   padding-left: 16px !important;
 }
 
 .fine-details-table .col-semester {
-  width: 15%;
+  width: 20%;
   text-align: center;
+  padding: 12px 8px !important;
 }
 
 .fine-details-table .col-fine {
-  width: 20%;
+  width: 15%;
   text-align: right;
   padding-right: 16px !important;
 }
@@ -875,7 +1021,7 @@ export default {
 }
 
 .fine-details-table .col-actions {
-  width: 20%;
+  width: 15%;
   text-align: center;
 }
 
@@ -924,6 +1070,17 @@ export default {
   margin-bottom: 8px;
 }
 
+.status-change-container {
+  padding: 16px;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  margin-bottom: 16px;
+}
+
+.locked-notice {
+  margin-bottom: 16px;
+}
+
 .v-card .v-btn {
   color: #289bb8;
   transition: .5s;
@@ -952,6 +1109,36 @@ body {
 
 .event-selector {
   max-width: 250px;
+}
+
+.search-field {
+  margin-top: -15px;
+}
+
+.v-pagination {
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.v-pagination__item {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  min-width: 32px;
+  height: 32px;
+}
+
+.v-pagination__item--active {
+  background: #289bb8 !important;
+  color: white !important;
+}
+
+.v-pagination__navigation {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.regular-buttons {
+  margin-top: 16px;
 }
 
 @media (max-width: 960px) {

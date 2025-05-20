@@ -24,18 +24,28 @@ function hashPassword(user) {
 }
 
 module.exports = (sequelize, DataTypes) => {
-    const User = sequelize.define('User', {
-        username: {
-            type: DataTypes.STRING,
-            unique: true
-        },
-        password: DataTypes.STRING,
-    }, {
-        hooks: {
-            beforeCreate: hashPassword,
-            beforeUpdate: hashPassword
-        }
-    });
+    // Update User model with new fields
+const User = sequelize.define('User', {
+    username: {
+        type: DataTypes.STRING,
+        unique: true
+    },
+    password: DataTypes.STRING,
+    role: {
+        type: DataTypes.ENUM('admin', 'user'),
+        defaultValue: 'user'
+    },
+    isEnabled: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true,
+        allowNull: false
+    }
+}, {
+    hooks: {
+        beforeCreate: hashPassword,
+        beforeUpdate: hashPassword
+    }
+});
 
     // Correctly comparing the password
     User.prototype.comparePassword = function(password) {
