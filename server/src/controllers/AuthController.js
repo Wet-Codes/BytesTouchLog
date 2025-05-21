@@ -4,6 +4,8 @@ const config = require('../config/config');
 
 
 module.exports = {
+
+  
     async Login(req, res) {
         
 
@@ -20,9 +22,6 @@ module.exports = {
                     error: 'Unrecognized Username'
                 });
             }  
-
-            
-
             //console.log('Comparing password:', password); // Log the entered password
             //console.log('Stored hashed password:', user.password);
 
@@ -60,6 +59,53 @@ module.exports = {
       });
     }
   },
+
+
+  async verifyDevPassword(req, res) {
+  try {
+    
+     if (!req.user) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+     const password = String(req.body?.password || '');
+    
+    if (!password) {
+      return res.status(400).json({ error: 'Password required' });
+    }
+    // Validate request input
+    if (!req.body.password || typeof req.body.password !== 'string') {
+      return res.status(400).json({ error: 'Invalid password format' });
+    }
+     // Now access the ACTUAL password value
+    const cleanPassword = req.body.password.trim();
+
+    // Verify requesting user is dev (case-sensitive)
+    if (req.user.username !== 'dev') {
+      return res.status(403).json({ error: 'Restricted to dev account' });
+    }
+
+    const devUser = await User.findOne({ 
+      where: { username: 'dev', role: 'admin' }
+    });
+
+    if (!devUser) {
+      return res.status(404).json({ error: 'Dev account not configured' });
+    }
+
+    // Compare passwords using existing system
+    const isValid = await devUser.comparePassword(cleanPassword);
+
+    if (!isValid) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+
+    res.json({ success: true });
+
+  } catch (error) {
+    console.error('Verification error:', error);
+    res.status(500).json({ error: 'Server error during verification' });
+  }
+},
 
     // Admin-only endpoint to create accounts
 async createAccount(req, res) {
@@ -145,8 +191,9 @@ async toggleAccountStatus(req, res) {
     };
 
     res.set({
-    'Cache-Control': 'no-store, max-age=0',
-    'Pragma': 'no-cache'
+    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+      'Pragma': 'no-cache',
+     'Expires': '0'
     });  
 
     console.log('User data sent:', JSON.stringify(userData));
@@ -167,5 +214,33 @@ async toggleAccountStatus(req, res) {
       username: req.user.username,
       role: req.user.role
     });
+  },
+
+ 
+
+  async getAllAccounts(req, res) {
+  try {
+    const accounts = await User.findAll({
+      attributes: ['id', 'username', 'role', 'isEnabled', 'createdAt'],
+      order: [['createdAt', 'DESC']]
+    });
+    res.send(accounts);
+  } catch (err) {
+    console.error('Error fetching accounts:', err);
+    res.status(500).send({ error: 'Failed to fetch accounts' });
   }
+},
+
+async getAccountDetails(req, res) {
+  try {
+    const account = await User.findByPk(req.params.id, {
+      attributes: ['id', 'username', 'role', 'isEnabled', 'createdAt']
+    });
+    if (!account) return res.status(404).send({ error: 'Account not found' });
+    res.send(account);
+  } catch (err) {
+    console.error('Error fetching account:', err);
+    res.status(500).send({ error: 'Failed to fetch account' });
+  }
+}
 };

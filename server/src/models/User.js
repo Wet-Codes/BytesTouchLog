@@ -48,11 +48,27 @@ const User = sequelize.define('User', {
 });
 
     // Correctly comparing the password
-    User.prototype.comparePassword = function(password) {
-       //console.log('Comparing entered password:', password); // Log entered password
-       //console.log('With stored hashed password:', this.password); // Log stored hash
-        return bcrypt.compareAsync(password, this.password);
-    };
+   User.prototype.comparePassword = function(password) {
+  // Add validation and logging
+  if (typeof password !== 'string' || !this.password) {
+    console.error('Invalid comparison:', {
+      inputType: typeof password,
+      hashExists: !!this.password
+    });
+    return Promise.resolve(false);
+  }
+
+  console.log('Comparing:', {
+    input: password,
+    hash: this.password.substring(0, 10) + '...'
+  });
+
+  return bcrypt.compareAsync(password, this.password)
+    .catch(err => {
+      console.error('BCrypt error:', err);
+      return false;
+    });
+};
 
     return User;
 };

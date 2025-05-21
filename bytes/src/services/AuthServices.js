@@ -7,6 +7,18 @@ export default {
   createAccount(userData) {
     return Api.post('/api/users', userData);
   },
+   verifyDevPassword: (password) => Api.post('/api/verify-dev', {
+    password: password // Send simple string
+  }),
+  getAccounts() {
+    return Api.get('/api/users');
+  },
+  toggleAccountStatus(id) {
+    return Api.put(`/api/users/${id}/status`);
+  },
+  updateAccount(id, data) {
+    return Api.put(`/api/users/${id}`, data);
+  },
   getStudents() {
     return Api.get('/students');
   },

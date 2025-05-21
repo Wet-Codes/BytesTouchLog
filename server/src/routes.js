@@ -9,6 +9,11 @@ const adminMiddleware = require('./middlewares/adminMiddleware');
 
 
 const app = express();
+
+
+// Add these lines before any routes
+app.use(express.json()); // Parse JSON bodies
+app.use(express.urlencoded({ extended: true }));
 //Upload handling
 app.use(fileUpload());
 
@@ -29,11 +34,33 @@ module.exports = (app) =>{
           Authcontroller.validateToken
           );
 //AccountManagement
- app.post('/api/users', 
+     app.post('/api/users', 
         authMiddleware, 
         adminMiddleware,
         Authcontroller.createAccount
     );
+    app.get('/api/users', 
+      authMiddleware, 
+      adminMiddleware,
+      Authcontroller.getAllAccounts
+     );
+//dev verification
+     app.post('/api/verify-dev',
+          authMiddleware,
+  Authcontroller.verifyDevPassword
+);
+
+app.put('/api/users/:id/status', 
+     authMiddleware, 
+     adminMiddleware,
+     Authcontroller.toggleAccountStatus
+     );
+
+app.put('/api/users/:id', 
+     authMiddleware, 
+     adminMiddleware,
+     Authcontroller.updateAccount
+     );
 //Student Model Upload controller
      app.get('/students', studentController.getAllStudents);
      app.post('/students', studentController.createStudent);

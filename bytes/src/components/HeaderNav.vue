@@ -1,10 +1,6 @@
 <template>
   <v-toolbar :elevation="8" dark prominent style="background-color: navy;">
-    <v-toolbar-items>
-      <v-btn :to="{ name: 'user' }" class="toolbar-btn">
-        <img src="https://img.icons8.com/ios-filled/50/ffffff/user.png" alt="Account Icon" class="icon">
-      </v-btn>
-    </v-toolbar-items>
+    
 
     <v-toolbar-items>
       <v-btn :to="{ name: 'about' }" class="toolbar-btn">
@@ -24,14 +20,24 @@
 </template>
 
 <script>
+import store from '@/store'; // Import your Vuex store
+
 export default {
   methods: {
     goToLogin() {
-      this.$router.push({ name: 'login' });
+      if (store.getters.isAuthenticated) {
+        // Use the userRole getter to determine destination
+        const role = store.getters.userRole;
+        this.$router.push({ name: role === 'admin' ? 'Home' : 'Home' });
+      } else {
+        // Fallback for unauthenticated users
+        this.$router.push({ name: 'login' });
+      }
     }
   }
 };
 </script>
+
 
 <style scoped>
 .toolbar-btn {

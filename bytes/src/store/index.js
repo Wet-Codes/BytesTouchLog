@@ -64,8 +64,10 @@ export default createStore({
 
     logout({ commit }) {
       commit('CLEAR_USER');
+       window.location.reload();
     }
   },
+  
   getters: {
     isAuthenticated: state => !!state.token,
     currentUser: state => state.user,

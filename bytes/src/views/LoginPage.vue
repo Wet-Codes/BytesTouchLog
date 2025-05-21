@@ -21,7 +21,7 @@
             <span></span>
             log in
           </button>
-          <p class="message">Not an Admin? let an admin know in the <a href="/admin">Admin Tab</a></p>
+          
         </form>
         
       </div>
@@ -61,8 +61,8 @@
       });
       
       const redirectPath = this.$store.getters.userRole === 'admin' 
-        ? '/admin' 
-        : '/user';
+        ? '/home' 
+        : '/home';
       this.$router.push(redirectPath);
       
     } catch (error) {

@@ -88,6 +88,13 @@ export default {
     }
   },
   methods: {
+    beforeRouteEnter(to, from, next) {
+    next(vm => {
+      if (!vm.$store.getters.isAuthenticated || vm.$store.getters.userRole !== 'admin') {
+        vm.$router.push('/');
+      }
+    });
+  },
     navigateTo(page) {
       this.$router.push({ name: page });
     }
