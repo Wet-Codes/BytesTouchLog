@@ -44,6 +44,7 @@ module.exports = (app) =>{
       adminMiddleware,
       Authcontroller.getAllAccounts
      );
+     
 //dev verification
      app.post('/api/verify-dev',
           authMiddleware,
@@ -61,14 +62,12 @@ app.put('/api/users/:id',
      adminMiddleware,
      Authcontroller.updateAccount
      );
-//Student Model Upload controller
+    // Student routes
      app.get('/students', studentController.getAllStudents);
      app.post('/students', studentController.createStudent);
-     app.put('/students/:id', studentController.updateStudent);
-     app.delete('/students/:id', studentController.deleteStudent);
+     app.post('/students/upload', authMiddleware ,studentController.upload);
 
-//Upload Controller
-     app.post('/students/upload', studentController.upload);
+
 
 //FingerPrint Controller
      app.post("/fingerprint/upload", FingerprintController.uploadFingerprint);

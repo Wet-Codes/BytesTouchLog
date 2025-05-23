@@ -13,7 +13,8 @@ import AccountManagement from "../views/AccountManagement.vue";
 import AccSetting from "../views/AccSetting.vue";
 import AccountList from '../views/AccountList.vue';
 import store from '@/store';
-
+import Dev from '../views/DevDashboard.vue';
+import Reg from '../views/RegisterPage.vue';
 
 const routes = [
    {
@@ -21,6 +22,18 @@ const routes = [
     name: 'login',
     component: LoginPage,
     meta: { public: true } // No auth needed
+  },
+  {
+    path:'/dev',
+    name:'Development',
+    component: Dev,
+    meta: { public: true } // No auth 
+  },
+  {
+    path:'/Register',
+    name:'Register',
+    component: Reg,
+    meta: { public: true } // No auth 
   },
   {
     path: '/account-management',

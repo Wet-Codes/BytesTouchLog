@@ -20,14 +20,14 @@
           </div>
 
           <div class="action-buttons">
-            <a href="#" class="btn">
+            <a href="https://github.com/Wet-Codes/BytesTouchLog" class="btn">
               Learn More
               <span></span>
               <span></span>
               <span></span>
               <span></span>
             </a>
-            <a href="#" class="btn">
+            <a href="/dev" class="btn">
               Get Started
               <span></span>
               <span></span>

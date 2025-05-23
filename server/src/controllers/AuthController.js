@@ -129,45 +129,69 @@ async createAccount(req, res) {
     }
 },
 
+async deleteAccount(req, res) {
+  try {
+    const user = await User.findByPk(req.params.id);
+    if (!user) return res.status(404).send({ error: 'Account not found' });
+    
+    await user.destroy();
+    res.send({ message: 'Account deleted successfully' });
+  } catch (err) {
+    console.error('Delete error:', err);
+    res.status(500).send({ 
+      error: 'Delete failed',
+      ...(process.env.NODE_ENV === 'development' && { debug: err.message })
+    });
+  }
+},
 // Toggle account status
 async toggleAccountStatus(req, res) {
-    try {
-        const user = await User.findByPk(req.params.id);
-        user.isEnabled = !user.isEnabled;
-        await user.save();
-        res.send(user);
-    } catch (err) {
-    console.error('Toggle status error:', err);
-    res.status(400).send({ 
-        error: 'Update failed',
-        details: process.env.NODE_ENV === 'development' ? err.message : undefined
+  try {
+    const user = await User.findByPk(req.params.id);
+    if (!user) return res.status(404).send({ error: 'Account not found' });
+    
+    user.isEnabled = !user.isEnabled;
+    await user.save();
+    
+    res.send({
+      message: `Account ${user.isEnabled ? 'enabled' : 'disabled'} successfully`,
+      isEnabled: user.isEnabled
     });
-}
+  } catch (err) {
+    console.error('Toggle status error:', err);
+    res.status(500).send({ 
+      error: 'Update failed',
+      ...(process.env.NODE_ENV === 'development' && { debug: err.message })
+    });
+  }
 },
 
 // Update account details
  async updateAccount(req, res) {
-    try {
-      const user = await User.findByPk(req.params.id);
-      
-      if (req.body.newPassword) {
-        user.password = req.body.newPassword;
-        await user.save(); // Triggers hashPassword hook
-      }
-      
-      if (req.body.username) {
-        user.username = req.body.username;
-        await user.save();
-      }
-
-      res.send(user);
-    } catch (err) {
-      console.error('Update error:', err);
-      res.status(400).send({ 
-        error: 'Update failed',
-        ...(process.env.NODE_ENV === 'development' && { debug: err.message })
-      });
-    }
+  try {
+    const user = await User.findByPk(req.params.id);
+    
+    if (req.body.username) user.username = req.body.username;
+    if (req.body.role) user.role = req.body.role;
+    if (req.body.password) user.password = req.body.password;
+    
+    await user.save();
+    
+    res.send({
+      id: user.id,
+      username: user.username,
+      role: user.role,
+      isEnabled: user.isEnabled,
+      createdAt: user.createdAt
+    });
+    
+  } catch (err) {
+    console.error('Update error:', err);
+    res.status(400).send({ 
+      error: 'Update failed',
+      ...(process.env.NODE_ENV === 'development' && { debug: err.message })
+    });
+  }
   },
 
   async validateToken(req, res) {

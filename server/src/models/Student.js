@@ -12,6 +12,10 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.STRING,
             allowNull: true
         },
+         yearLevel: {
+            type: DataTypes.STRING,
+            allowNull: false
+        },  
         department: {
             type: DataTypes.STRING,
             allowNull: false
@@ -19,7 +23,8 @@ module.exports = (sequelize, DataTypes) => {
         idNumber: {
             type: DataTypes.STRING,
             allowNull: false,
-            unique: true
+            unique: true,
+            defaultValue: () => `STU-${Math.random().toString(36).substr(2, 6).toUpperCase()}`
         }
     });
 

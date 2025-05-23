@@ -14,30 +14,33 @@ export default {
     return Api.get('/api/users');
   },
   toggleAccountStatus(id) {
-    return Api.put(`/api/users/${id}/status`);
-  },
-  updateAccount(id, data) {
-    return Api.put(`/api/users/${id}`, data);
-  },
+  return Api.put(`/api/users/${id}/status`)
+    .catch(error => {
+      throw new Error(`Toggle failed: ${error.response?.data?.error || error.message}`);
+    });
+},
+
   getStudents() {
     return Api.get('/students');
   },
-  addStudent(data) {
-    return Api.post('/students', data);
+  createStudent(studentData) {
+    return Api.post('/students', studentData);
   },
-  updateStudent(id, data) {
-    return Api.put(`/students/${id}`, data);
-  },
-  deleteStudent(id) {
-    return Api.delete(`/students/${id}`);
-  },
-  uploadFile(file) {
-    const formData = new FormData();
-    formData.append('file', file);
-    return Api.post('/students/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    });
-  }
+  // Change the upload method to handle errors better
+uploadStudents(file) {
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  return Api.post('/students/upload', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+      Authorization: `Bearer ${localStorage.getItem('token')}` // Ensure auth
+    }
+  }).catch(error => {
+    console.error('Upload error details:', error.response?.data);
+    throw error;
+  });
+},
+
+
 };
