@@ -26,8 +26,10 @@ export default {
   createStudent(studentData) {
     return Api.post('/students', studentData);
   },
+
   // Change the upload method to handle errors better
-uploadStudents(file) {
+  
+  uploadStudents(file) {
   const formData = new FormData();
   formData.append('file', file);
   
@@ -41,6 +43,16 @@ uploadStudents(file) {
     throw error;
   });
 },
+
+  getEvents() {
+    return Api.get('/events');
+  },
+  createEvent(eventData) {
+    return Api.post('/events', eventData);
+  },
+  updateEvent(eventId, eventData) {
+    return Api.put(`/events/${eventId}`, eventData);
+  }
 
 
 };

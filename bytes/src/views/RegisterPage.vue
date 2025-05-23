@@ -617,7 +617,7 @@ export default {
   background: rgba(0, 0, 0, .5);
   box-shadow: 0 15px 25px rgba(0, 0, 0, .6);
   border-radius: 10px;
-  color: white;
+  color: rgba(41, 12, 12, 0.103);
 }
 
 .student-list-card {

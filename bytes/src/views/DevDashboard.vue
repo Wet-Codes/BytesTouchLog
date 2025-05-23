@@ -52,7 +52,7 @@ export default {
         },
         { 
           text: 'Create Event', 
-          route: 'create-event', 
+          route: 'Event', 
           color: 'black-transparent', 
           icon: 'mdi-calendar-plus' 
         },

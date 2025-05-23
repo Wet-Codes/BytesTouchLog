@@ -15,6 +15,7 @@ import AccountList from '../views/AccountList.vue';
 import store from '@/store';
 import Dev from '../views/DevDashboard.vue';
 import Reg from '../views/RegisterPage.vue';
+import Event from '../views/EventPage.vue';
 
 const routes = [
    {
@@ -126,7 +127,16 @@ const routes = [
     meta: { requiresAuth: true },
 
     props: true
-  }
+  },
+  {
+    path: '/event',
+    name: 'Event',
+    component: Event,
+   
+
+    props: true
+  },
+
 ];
 
 

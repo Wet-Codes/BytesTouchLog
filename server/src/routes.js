@@ -4,6 +4,7 @@ const express = require('express');
 const fileUpload = require('express-fileupload');
 const studentController = require('./controllers/AuthUpload');
 const FingerprintController = require('./controllers/FingerprintController');
+const EventController = require('./controllers/EventController');
 const authMiddleware = require('./middlewares/authMiddleware');
 const adminMiddleware = require('./middlewares/adminMiddleware');
 
@@ -67,7 +68,10 @@ app.put('/api/users/:id',
      app.post('/students', studentController.createStudent);
      app.post('/students/upload', authMiddleware ,studentController.upload);
 
-
+// Event routes
+app.get('/events', EventController.getAllEvents);
+app.post('/events', EventController.createEvent);
+app.put('/events/:eventId', EventController.updateEvent);
 
 //FingerPrint Controller
      app.post("/fingerprint/upload", FingerprintController.uploadFingerprint);
