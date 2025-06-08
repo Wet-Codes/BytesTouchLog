@@ -1,87 +1,107 @@
-const { Fingerprint } = require('../models');
+const Fingerprint = require('../models/Fingerprint');
 
 module.exports = {
-    async uploadFingerprint(req, res) {
+    async enrollFingerprint(req, res) {
         try {
-
-            if (!req.body.fingerprintMinutiae?.Data) {
+            const { name, samples } = req.body;
+            
+            if (!name || !samples || samples.length !== 4) {
                 return res.status(400).json({ 
                     success: false, 
-                    message: "Invalid fingerprint format" 
+                    error: "Name and 4 fingerprint samples are required" 
                 });
             }
-            
-            // Add data length check from sample validation
-            const fpData = req.body.fingerprintMinutiae.Data;
-            if (fpData.length < 100 || fpData.length > 10000) {
-                return res.status(400).json({ 
-                    success: false, 
-                    message: "Invalid fingerprint data length" 
-                });
-            }
-            
-            if (!req.body.fingerprintMinutiae || req.body.fingerprintMinutiae.length !== 4) {
-                return res.status(400).json({ success: false, message: 'Capture 4 fingerprints first!' });
-            }
 
-            const { name } = req.body;
-            const fingerprintSamples = req.body.fingerprintMinutiae;
-
-            if (!name) {
-                return res.status(400).json({ success: false, message: 'Name is required' });
-            }
-
-            // Store the Base64 fingerprints directly
-            await Fingerprint.create({ 
-                name, 
-                minutiaeData: JSON.stringify(fingerprintSamples) 
+            // Store raw samples (let frontend handle template creation)
+            const fingerprint = await Fingerprint.create({
+                name,
+                fingerprintData: samples, // Store raw samples instead of template
+                fingerprintTemplate: null, // Will be generated on client side
+                userId: req.user?.id || null
             });
 
-            res.json({ success: true, message: `Fingerprint registered for ${name}` });
-        } catch (error) {
-            console.error("Error uploading fingerprint:", error);
-            res.status(500).json({ success: false, message: "Server error" });
-        }
-    },
-
-    async authorizeFingerprint(req, res) {
-        try {
-            if (!fingerprintData || fingerprintData.length < 100) { // Basic validity check
-                return res.status(400).json({ success: false, message: "Invalid fingerprint data" });
-              }
-            if (!req.body.fingerprintMinutiae || !req.body.fingerprintMinutiae.Data) {
-                return res.status(400).json({ success: false, message: "No valid fingerprint data provided" });
-            }
-    
-            const fingerprintData = req.body.fingerprintMinutiae.Data;
-    
-            // Get all registered fingerprints
-            const allFingerprints = await Fingerprint.findAll();
-            let matchedUser = null;
-    
-            // Check against all stored fingerprints
-            for (const fp of allFingerprints) {
-                const storedFmds = JSON.parse(fp.minutiaeData);
-                if (storedFmds.some(storedFmd => storedFmd.Data === fingerprintData)) {
-                    matchedUser = fp;
-                    break;
-                }
-            }
-    
             res.json({ 
-                success: !!matchedUser,
-                name: matchedUser?.name || ""
+                success: true,
+                id: fingerprint.id 
             });
         } catch (error) {
-            console.error("❌ Error authorizing fingerprint:", error);
-            res.status(500).json({ success: false, message: "Server error" });
+            console.error("Enrollment error:", error);
+            res.status(500).json({ 
+                success: false, 
+                error: "Fingerprint enrollment failed" 
+            });
         }
     },
 
-    async scanFingerprint(req, res) {
-        res.status(501).json({ 
-            success: false, 
-            message: "This endpoint is not needed - fingerprint processing happens in Java middleware" 
-        });
+    async verifyFingerprint(req, res) {
+        try {
+            const { sample } = req.body;
+            
+            if (!sample) {
+                return res.status(400).json({ 
+                    success: false, 
+                    error: "Fingerprint sample is required" 
+                });
+            }
+
+            // Get the user's stored fingerprint
+            const fingerprint = await Fingerprint.findOne({
+                where: { userId: req.user.id }
+            });
+            
+            if (!fingerprint) {
+                return res.json({ 
+                    success: true,
+                    match: false,
+                    message: "No fingerprint registered for this user"
+                });
+            }
+
+            // Return the stored samples for client-side comparison
+            res.json({ 
+                success: true,
+                samples: fingerprint.fingerprintData,
+                name: fingerprint.name 
+            });
+        } catch (error) {
+            console.error("Verification error:", error);
+            res.status(500).json({ 
+                success: false, 
+                error: "Fingerprint verification failed" 
+            });
+        }
+    },
+
+    async identifyFingerprint(req, res) {
+        try {
+            const { sample } = req.body;
+            
+            if (!sample) {
+                return res.status(400).json({ 
+                    success: false, 
+                    error: "Fingerprint sample is required" 
+                });
+            }
+
+            // Get all stored fingerprints
+            const fingerprints = await Fingerprint.findAll();
+            
+            // Return all fingerprints for client-side comparison
+            res.json({ 
+                success: true,
+                fingerprints: fingerprints.map(fp => ({
+                    id: fp.id,
+                    name: fp.name,
+                    samples: fp.fingerprintData,
+                    userId: fp.userId
+                }))
+            });
+        } catch (error) {
+            console.error("Identification error:", error);
+            res.status(500).json({ 
+                success: false, 
+                error: "Fingerprint identification failed" 
+            });
+        }
     }
 };

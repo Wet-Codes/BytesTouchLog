@@ -15,10 +15,4 @@ const vuetify = createVuetify({
     directives,
   })
 
-// Ensure SDK is loaded globally
-window.onload = function () {
-  if (!window.Fingerprint) {
-    console.error("U.are.U Fingerprint SDK not found!");
-  }
-};
 createApp(App).use(store).use(router).use(vuetify).mount('#app')

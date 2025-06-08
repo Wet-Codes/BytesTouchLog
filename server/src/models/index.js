@@ -3,6 +3,7 @@ const path = require ('path') //paths conjuction
 const Sequelize = require('sequelize') //Sequilize object connection to the db
 const config = require('../config/config.js') //Config port
 
+
 const db = {} //db object
 
 

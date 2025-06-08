@@ -1,29 +1,40 @@
+const { Sequelize } = require('sequelize');
+
 module.exports = (sequelize, DataTypes) => {
-  const Fingerprint = sequelize.define("Fingerprint", {
-    id: {
-      type: DataTypes.INTEGER,
-      autoIncrement: true,
-      primaryKey: true,
-    },
+  return sequelize.define('Fingerprint', {
     name: {
       type: DataTypes.STRING,
-      allowNull: false,
+      allowNull: false
     },
-    minutiaeData: {
+    fingerprintData: {  // Store raw samples
       type: DataTypes.JSON,
-      allowNull: false,
-      validate: {
-        isValid(value) {
-          if (!Array.isArray(value) || value.length !== 4) {
-            throw new Error('Exactly 4 fingerprint samples required');
+      allowNull: false
+    },
+    fingerprintTemplate: {  // Optional, can be null
+      type: DataTypes.TEXT,
+      allowNull: true
+    },
+    userId: {
+      type: DataTypes.INTEGER,
+      references: {
+        model: 'Users',
+        key: 'id'
+      },
+      allowNull: true
+    }
+  }, {
+    timestamps: true,
+    updatedAt: false,
+    indexes: [
+      {
+        unique: true,
+        fields: ['userId'],
+        where: {
+          userId: {
+            [Sequelize.Op.ne]: null
           }
         }
       }
-    },
-  }, {
-    tableName: "fingerprints",
-    timestamps: true,
+    ]
   });
-
-  return Fingerprint;
 };

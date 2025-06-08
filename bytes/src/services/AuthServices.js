@@ -28,7 +28,6 @@ export default {
   },
 
   // Change the upload method to handle errors better
-  
   uploadStudents(file) {
   const formData = new FormData();
   formData.append('file', file);
@@ -52,7 +51,34 @@ export default {
   },
   updateEvent(eventId, eventData) {
     return Api.put(`/events/${eventId}`, eventData);
-  }
+  },
 
+enrollFingerprint(data) {
+    return Api.post('/fingerprint/enroll', {
+        name: data.name,
+        samples: data.samples
+    }, {
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+        }
+    });
+},
+  verifyFingerprint(template) {
+    return Api.post('/fingerprint/verify', { template }, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+  },
+  identifyFingerprint(template) {
+    return Api.post('/fingerprint/identify', { template }, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${localStorage.getItem('token')}`
+      }
+    });
+  }
 
 };

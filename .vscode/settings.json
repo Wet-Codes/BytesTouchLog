@@ -1,36 +1,55 @@
 {
-    "java.project.sourcePaths": [
-        "server\\src\\fingerprint-java\\Java-Fingerprint-Middleware",
-        "server\\src\\fingerprint-java\\UareUSampleJava"
-    ],
+      "java.project.sourcePaths": [],
     "java.project.referencedLibraries": [
-        "d:\\Projects\\Visual Studio\\CAPSTONE 2\\BytesTouchLog\\server\\src\\fingerprint-java\\Java\\dpuareu.jar"
+        "c:\\Program Files\\Java\\jdk8u452-b09\\jre\\lib\\rt.jar",
+        "d:\\Projects\\Visual Studio\\CAPSTONE 2\\BytesTouchLog\\midware\\lib\\dpuareu.jar"
     ],
+    "java.project.referencedLibraries.accessRules": {
+        "**/rt.jar": [
+            "accessible"
+        ]
+    },
+    
     "cSpell.words": [
         "accomodate",
         "acredited",
         "Avenir",
+        "axios",
         "BSCS",
         "BSIS",
         "BSIT",
         "Capturefinger",
+        "cflags",
         "conjuction",
         "cpath",
+        "crossmatch",
         "csvg",
+        "cxxflags",
         "debbug",
         "digitalpersona",
+        "Djava",
+        "dpuaru",
         "falsematch",
         "falsepositive",
         "fmds",
         "getcaps",
+        "Gson",
         "Hande",
+        "javac",
+        "NAPI",
         "prefmd",
         "sequilize",
+        "springframework",
         "Touchlog",
         "Uare",
         "uareu",
         "vgap",
         "vuetify",
         "vuex"
-    ]
+    ],
+    "java.configuration.updateBuildConfiguration": "interactive",
+    "files.associations": {
+        "initializer_list": "cpp"
+    },
+    
 }
