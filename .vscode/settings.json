@@ -37,6 +37,7 @@
         "Hande",
         "javac",
         "NAPI",
+        "oneofs",
         "prefmd",
         "sequilize",
         "springframework",

@@ -14,6 +14,8 @@
     "@digitalpersona/core": "^0.2.6",
     "@digitalpersona/devices": "^0.2.6",
     "@digitalpersona/enrollment": "^0.2.9",
+    "@grpc/grpc-js": "^1.13.4",
+    "@grpc/proto-loader": "^0.7.15",
     "axios": "^1.9.0",
     "basic-auth": "^2.0.1",
     "bcrypt": "^5.1.1",

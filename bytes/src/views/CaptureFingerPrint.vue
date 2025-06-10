@@ -2,58 +2,94 @@
   <PageHeader />
   <div :style="backgroundStyle" id="bp">
     <div class="form">
-      <h2>Fingerprint Scanner</h2>
-
-      <!-- Reader Selection -->
-      <div v-if="!selectedReader">
-        <select v-model="selectedReaderName" class="reader-select">
-          <option v-for="reader in readers" :key="reader" :value="reader">{{ reader }}</option>
-        </select>
-        <button class="btn" @click="selectReader">
-          Select Reader
+      <!-- Mode Selection -->
+      <div class="mode-selector">
+        <button 
+          @click="setMode('enroll')" 
+          :class="['mode-btn', { active: mode === 'enroll' }]"
+        >
+          Enroll Fingerprint
+        </button>
+        <button 
+          @click="setMode('identify')" 
+          :class="['mode-btn', { active: mode === 'identify' }]"
+        >
+          Identify Fingerprint
         </button>
       </div>
 
-      <!-- Actions once reader is selected -->
-      <div v-else>
-        <p class="reader-info">Selected Reader: {{ selectedReader }}</p>
+      <!-- Reader Selection -->
+      <div v-if="!selectedReader" class="reader-section">
+        <select v-model="selectedReaderName" class="reader-select">
+          <option v-for="reader in readers" :key="reader" :value="reader">{{ reader }}</option>
+        </select>
+        <button class="btn" @click="selectReader">Select Reader</button>
+      </div>
 
-        <div v-if="showNameInput" class="enrollment-section">
+      <!-- Enrollment Mode -->
+      <div v-else-if="mode === 'enroll'">
+        <p class="reader-info">Selected Reader: {{ selectedReader }}</p>
+        <h2>Fingerprint Enrollment</h2>
+
+        <div v-if="!enrollmentStarted" class="enrollment-section">
           <input
             v-model="enrollName"
             type="text"
             placeholder="Enter name for enrollment"
             class="name-input"
           />
-          <button class="btn" @click="submitEnroll">
-            Submit & Enroll
-          </button>
+          <button class="btn enroll-btn" @click="startEnrollment">Start Enrollment</button>
         </div>
 
-        <div v-else class="action-buttons">
-          <button class="btn enroll-btn" @click="startEnrollment" :disabled="enrollInProgress">
-            {{ enrollInProgress ? 'Enrolling...' : 'Enroll Fingerprint (4 scans)' }}
-          </button>
-          <button class="btn identify-btn" @click="startIdentification">
-            Identify
-          </button>
-          
-          <div class="fingerprint-display">
-            <img v-if="fingerprintImage" :src="fingerprintImage" 
-                 alt="Fingerprint scan" class="fp-image">
-            <div class="scan-progress" v-if="enrollInProgress">
-              Scan {{ enrollStep }}/4
-            </div>
-          </div>
+        <div v-else class="fingerprint-display">
+          <p class="scan-progress">
+            Scan {{ enrollScanStep + 1 }}/4 for {{ currentEnrollFinger }} finger
+          </p>
+          <img v-if="fingerprintImage" :src="fingerprintImage" alt="Fingerprint" class="fp-image" />
+          <p class="status-message">{{ statusMessage }}</p>
         </div>
-        <div v-if="showLiteClientLink" class="reader-communication-error">
-  Cannot connect to your fingerprint device. Make sure the device is connected.
-  If you do not use DigitalPersona Workstation, you may need to download and install
-  <a href="https://crossmatch.hid.gl/lite-client">DigitalPersona Lite Client</a>. :cite[1]
-</div>
       </div>
 
-      <h3 class="status-message">Status: {{ statusMessage }}</h3>
+      <!-- Identification Mode -->
+      <div v-else class="identification-section">
+        <p class="reader-info">Selected Reader: {{ selectedReader }}</p>
+        <h2>Fingerprint Identification</h2>
+
+        <div v-if="!identificationStarted" class="identification-controls">
+          <button class="btn identify-btn" @click="startIdentification">Start Identification</button>
+        </div>
+
+        <div v-else class="fingerprint-display">
+          <p class="scan-progress">Scan 1/1</p>
+          <img v-if="fingerprintImage" :src="fingerprintImage" alt="Fingerprint" class="fp-image" />
+          <p class="status-message">{{ statusMessage }}</p>
+
+          <div v-if="debugInfo" class="debug-info">
+            <h3>Debug Information</h3>
+            <pre>{{ debugInfo }}</pre>
+          </div>
+
+          <div v-if="identificationResult" class="result-display mt-4 p-4 rounded-xl shadow bg-white max-w-md mx-auto">
+           <div v-if="identificationResult.success">
+        <h3 class="text-lg font-semibold text-green-600 mb-2">🎉 User Identified</h3>
+        <p><strong>Name:</strong> {{ identificationResult.name }}</p>
+        <p v-if="identificationResult.userId"><strong>User ID:</strong> {{ identificationResult.userId }}</p>
+        <p><strong>Enrolled At:</strong> {{ formatDate(identificationResult.enrolledAt) }}</p>
+           </div>
+         <div v-else>
+        <h3 class="text-lg font-semibold text-red-600 mb-2">❌ Identification Failed</h3>
+        <p>{{ identificationResult.error || "No matching fingerprint found." }}</p>
+          </div>
+        </div>
+
+        </div>
+      </div>
+
+      <div v-if="showLiteClientLink" class="reader-communication-error">
+        Cannot connect to your fingerprint device. Make sure the device is connected.
+        You may need to download and install
+        <a href="https://crossmatch.hid.gl/lite-client" target="_blank">DigitalPersona Lite Client</a>.
+      </div>
     </div>
   </div>
 </template>
@@ -61,36 +97,37 @@
 <script>
 import PageHeader from '@/components/HeaderNav.vue';
 import AuthService from '@/services/AuthServices';
-import { FingerprintReader, SampleFormat } from '@digitalpersona/devices';
 
 export default {
   components: { PageHeader },
-
-  async mounted() {
-    await this.loadWebSdk();
-    this.reader = new FingerprintReader();
-    await this.loadReaders();
-  },
-
   data() {
     return {
+      mode: 'enroll',
       backgroundImage: "https://cdn.vuetifyjs.com/images/backgrounds/vbanner.jpg",
+      reader: null,
       readers: [],
       selectedReaderName: "",
       selectedReader: null,
-      reader: null,
-      statusMessage: "Waiting for reader selection...",
-      showNameInput: false,
       enrollName: "",
-      enrollStep: 0,
-      enrollInProgress: false,
-      enrollmentSamples: [],
-      currentAction: null,
+
+      // Enrollment logic
+      enrollScanStep: 0,
+      currentEnrollFinger: 'index',
+      indexFingerSamples: [],
+      middleFingerSamples: [],
+      enrollmentStarted: false,
+
+      // Identification logic
+      identificationStarted: false,
+      identificationResult: null,
+
+      // UI state
       fingerprintImage: null,
+      statusMessage: "Waiting for reader selection...",
       showLiteClientLink: false,
+      debugInfo: "",
     };
   },
-
   computed: {
     backgroundStyle() {
       return {
@@ -102,190 +139,277 @@ export default {
         justifyContent: 'center',
         alignItems: 'center',
       };
+    },
+  },
+  async mounted() {
+    try {
+      if (!window.Fingerprint?.WebApi) throw new Error("Fingerprint SDK not available");
+      console.log("✅ SDK available");
+
+      this.reader = new window.Fingerprint.WebApi();
+
+      // Bind SDK events
+      this.reader.onDeviceConnected = () => {
+        this.statusMessage = "Device connected. Ready to scan.";
+      };
+      this.reader.onDeviceDisconnected = () => {
+        this.statusMessage = "Device disconnected.";
+      };
+      this.reader.onCommunicationFailed = () => {
+        this.statusMessage = "Communication with reader failed.";
+      };
+      this.reader.onSamplesAcquired = this.handleEnrollmentSample;
+
+      // Load devices
+      const devices = await this.reader.enumerateDevices();
+      this.readers = devices;
+      this.statusMessage = devices.length ? "Select a reader" : "No fingerprint readers found";
+      console.log("📡 Available readers:", devices);
+    } catch (err) {
+      console.error("❌ SDK init error:", err);
+      this.statusMessage = `SDK error: ${err.message}`;
+      this.showLiteClientLink = true;
     }
   },
-
   methods: {
-    async loadWebSdk() {
-      return new Promise((resolve, reject) => {
-        const script = document.createElement("script");
-        script.src = "/bytes/public/modules/WebSdk"; // inside public/modules
-        script.onload = resolve;
-        script.onerror = () => {
-          this.showLiteClientLink = true;
-          reject(new Error("WebSdk load failed"));
-        };
-        document.head.appendChild(script);
-      });
+    setMode(newMode) {
+      this.resetAll();
+      this.mode = newMode;
+      this.statusMessage = `Mode set to ${newMode === 'enroll' ? 'Enrollment' : 'Identification'}`;
     },
 
-    async loadReaders() {
-      try {
-        this.readers = await FingerprintReader.enumerate();
-        this.statusMessage = this.readers.length
-          ? "Select a reader from the list"
-          : "No fingerprint readers detected";
-      } catch (error) {
-        this.statusMessage = `Error enumerating readers: ${error.message}`;
-      }
-    },
-
-    async selectReader() {
+    selectReader() {
       this.selectedReader = this.selectedReaderName;
       this.statusMessage = `Reader "${this.selectedReader}" selected.`;
+      console.log("🖐️ Reader selected:", this.selectedReader);
     },
 
     async startEnrollment() {
-      if (!this.selectedReader) {
-        this.statusMessage = "Please select a reader first";
-        return;
-      }
-      this.showNameInput = true;
-      this.statusMessage = "Enter a name for enrollment";
-    },
-
-    async submitEnroll() {
       if (!this.enrollName) {
         this.statusMessage = "Please enter a name";
         return;
       }
-      this.currentAction = 'enroll';
-      this.enrollStep = 0;
-      this.enrollInProgress = true;
-      this.enrollmentSamples = [];
-      this.showNameInput = false;
-      await this.captureLoop(4);
+
+      this.debugInfo = "Initializing enrollment...";
+      this.enrollScanStep = 0;
+      this.indexFingerSamples = [];
+      this.middleFingerSamples = [];
+      this.currentEnrollFinger = 'index';
+      this.enrollmentStarted = true;
+      this.statusMessage = "Starting enrollment... Scan 1/4 for index finger";
+
+      try {
+        console.log("🚀 Starting acquisition with reader:", this.selectedReader);
+        await this.reader.startAcquisition(window.Fingerprint.SampleFormat.Intermediate, this.selectedReader);
+        console.log("👂 Listening for Intermediate Samples...");
+      } catch (err) {
+        this.debugInfo += `\nAcquisition error: ${err.message}`;
+        this.statusMessage = `Acquisition failed: ${err.message}`;
+        console.error("❌ Acquisition error:", err);
+      }
+    },
+
+    async handleEnrollmentSample(event) {
+      try {
+        const raw = JSON.parse(event.samples);
+        const base64Sample = raw[0].Data;
+
+        this.fingerprintImage = null; // Intermediate format is not image
+        console.log("🧬 Sample data acquired");
+
+        if (this.currentEnrollFinger === 'index') {
+          this.indexFingerSamples.push(base64Sample);
+          this.enrollScanStep++;
+          this.statusMessage = `Scan ${this.enrollScanStep}/4 for index finger`;
+
+          if (this.indexFingerSamples.length === 4) {
+            this.currentEnrollFinger = 'middle';
+            this.enrollScanStep = 0;
+            this.statusMessage = "Now scanning middle finger... Scan 1/4";
+          }
+        } else if (this.currentEnrollFinger === 'middle') {
+          this.middleFingerSamples.push(base64Sample);
+          this.enrollScanStep++;
+          this.statusMessage = `Scan ${this.enrollScanStep}/4 for middle finger`;
+
+          if (this.middleFingerSamples.length === 4) {
+            console.log("✅ Middle finger done. Stopping acquisition...");
+            await this.reader.stopAcquisition();
+            this.statusMessage = "Sending enrollment data to backend...";
+            await this.sendEnrollment();
+          }
+        }
+      } catch (err) {
+        this.statusMessage = `❌ Sample error: ${err.message}`;
+        console.error("⚠️ Sample error:", err);
+      }
+    },
+
+    async sendEnrollment() {
+      try {
+        const response = await AuthService.enrollFingerprint({
+          name: this.enrollName,
+          enrolled_index_finger_data: this.indexFingerSamples,
+          enrolled_middle_finger_data: this.middleFingerSamples
+        });
+
+        if (response.data?.message === 'Enrollment successful') {
+          this.statusMessage = `✅ ${this.enrollName} enrolled successfully!`;
+        } else {
+          throw new Error(response.data?.error || "Enrollment failed");
+        }
+      } catch (err) {
+        this.statusMessage = `❌ Enrollment error: ${err.message}`;
+      } finally {
+        setTimeout(() => this.resetEnrollment(), 3000);
+      }
     },
 
     async startIdentification() {
-      if (!this.selectedReader) {
-        this.statusMessage = "Please select a reader first";
-        return;
-      }
-      this.currentAction = 'identify';
-      await this.captureLoop(1);
-    },
+  this.identificationStarted = true;
+  this.autoIdentification = true;
+  this.statusMessage = "Starting identification...";
+  this.debugInfo = "";
+  this.fingerprintImage = null;
+  this.identificationResult = null;
 
-    async captureLoop(count) {
-      try {
-        for (let i = 0; i < count; i++) {
-          this.enrollStep = i + 1;
-          this.statusMessage = `Scan ${i + 1}/${count} - Place finger`;
+  try {
+    await this.reader.startAcquisition(window.Fingerprint.SampleFormat.Intermediate, this.selectedReader);
+    this.reader.onSamplesAcquired = this.handleIdentificationSample;
+  } catch (err) {
+    this.statusMessage = `Acquisition error: ${err.message}`;
+    console.error("Identification start error:", err);
+  }
+},
 
-          const result = await this.reader.startAcquisition(
-            SampleFormat.Intermediate,
-            this.selectedReader
-          ).then(() => this.reader.stopAcquisition());
+async handleIdentificationSample(event) {
+  try {
+    console.log("📥 Raw event received:", event);
 
-          if (!result) throw new Error("No result captured");
+    const raw = JSON.parse(event.samples);
+    const base64Sample = raw[0].Data;
+    console.log("📤 FMD being sent:", base64Sample.slice(0, 100) + "...");
 
-          this.fingerprintImage = `data:image/png;base64,${result.samples[0]}`;
+    await this.reader.stopAcquisition();
 
-          if (this.currentAction === 'enroll') {
-            this.enrollmentSamples.push(result.samples[0]);
-          } else {
-            await this.identifyUser(result.samples[0]);
-          }
-        }
+    const response = await AuthService.identifyFingerprint({ fmd: base64Sample });
+    console.log("✅ Response from backend:", response);
 
-        if (this.currentAction === 'enroll') {
-          await this.completeEnrollment();
-        }
-      } catch (error) {
-        console.error("Capture error:", error);
-        this.statusMessage = `Capture error: ${error.message}`;
-        this.enrollInProgress = false;
-      }
-    },
+    if (response.data.success) {
+      const user = response.data.user;
+      this.identificationResult = {
+        success: true,
+        name: user?.name || "Unknown",
+        userId: user?.id || "-",
+        enrolledAt: user?.enrolledAt || null
+      };
+      this.statusMessage = `✅ User identified: ${this.identificationResult.name}`;
 
-    async completeEnrollment() {
-      try {
-        this.statusMessage = "Sending enrollment...";
-        const response = await AuthService.enrollFingerprint({
-          name: this.enrollName,
-          samples: this.enrollmentSamples
-        });
+      // Pause for 2 seconds before restarting
+      await this.delay(2000);
+    } else {
+      this.identificationResult = {
+        success: false,
+        message: response.data.message || "Identification failed"
+      };
+      this.statusMessage = `❌ ${this.identificationResult.message}`;
 
-        if (response.data.success) {
-          this.statusMessage = "✅ Enrollment successful!";
-        } else {
-          throw new Error(response.data.error || "Enrollment failed");
-        }
-      } catch (error) {
-        this.statusMessage = `⚠️ Enrollment failed: ${error.message}`;
-      } finally {
-        this.enrollInProgress = false;
-        this.enrollName = "";
-        this.enrollmentSamples = [];
-      }
-    },
+      // Immediate retry if enabled
+      await this.delay(1000); // Optional short pause to avoid overloading
+    }
 
-    async identifyUser(sample) {
-      try {
-        this.statusMessage = "Identifying fingerprint...";
-        const response = await AuthService.identifyFingerprint(sample);
+    if (this.autoIdentification) {
+      await this.reader.startAcquisition(window.Fingerprint.SampleFormat.Intermediate, this.selectedReader);
+    }
 
-        if (response.data.match) {
-          this.statusMessage = `✅ Identified: ${response.data.name}`;
-        } else {
-          this.statusMessage = "❌ No match found";
-        }
-      } catch (error) {
-        this.statusMessage = `⚠️ Identification failed: ${error.message}`;
-      }
-    },
+  } catch (err) {
+    console.error("❌ Identification error:", err);
+    console.log("📛 Error response object:", err?.response);
+    this.statusMessage = `Identification error: ${err?.response?.data?.error || err.message}`;
+
+    if (this.autoIdentification) {
+      await this.delay(1500);
+      await this.reader.startAcquisition(window.Fingerprint.SampleFormat.Intermediate, this.selectedReader);
+    }
+  }
+}
+,
+ async delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
   },
 
-  beforeUnmount() {
-    if (this.reader) {
-      this.reader.off(); // Clean up events
+    resetEnrollment() {
+      this.enrollScanStep = 0;
+      this.indexFingerSamples = [];
+      this.middleFingerSamples = [];
+      this.enrollName = "";
+      this.enrollmentStarted = false;
+      this.fingerprintImage = null;
+      this.currentEnrollFinger = 'index';
+    },
+
+    resetAll() {
+      this.resetEnrollment();
+      this.identificationStarted = false;
+      this.identificationResult = null;
+      this.fingerprintImage = null;
+      this.statusMessage = "Mode switched. Select reader and start.";
+      this.debugInfo = "";
+    },
+
+    formatDate(date) {
+      if (!date) return "Unknown";
+      return new Date(date).toLocaleString();
     }
   }
 };
 </script>
 
 
+
+
+
+
 <style scoped>
 .form {
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(0, 0, 0, 0.6); /* Transparent black */
   padding: 2rem;
   border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
   width: 90%;
   max-width: 600px;
+  text-align: center;
 }
 
 h2 {
-  color: #2c3e50;
   text-align: center;
   margin-bottom: 1.5rem;
+  color: #2c3e50;
 }
 
-.reader-select {
+.reader-select,
+.name-input {
   padding: 0.5rem;
-  margin-right: 0.5rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
   width: 70%;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  color: #fff;
 }
 
 .btn {
   padding: 0.5rem 1rem;
-  background-color: #289bb8;
-  color: white;
+  background-color: #0077aa;
+  color: #fff;
   border: none;
   border-radius: 4px;
   cursor: pointer;
+  margin-top: 10px;
+  font-weight: 700;
   transition: background-color 0.3s;
 }
 
 .btn:hover {
-  background-color: #1e7a8c;
-}
-
-.btn:disabled {
-  background-color: #cccccc;
-  cursor: not-allowed;
+  background-color: #005f8d;
 }
 
 .enroll-btn {
@@ -293,65 +417,170 @@ h2 {
 }
 
 .enroll-btn:hover {
-  background-color: #218838;
-}
-
-.identify-btn {
-  background-color: #17a2b8;
-}
-
-.identify-btn:hover {
-  background-color: #138496;
-}
-
-.name-input {
-  padding: 0.5rem;
-  margin-right: 0.5rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  width: 60%;
+  background-color: #1e7d36;
 }
 
 .reader-info {
-  text-align: center;
-  font-weight: bold;
   margin-bottom: 1rem;
+  font-weight: bold;
+  text-align: center;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.enrollment-section {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1rem;
 }
 
 .fingerprint-display {
-  margin: 1.5rem auto;
-  position: relative;
+  text-align: center;
+  margin-top: 10px;
 }
 
 .fp-image {
-  width: 300px;
-  height: 400px;
-  border: 2px solid #289bb8;
-  display: block;
-  margin: 0 auto;
+  width: 150px;
+  height: 150px;
+  border: 2px solid #1976d2;
+  border-radius: 12px;
+  margin-top: 10px;
 }
 
 .scan-progress {
-  position: absolute;
-  bottom: 10px;
-  left: 0;
-  right: 0;
-  text-align: center;
-  background: rgba(0, 0, 0, 0.7);
-  color: white;
-  padding: 5px;
+  font-weight: bold;
+  font-size: 1.2rem;
+  margin-bottom: 5px;
+  color: #1976d2;
 }
 
 .status-message {
   text-align: center;
-  margin-top: 1rem;
-  min-height: 24px;
+  margin-top: 15px;
+  font-weight: 600;
+  color: #444;
 }
 
-.enrollment-section, .action-buttons {
+.reader-communication-error {
+  color: red;
+  text-align: center;
+  margin-top: 2rem;
+  font-size: 0.95rem;
+}
+
+.mode-selector {
   display: flex;
-  flex-direction: column;
+  justify-content: center;
   gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-direction: row;
+}
+
+.mode-btn {
+  padding: 10px 20px;
+  background-color: #e0e0e0;
+  color: #333;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.3s;
+}
+
+.mode-btn:hover {
+  background-color: #d0d0d0;
+}
+
+.mode-btn.active {
+  background-color: #1976d2;
+  color: white;
+}
+
+.identification-section {
+  text-align: center;
+}
+
+.identify-btn {
+  background-color: #ff9800;
+}
+
+.identify-btn:hover {
+  background-color: #e68a00;
+}
+
+.result-display {
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  border-radius: 8px;
+  text-align: left;
+  font-size: 1rem;
+}
+
+.success-result {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  padding: 1rem;
+  border-radius: 4px;
+}
+
+.success-result p {
+  margin: 5px 0;
+  line-height: 1.4;
+}
+
+.success-result p:first-child {
+  font-size: 1.1rem;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.success-result p strong {
+  color: #2e7d32;
+}
+
+.error-result {
+  background-color: #ffebee;
+  color: #c62828;
+  padding: 1rem;
+  border-radius: 4px;
+}
+
+.debug-info {
+  margin-top: 15px;
+  background: #f5f5f5;
+  padding: 10px;
+  border-radius: 8px;
+  max-height: 120px;
+  overflow-y: auto;
+  font-family: monospace;
+  font-size: 0.85rem;
+  text-align: left;
+}
+
+#bp {
+  display: flex;
+  justify-content: center;
   align-items: center;
+  height: 100vh;
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .mode-selector {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .reader-select,
+  .name-input {
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+
+  .btn {
+    width: 100%;
+  }
 }
 </style>

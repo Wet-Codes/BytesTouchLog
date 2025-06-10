@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package fingerprint;
+
+service FingerPrint {
+  // Enroll takes 4 scans per finger as repeated string arrays, returns enrolled templates
+  rpc EnrollFingerprint (EnrollRequest) returns (EnrollResponse);
+  
+  // Verify takes a single fingerprint scan, returns match info
+  rpc VerifyFingerprint (VerifyRequest) returns (VerifyResponse);
+  
+  // Check for duplicate fingerprint
+  rpc CheckDuplicate (DuplicateRequest) returns (DuplicateResponse);
+}
+
+message EnrollRequest {
+  string name = 1;
+
+  // Each finger data is an array of 4 base64 scans
+  repeated string enrolled_index_finger_data = 2;
+  repeated string enrolled_middle_finger_data = 3;
+}
+
+message EnrollResponse {
+  bool success = 1;
+  string message = 2;
+
+  // Enrolled templates for each finger (single template per finger)
+  string enrolled_template_index_finger = 3;
+  string enrolled_template_middle_finger = 4;
+}
+
+message VerifyRequest {
+  string fingerData = 1;
+}
+
+message VerifyResponse {
+  bool match = 1;
+  string matchedName = 2;
+  string message = 3;
+}
+
+message DuplicateRequest {
+  string fingerData = 1;
+}
+
+message DuplicateResponse {
+  bool isDuplicate = 1;
+  string message = 2;
+}

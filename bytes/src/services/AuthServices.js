@@ -53,32 +53,12 @@ export default {
     return Api.put(`/events/${eventId}`, eventData);
   },
 
-enrollFingerprint(data) {
-    return Api.post('/fingerprint/enroll', {
-        name: data.name,
-        samples: data.samples
-    }, {
-        headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('token')}`
-        }
-    });
-},
-  verifyFingerprint(template) {
-    return Api.post('/fingerprint/verify', { template }, {
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('token')}`
-      }
-    });
+    enrollFingerprint(data) {
+    return Api.post('/fingerprint/enroll', data);
   },
-  identifyFingerprint(template) {
-    return Api.post('/fingerprint/identify', { template }, {
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${localStorage.getItem('token')}`
-      }
-    });
+  
+  identifyFingerprint(data) {
+    return Api.post('/fingerprint/identify', data);
   }
 
 };

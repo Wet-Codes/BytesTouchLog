@@ -1,40 +1,23 @@
-const { Sequelize } = require('sequelize');
-
 module.exports = (sequelize, DataTypes) => {
-  return sequelize.define('Fingerprint', {
+  const Fingerprint = sequelize.define('Fingerprint', {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true
+    },
     name: {
       type: DataTypes.STRING,
       allowNull: false
     },
-    fingerprintData: {  // Store raw samples
-      type: DataTypes.JSON,
+    enrolledFMD1: {
+      type: DataTypes.TEXT('long'),  // Enrolled template for index finger
       allowNull: false
     },
-    fingerprintTemplate: {  // Optional, can be null
-      type: DataTypes.TEXT,
-      allowNull: true
-    },
-    userId: {
-      type: DataTypes.INTEGER,
-      references: {
-        model: 'Users',
-        key: 'id'
-      },
-      allowNull: true
+    enrolledFMD2: {
+      type: DataTypes.TEXT('long'),  // Enrolled template for middle finger
+      allowNull: false
     }
-  }, {
-    timestamps: true,
-    updatedAt: false,
-    indexes: [
-      {
-        unique: true,
-        fields: ['userId'],
-        where: {
-          userId: {
-            [Sequelize.Op.ne]: null
-          }
-        }
-      }
-    ]
   });
+
+  return Fingerprint;
 };

@@ -73,23 +73,11 @@ app.get('/events', EventController.getAllEvents);
 app.post('/events', EventController.createEvent);
 app.put('/events/:eventId', EventController.updateEvent);
 
-//FingerPrint Controller
-  // Fingerprint routes
-    app.post('/fingerprint/enroll', 
-      
-        FingerprintController.enrollFingerprint
-    );
 
-    app.post('/fingerprint/verify', 
-       
-        FingerprintController.verifyFingerprint
-    );
 
-    app.post('/fingerprint/identify', 
-        
-        FingerprintController.identifyFingerprint
-    );
 
-   // Change existing fingerprint route to:
+app.post('/fingerprint/enroll', FingerprintController.enroll);
+
+app.post('/fingerprint/identify', FingerprintController.identify);
 
 }
