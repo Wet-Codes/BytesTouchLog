@@ -43,6 +43,10 @@ export default {
   });
 },
 
+  EnrollExist(existingstudent){
+    return Api.post('/student/enrollexist', existingstudent)
+  },
+
   getEvents() {
     return Api.get('/events');
   },

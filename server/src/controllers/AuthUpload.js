@@ -40,6 +40,72 @@ const mapCourse = (courseName) => {
 };
 
 module.exports = {
+   async EnrollExist (req, res) {
+    const { studentId, enrolled_index_finger_data, enrolled_middle_finger_data } = req.body;
+
+    if (!studentId) {
+      return res.status(400).json({ success: false, error: 'Missing studentId' });
+    }
+
+    if (
+      !Array.isArray(enrolled_index_finger_data) ||
+      !Array.isArray(enrolled_middle_finger_data) ||
+      enrolled_index_finger_data.length !== 4 ||
+      enrolled_middle_finger_data.length !== 4
+    ) {
+      return res.status(400).json({ success: false, error: 'Invalid fingerprint data. Expected 4 samples per finger.' });
+    }
+
+    try {
+      const student = await Student.findByPk(studentId);
+
+      if (!student) {
+        return res.status(404).json({ success: false, error: 'Student not found' });
+      }
+
+      const fingerprintPayload = {
+        data: JSON.stringify({
+          index_finger: enrolled_index_finger_data,
+          middle_finger: enrolled_middle_finger_data
+        })
+      };
+
+      console.log('[ENROLL EXISTING STUDENT] Sending fingerprint data to PHP service...');
+      const fpResponse = await axios.post(
+        'http://localhost:5555/coreComponents/enroll.php',
+        qs.stringify(fingerprintPayload),
+        { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+      );
+
+      const enrolled = fpResponse.data;
+
+      if (!enrolled.enrolled_index_finger || !enrolled.enrolled_middle_finger) {
+        console.error('[ENROLL EXISTING STUDENT] PHP enrollment failed:', enrolled);
+        return res.status(500).json({ success: false, error: 'Fingerprint enrollment failed in PHP backend.' });
+      }
+
+      await student.update({
+        enrolledFMD1: enrolled.enrolled_index_finger,
+        enrolledFMD2: enrolled.enrolled_middle_finger
+      });
+
+      console.log(`[ENROLL EXISTING STUDENT] Student ${student.idNumber} fingerprint updated`);
+
+      res.status(200).json({
+        success: true,
+        message: 'Fingerprint enrolled successfully',
+        student
+      });
+
+    } catch (err) {
+      console.error('[ENROLL EXISTING STUDENT] Error:', err.message || err);
+      res.status(500).json({
+        success: false,
+        error: 'Enrollment failed: ' + (err.message || 'Unknown error')
+      });
+    }
+  },
+
   async getAllStudents(req, res) {
     try {
       const students = await Student.findAll();

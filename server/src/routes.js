@@ -67,7 +67,7 @@ app.put('/api/users/:id',
      app.get('/students', studentController.getAllStudents);
      app.post('/students', studentController.createStudent);
      app.post('/students/upload', authMiddleware ,studentController.upload);
-
+     app.post('/student/enrollexist', studentController.EnrollExist, )
 // Event routes
 app.get('/events', EventController.getAllEvents);
 app.post('/events', EventController.createEvent);
