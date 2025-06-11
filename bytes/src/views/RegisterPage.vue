@@ -25,9 +25,23 @@
         <v-row>
           <v-col cols="12">
             <v-card class="fine-card" elevation="2">
-              <v-card-title class="d-flex justify-space-between align-center">
-                <h1 class="table-title">STUDENT MANAGEMENT</h1>
-                <div>
+            <v-card-title class="d-flex justify-space-between align-center flex-wrap">
+  <h1 class="table-title">STUDENT MANAGEMENT</h1>
+  <div class="d-flex align-center flex-wrap" style="gap: 12px;">
+  <v-select
+    v-model="selectedReader"
+    :items="readers"
+    item-title="name"
+    item-value="serialNumber"
+    label="Select Reader"
+    density="compact"
+    hide-details
+    outlined
+    :placeholder="'No Reader'"
+    class="reader-select"
+    style="min-width: 220px;"
+  />
+  
                   <v-btn 
                     color="success" 
                     dark
@@ -47,9 +61,12 @@
                   </v-btn>
                 </div>
               </v-card-title>
+
+
+              <!-- Student Table -->
               <v-card-text>
                 <v-row>
-                  <v-col cols="12">
+                  <v-col :cols="selectedStudent ? 8 : 12">
                     <v-card class="student-list-card">
                       <v-card-text>
                         <v-row class="mb-1" align="center">
@@ -144,13 +161,15 @@
                     </v-card>
                   </v-col>
 
-                  <v-col v-if="selectedStudent" cols="4">
+                  <v-col v-if="selectedStudent || isNewStudent" cols="">
+
                     <v-card class="right-side-card">
                       <div class="details-header">
                         <v-card-title class="details-title">
-                          {{ isNewStudent ? 'New Student Registration' : selectedStudent.firstName + ' ' + selectedStudent.lastName }}
-                        </v-card-title>
+  {{ isNewStudent ? 'New Student Registration' : selectedStudent.firstName + ' ' + selectedStudent.lastName }}
+</v-card-title>
                       </div>
+
                       <v-card-text>
                         <v-form @submit.prevent="handleRegistration">
                           <v-text-field 
@@ -195,7 +214,37 @@
                             class="mb-2"
                             required
                           ></v-select>
+                          <div class="mt-4">
+                          <v-alert
+                             v-if="statusMessage"
+                             :color="fingerprintCaptured ? 'success' : 'info'"
+                             dense
+                             outlined
+                            class="mb-2"
+                            >
+                         {{ statusMessage }}
+                          </v-alert>
 
+                          <v-btn 
+                                color="primary"
+                              :disabled="enrollmentStarted"
+                           @click="startFingerprintEnrollment"
+                            class="mb-2"
+                               >
+                            <v-icon left>mdi-fingerprint</v-icon>
+                                Start Fingerprint Enrollment
+                     </v-btn>
+
+                               <v-progress-linear
+                         v-if="enrollmentStarted || fingerprintCaptured"
+                           :value="fingerprintProgress"
+                           height="20"
+                       color="teal"
+                         class="mb-2"
+                             >
+                           <strong>{{ fingerprintProgress }}%</strong>
+                            </v-progress-linear>
+                    </div>
                           <div class="regular-buttons">
                             <v-btn type="submit" color="success">Complete Registration</v-btn>
                             <v-btn @click="cancelRegistration" class="ml-2">Cancel</v-btn>
@@ -283,13 +332,35 @@
 import PageHeader from '@/components/CustomHeader2.vue';
 import Auth from '@/services/AuthServices.js';
 
-
 export default {
+  // COMPONENTS USED IN THIS VIEW
   components: {
     PageHeader
   },
+
+  // COMPONENT STATE DATA
   data() {
     return {
+      // Fingerprint device & enrollment
+      availableReaders: [],
+      reader: null,
+      readers: [],
+      selectedReader: null,
+      enrollmentStarted: false,
+      enrollScanStep: 0,
+      indexFingerSamples: [],
+      middleFingerSamples: [],
+      currentEnrollFinger: 'index',
+
+      // Fingerprint modal UI
+      fingerprintCaptured: false,
+      fingerprintDialog: false,
+      fingerprintStudent: {},
+      fingerprintLoading: false,
+      fingerprintMessage: 'Ready to enroll fingerprint',
+      fingerprintProgress: 0,
+
+      // UI visuals and layout
       backgroundImage: "https://cdn.vuetifyjs.com/images/backgrounds/vbanner.jpg",
       isNewStudent: false,
       responseDialog: false,
@@ -297,12 +368,9 @@ export default {
       responseTitle: '',
       responseMessage: '',
       responseIcon: '',
+
+      // Student Data
       students: [],
-      filter: {
-        course: null,
-        yearLevel: null
-      },
-      search: '',
       selectedStudent: null,
       editForm: {
         firstName: '',
@@ -311,13 +379,18 @@ export default {
         course: '',
         yearLevel: ''
       },
+      filter: {
+        course: null,
+        yearLevel: null
+      },
+      search: '',
+
+      // CSV Upload
       uploadDialog: false,
       uploadFile: null,
-      fingerprintDialog: false,
-      fingerprintStudent: {},
-      fingerprintLoading: false,
-      fingerprintMessage: 'Ready to enroll fingerprint',
-      fingerprintProgress: 0,
+      statusMessage: '',
+
+      // Dropdown Options & Table Config
       courses: ['All', 'BSIT', 'BSIS', 'BSCS', 'BSIT-DB', 'BSIT-MM'],
       yearLevels: ['All', '1st Year', '2nd Year', '3rd Year', '4th Year'],
       studentHeaders: [
@@ -332,10 +405,38 @@ export default {
       pageCount: 3
     };
   },
+
+  // LIFECYCLE: FETCH STUDENTS + INIT SDK
   async mounted() {
     await this.fetchStudents();
+    try {
+      if (!window.Fingerprint?.WebApi) throw new Error("Fingerprint SDK not available");
+      console.log("✅ SDK available");
+
+      this.reader = new window.Fingerprint.WebApi();
+
+      // SDK Event Listeners
+      this.reader.onDeviceConnected = () => this.statusMessage = "Device connected. Ready to scan.";
+      this.reader.onDeviceDisconnected = () => this.statusMessage = "Device disconnected.";
+      this.reader.onCommunicationFailed = () => this.statusMessage = "Communication with reader failed.";
+      this.reader.onSamplesAcquired = this.handleEnrollmentSample;
+
+      // List Available Readers
+      const devices = await this.reader.enumerateDevices();
+      this.readers = devices;
+      this.selectedReader = devices[0]?.serialNumber || null;
+      this.statusMessage = devices.length ? "Select a reader" : "No fingerprint readers found";
+      console.log("📡 Available readers:", devices);
+    } catch (err) {
+      console.error("❌ SDK init error:", err);
+      this.statusMessage = `SDK error: ${err.message}`;
+      this.showLiteClientLink = true;
+    }
   },
+
+  // COMPUTED PROPERTIES
   computed: {
+    // Filtered list for search and dropdown filters
     filteredStudents() {
       return this.students.filter(student => {
         return (
@@ -349,6 +450,7 @@ export default {
         );
       });
     },
+    // Background image styling
     backgroundStyle() {
       return {
         backgroundImage: `url(${this.backgroundImage})`,
@@ -359,7 +461,10 @@ export default {
       };
     }
   },
+
+  // METHODS
   methods: {
+    // Fetch student list from backend
     async fetchStudents() {
       try {
         const response = await Auth.getStudents();
@@ -369,28 +474,45 @@ export default {
       }
     },
 
+    // UI - Open and cancel registration panel
     openRegistrationDialog() {
-      this.selectedStudent = {};
+      this.selectedStudent = {}; // triggers panel
       this.isNewStudent = true;
       this.editForm = {
         firstName: '',
-        lastName: '',
         middleInitial: '',
+        lastName: '',
         course: '',
         yearLevel: ''
       };
+      this.fingerprintCaptured = false;
+      this.statusMessage = '';
+      this.fingerprintProgress = 0;
+      this.enrollmentStarted = false;
     },
-
     cancelRegistration() {
       this.selectedStudent = null;
       this.isNewStudent = false;
+      this.editForm = {
+        firstName: '',
+        middleInitial: '',
+        lastName: '',
+        department: '',
+        yearLevel: ''
+      };
+      this.fingerprintCaptured = false;
+      this.statusMessage = '';
+      this.fingerprintProgress = 0;
+      this.enrollmentStarted = false;
     },
 
+    // UI - File upload modal
     openUploadDialog() {
       this.uploadDialog = true;
       this.uploadFile = null;
     },
 
+    // UI - Open fingerprint dialog for existing student
     openFingerprintDialog(student) {
       this.fingerprintStudent = { ...student };
       this.fingerprintDialog = true;
@@ -399,6 +521,7 @@ export default {
       this.fingerprintProgress = 0;
     },
 
+    // UI - Fingerprint enrollment complete
     completeFingerprintEnrollment() {
       this.fingerprintMessage = 'Fingerprint enrolled successfully!';
       setTimeout(() => {
@@ -409,7 +532,7 @@ export default {
       }, 1500);
     },
 
- 
+    // UI - Toast / Modal response display
     showResponse(type, title, message) {
       this.responseType = type;
       this.responseTitle = title;
@@ -418,37 +541,45 @@ export default {
       this.responseDialog = true;
     },
 
-   async handleRegistration() {
+    // Registration submission logic
+    async handleRegistration() {
+  if (!this.fingerprintCaptured) {
+    this.showResponse('error', 'Missing Fingerprint', 'Please complete fingerprint enrollment first.');
+    return;
+  }
+
+  // Cleaned-up and correctly structured payload
+  const studentPayload = {
+    ...this.editForm,
+    middleInitial: this.editForm.middleInitial?.trim().charAt(0).toUpperCase() || '',
+    enrolled_index_finger_data: this.indexFingerSamples,
+    enrolled_middle_finger_data: this.middleFingerSamples
+  };
+console.log(studentPayload)
+  if (!studentPayload.firstName || !studentPayload.lastName || !studentPayload.department || !studentPayload.yearLevel) {
+    this.showResponse('error', 'Validation Error', 'Please fill all required fields');
+    return;
+  }
+
   try {
-    // Ensure empty middleInitial is sent as empty string
-      const payload = {
-      ...this.editForm,
-      middleInitial: this.editForm.middleInitial?.trim().charAt(0).toUpperCase() || ''
-      };
+    const response = await Auth.createStudent(studentPayload);
+    
 
-        if (!payload.firstName || !payload.lastName || !payload.department || !payload.yearLevel) {
-        this.showResponse('error', 'Validation Error', 'Please fill all required fields');
-          return;
-        }
+    if (response.data.error) {
+      this.showResponse('error', 'Registration Failed', response.data.error);
+      return;
+    }
 
-        const response = await Auth.createStudent(payload);
-        
-        
-        if (response.data.error) {
-          this.showResponse('error', 'Registration Failed', response.data.error);
-          return;
-        }
+    this.showResponse('success', 'Success', 'Student registered successfully');
+    await this.fetchStudents();
+    this.resetForm();
+  } catch (error) {
+    const message = error.response?.data?.message || 'Registration failed due to server error';
+    this.showResponse('error', 'Error', message);
+  }
+},
 
-        this.showResponse('success', 'Success', 'Student registered successfully');
-        await this.fetchStudents();
-        this.resetForm();
-
-      } catch (error) {
-        const message = error.response?.data?.message || 'Registration failed due to server error';
-        this.showResponse('error', 'Error', message);
-      }
-    },
-
+    // Form validation logic
     validateRegistrationForm() {
       return (
         this.editForm.firstName.trim() &&
@@ -458,6 +589,7 @@ export default {
       );
     },
 
+    // Form reset
     resetForm() {
       this.selectedStudent = null;
       this.isNewStudent = false;
@@ -470,6 +602,7 @@ export default {
       };
     },
 
+    // Upload CSV student list
     async uploadStudents() {
       try {
         if (!this.uploadFile) {
@@ -477,10 +610,7 @@ export default {
           return;
         }
 
-        const formData = new FormData();
-        formData.append('file', this.uploadFile);
-        
-        const response = await Auth.uploadStudents(this.uploadFile);  
+        const response = await Auth.uploadStudents(this.uploadFile);
 
         if (response.data.error) {
           this.showResponse('error', 'Upload Failed', response.data.error);
@@ -498,44 +628,129 @@ export default {
       }
     },
 
-    async startFingerprintProcess() {
+    // Fingerprint enrollment for new students
+    async startFingerprintEnrollment() {
+      if (!this.readers || !this.selectedReader) {
+        this.statusMessage = 'No reader selected';
+        return;
+      }
+
+      this.enrollScanStep = 0;
+      this.indexFingerSamples = [];
+      this.middleFingerSamples = [];
+      this.currentEnrollFinger = 'index';
+      this.enrollmentStarted = true;
+      this.statusMessage = 'Starting enrollment... Scan 1/4 for index finger';
+      this.fingerprintProgress = 0;
+
       try {
-        this.fingerprintLoading = true;
-        this.fingerprintMessage = 'Scanning fingerprint...';
-        
-        // Simulate fingerprint enrollment process
-        await new Promise((resolve) => {
-          const interval = setInterval(() => {
-            this.fingerprintProgress += 10;
-            if (this.fingerprintProgress >= 100) {
-              clearInterval(interval);
-              resolve();
+        await this.reader.startAcquisition(window.Fingerprint.SampleFormat.Intermediate, this.selectedReader);
+      } catch (err) {
+        this.statusMessage = `Failed to start acquisition: ${err.message}`;
+      }
+    },
+
+    // Handle new student fingerprint scan data
+    async handleEnrollmentSample(event) {
+      const sampleData = JSON.parse(event.samples)[0].Data;
+
+      if (this.currentEnrollFinger === 'index') {
+        this.indexFingerSamples.push(sampleData);
+      } else {
+        this.middleFingerSamples.push(sampleData);
+      }
+
+      this.enrollScanStep++;
+      this.fingerprintProgress = Math.floor((this.enrollScanStep / 4) * 100);
+      this.statusMessage = `Scan ${this.enrollScanStep + 1}/4 for ${this.currentEnrollFinger} finger`;
+
+      if (this.enrollScanStep === 4) {
+        if (this.currentEnrollFinger === 'index') {
+          this.currentEnrollFinger = 'middle';
+          this.enrollScanStep = 0;
+          this.statusMessage = 'Now scan 1/4 for middle finger';
+        } else {
+          await this.reader.stopAcquisition();
+          this.enrollmentStarted = false;
+          this.statusMessage = 'Fingerprint enrollment completed';
+          this.fingerprintCaptured = true;
+        }
+      }
+    },
+
+    // Fingerprint enrollment for existing student
+    async startFingerprintProcess() {
+
+       if (!this.readers || !this.selectedReader) {
+        this.showResponse ('Try again','No reader selected','Please Select a reader');
+        return;
+      }
+
+      if (!this.fingerprintStudent?.id) {
+        this.showResponse('error', 'Missing Student', 'Please select a valid student.');
+        return;
+      }
+
+      this.fingerprintLoading = true;
+      this.enrollScanStep = 0;
+      this.indexFingerSamples = [];
+      this.middleFingerSamples = [];
+      this.currentEnrollFinger = 'index';
+      this.fingerprintMessage = 'Starting fingerprint enrollment...';
+
+      try {
+        const reader = this.reader;
+        const format = window.Fingerprint.SampleFormat.Intermediate;
+        await reader.startAcquisition(format, this.selectedReader);
+
+        reader.onSamplesAcquired = async (samples) => {
+          const sample = samples.samples[0];
+          if (this.currentEnrollFinger === 'index') {
+            this.indexFingerSamples.push(sample);
+            this.fingerprintMessage = `Captured index finger sample ${this.indexFingerSamples.length}/4`;
+            if (this.indexFingerSamples.length >= 4) {
+              this.currentEnrollFinger = 'middle';
+              this.fingerprintMessage = 'Now scan middle finger 1/4';
             }
-          }, 500);
-        });
+          } else {
+            this.middleFingerSamples.push(sample);
+            this.fingerprintMessage = `Captured middle finger sample ${this.middleFingerSamples.length}/4`;
+            if (this.middleFingerSamples.length >= 4) {
+              await reader.stopAcquisition();
+              this.fingerprintMessage = 'Sending to backend...';
 
-        // Actual API call would go here
-        await this.$http.post(`/students/${this.fingerprintStudent.id}/fingerprint`, {
-          fingerprintData: 'simulated-data'
-        });
+              const payload = {
+                studentId: this.fingerprintStudent.id,
+                enrolled_index_finger_data: this.indexFingerSamples,
+                enrolled_middle_finger_data: this.middleFingerSamples
+              };
 
-        this.showResponse('success', 'Success', 'Fingerprint enrolled successfully');
-        await this.fetchStudents();
-        this.fingerprintDialog = false;
-
-      } catch (error) {
-        this.showResponse('error', 'Enrollment Failed', 'Fingerprint enrollment failed. Please try again.');
-      } finally {
+              try {
+                await this.$http.post(`/fingerprint/enroll-to-student`, payload);
+                this.showResponse('success', 'Enrollment Complete', 'Fingerprint saved to student successfully');
+              } catch (err) {
+                this.showResponse('error', 'Backend Error', err?.response?.data?.error || 'Something went wrong');
+              } finally {
+                this.fingerprintDialog = false;
+                this.resetFingerprintState();
+              }
+            }
+          }
+        };
+      } catch (err) {
+        this.showResponse('error', 'Acquisition Failed', err.message || 'Error during fingerprint acquisition');
         this.resetFingerprintState();
       }
     },
 
+    // Reset fingerprint modal UI state
     resetFingerprintState() {
       this.fingerprintLoading = false;
       this.fingerprintProgress = 0;
       this.fingerprintMessage = 'Ready to enroll fingerprint';
     },
 
+    // Cancel ongoing fingerprint modal
     cancelFingerprintEnrollment() {
       if (this.fingerprintLoading) {
         this.showResponse('warning', 'Warning', 'Enrollment process was interrupted');
@@ -543,13 +758,10 @@ export default {
       this.resetFingerprintState();
       this.fingerprintDialog = false;
     }
-  
-
-
-
   }
 };
 </script>
+
 
 <style scoped>
 @import url('https://fonts.googleapis.com/css?family=Poppins:300');
@@ -986,4 +1198,32 @@ body {
     padding: 12px !important;
   }
 }
+.reader-select .v-input__control {
+  background-color: #000;            /* solid black background */
+  color: #fff;                       /* white text */
+  border: 1px solid #888 !important; /* visible border */
+  border-radius: 8px;
+}
+
+.reader-select .v-select__selection-text {
+  color: #fff !important;            /* selected item text */
+}
+
+.reader-select .v-label {
+  color: #ccc !important;            /* label (Select Reader) */
+}
+
+.reader-select input {
+  caret-color: #fff;                 /* blinking cursor color if needed */
+}
+
+.reader-select .v-input__append-inner,
+.reader-select .v-field__input {
+  color: #fff !important;
+}
+
+.reader-select .v-select__selections {
+  min-height: 40px;
+}
+
 </style>
