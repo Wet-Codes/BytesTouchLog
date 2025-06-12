@@ -58,13 +58,12 @@
                   <v-col :cols="selectedAccount ? 8 : 12">
                     <v-card class="student-list-card">
                       <v-card-text>
-                        <div class="student-list-header">
-                          <span class="col-fname">Username</span>
-                          <span class="col-email">Email</span>
-                          <span class="col-role">Role</span>
-                          <span class="col-status">Status</span>
-                          <span class="col-actions">Actions</span>
-                        </div>
+                       <div class="student-list-header">
+    <span class="col-username">Username</span>
+    <span class="col-role">Role</span>
+    <span class="col-status">Status</span>
+    <span class="col-actions">Actions</span>
+  </div>
                         <v-data-table
                           :headers="accountHeaders"
                           :items="filteredAccounts"
@@ -195,12 +194,11 @@ export default {
       statusOptions: ['Active', 'Inactive'],
       roles: ['admin', 'user'],
       accountHeaders: [
-        { text: 'Username', value: 'username', align: 'center', width: '20%' },
-        { text: 'Email', value: 'email', align: 'center', width: '25%' },
-        { text: 'Role', value: 'role', align: 'center', width: '15%' },
-        { text: 'Status', value: 'status', align: 'center', width: '15%' },
-        { text: 'Actions', value: 'actions', align: 'center', width: '25%', sortable: false }
-      ],
+  { text: 'Username', value: 'username', align: 'center', width: '30%' },
+  { text: 'Role', value: 'role', align: 'center', width: '20%' },
+  { text: 'Status', value: 'status', align: 'center', width: '20%' },
+  { text: 'Actions', value: 'actions', align: 'center', width: '30%', sortable: false }
+],
       accounts: []
     };
   },
@@ -208,8 +206,7 @@ export default {
     filteredAccounts() {
       return this.accounts.filter(account => {
         return (
-          account.username.toLowerCase().includes(this.search.toLowerCase()) ||
-          account.email.toLowerCase().includes(this.search.toLowerCase())
+          account.username.toLowerCase().includes(this.search.toLowerCase())
         );
       });
     },
@@ -465,8 +462,8 @@ export default {
   color: #289bb8;
   font-weight: 600;
   border-radius: 4px 4px 0 0;
-  text-align: center;
 }
+
 
 .student-list-header span {
   padding: 0 8px;
@@ -474,7 +471,6 @@ export default {
   align-items: center;
   justify-content: center;
 }
-
 .student-fines-table {
   background-color: rgba(0, 0, 0, 0.3) !important;
   color: white !important;
@@ -489,36 +485,57 @@ export default {
   background-color: rgba(40, 155, 184, 0.2) !important;
 }
 
+/* Center align all table cells */
 .student-fines-table td {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
-  padding: 12px 8px !important;
-  vertical-align: middle !important;
   text-align: center !important;
+  vertical-align: middle !important;
 }
 
-.col-fname { width: 15%; }
-.col-email { width: 25%; }
-.col-role { width: 15%; }
-.col-status { width: 15%; }
-.col-actions { width: 20%; }
+.col-username { 
+  width: 30%; 
+  justify-content: center;
+}
 
+.col-role { 
+  width: 20%; 
+  justify-content: center;
+}
+
+.col-status { 
+  width: 20%; 
+  justify-content: center;
+}
+
+.col-actions { 
+  width: 30%; 
+  justify-content: center;
+}
+
+/* Adjust action buttons */
 .action-buttons {
   display: flex;
   justify-content: center;
-  align-items: center;
-  gap: 4px;
-  flex-wrap: nowrap;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .action-btn {
-  min-width: 90px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  padding: 0 8px;
-  margin: 0 2px;
+  min-width: 80px;
+  margin: 2px 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 960px) {
+  .action-buttons {
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .action-btn {
+    min-width: 70px;
+    font-size: 0.7rem;
+    padding: 0 4px;
+  }
 }
 
 .details-title {

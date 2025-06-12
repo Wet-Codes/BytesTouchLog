@@ -131,7 +131,7 @@
                               <td class="col-course text-center">{{ item.department }}</td>
                               <td class="col-year text-center">{{ item.yearLevel }}</td>
                               <td class="col-actions text-center">
-                                <div class="action-buttons">
+                               <div class="action-buttons">
                                   <v-btn 
                                     small 
                                     color="teal" 
@@ -161,7 +161,7 @@
                     </v-card>
                   </v-col>
 
-                  <v-col v-if="selectedStudent || isNewStudent" cols="">
+                  <v-col v-if="selectedStudent || isNewStudent" cols="4">
 
                     <v-card class="right-side-card">
                       <div class="details-header">
@@ -214,7 +214,7 @@
                             class="mb-2"
                             required
                           ></v-select>
-                          <div class="mt-4">
+                         <div class="mt-4 fingerprint-section">
                           <v-alert
                              v-if="statusMessage"
                              :color="fingerprintCaptured ? 'success' : 'info'"
@@ -226,22 +226,23 @@
                           </v-alert>
 
                           <v-btn 
-                                color="primary"
-                              :disabled="enrollmentStarted"
-                           @click="startFingerprintEnrollment"
+                            color="primary"
+                            :disabled="enrollmentStarted"
+                            @click="startFingerprintEnrollment"
                             class="mb-2"
-                               >
+                            block
+                          >
                             <v-icon left>mdi-fingerprint</v-icon>
                                 Start Fingerprint Enrollment
                      </v-btn>
 
                                <v-progress-linear
-                         v-if="enrollmentStarted || fingerprintCaptured"
-                           :value="fingerprintProgress"
-                           height="20"
-                       color="teal"
-                         class="mb-2"
-                             >
+                            v-if="enrollmentStarted || fingerprintCaptured"
+                            :value="fingerprintProgress"
+                            height="20"
+                            color="teal"
+                            class="mb-2"
+                          >
                            <strong>{{ fingerprintProgress }}%</strong>
                             </v-progress-linear>
                     </div>
@@ -284,34 +285,36 @@
       </v-dialog>
 
       <v-dialog v-model="fingerprintDialog" max-width="500" persistent>
-        <v-card class="fingerprint-dialog">
-          <v-card-title class="headline text-center">
-            Fingerprint Enrollment - {{ fingerprintStudent.firstName }} {{ fingerprintStudent.lastName }}
-          </v-card-title>
+        <v-card class="fingerprint-dialog dark-card">
+          <v-card-title class="text-center">
+        <h2>Fingerprint Enrollment</h2>
+            <div class="subtitle">{{ fingerprintStudent.firstName }} {{ fingerprintStudent.lastName }}</div>
+          </v-card-title>    
           <v-card-text class="text-center">
             <v-icon x-large class="mb-4 fingerprint-icon">mdi-fingerprint</v-icon>
-            <p class="title">{{ fingerprintMessage }}</p>
+            <p class="fingerprint-message">{{ fingerprintMessage }}</p>
             
-            <template v-if="!fingerprintLoading">
-              <v-btn 
-                color="primary" 
-                class="mt-4"
-                @click="startFingerprintProcess"
-              >
-                Start Enrollment
-              </v-btn>
-            </template>
-            <template v-else>
-              <v-progress-linear
-                v-model="fingerprintProgress"
-                height="25"
-                color="teal"
-                class="mt-4"
-              >
-                <strong>{{ fingerprintProgress }}%</strong>
-              </v-progress-linear>
-            </template>
+            <v-progress-linear
+              v-if="fingerprintLoading"
+              :value="fingerprintProgress"
+              height="25"
+              color="teal"
+              class="mt-4"
+            >
+              <strong>{{ fingerprintProgress }}%</strong>
+            </v-progress-linear>
+
+            <v-btn 
+              v-else
+              color="primary" 
+              class="mt-4"
+              @click="startFingerprintProcess"
+              block
+            >
+              Start Enrollment
+            </v-btn>
           </v-card-text>
+          
           <v-card-actions>
             <v-spacer></v-spacer>
             <v-btn 
@@ -779,103 +782,140 @@ console.log(studentPayload)
 <style scoped>
 @import url('https://fonts.googleapis.com/css?family=Poppins:300');
 
-/* === FIXED ALIGNMENT === */
+/* === GLOBAL STYLES === */
+.page-title {
+  color: white;
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 2rem;
+  margin-top: 20px;
+}
+
+.table-title {
+  color: white;
+  font-size: 2rem;
+  margin: 0;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+/* === CARD STYLES === */
+.fine-card {
+  background: rgba(0, 0, 0, .5) !important;
+  box-shadow: 0 15px 25px rgba(0, 0, 0, .6) !important;
+  border-radius: 10px !important;
+  color: white;
+}
+
+.student-list-card,
+.right-side-card {
+  background: rgba(0, 0, 0, 0.3) !important;
+  box-shadow: 0 15px 25px rgba(0, 0, 0, .4) !important;
+  border-radius: 10px !important;
+}
+
+.fingerprint-dialog,
+.upload-dialog {
+  background: rgba(0, 0, 0, 0.8) !important;
+  box-shadow: 0 15px 25px rgba(0, 0, 0, .8) !important;
+  border-radius: 10px !important;
+}
+
+.dark-card {
+  background: rgba(0, 0, 0, 0.8) !important;
+  color: white !important;
+}
+
+/* === TABLE STYLES === */
 .student-list-header {
   display: grid;
-  grid-template-columns: 15% 5% 15% 15% 15% 35%; /* Proper column sizing */
-  padding: 12px 0;
+  grid-template-columns: 20% 8% 20% 17% 15% 20%;
+  padding: 12px 16px;
   background-color: rgba(0, 0, 0, 0.5);
   color: #289bb8;
   font-weight: 600;
-  text-align: center;
+  border-radius: 4px 4px 0 0;
 }
 
 .student-table >>> tbody tr {
   display: grid;
-  grid-template-columns: 15% 5% 15% 15% 15% 35%; /* Match header grid */
-  text-align: center;
+  grid-template-columns: 20% 8% 20% 17% 15% 20%;
 }
 
 .student-table >>> td {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 12px 0 !important;
-}
-
-/* === WHITE TEXT IN TABLE === */
-.student-table >>> td {
-  color: white !important; /* Force white text in table */
-  background: rgba(0, 0, 0, 0.76) !important;
-}
-
-/* === TRANSPARENT BACKGROUNDS === */
-.fine-card {
-  background: rgba(0, 0, 0, 0.5) !important;
-}
-
-.student-list-card, 
-.right-side-card {
-  background: rgba(0, 0, 0, 0.3) !important;
-}
-
-.upload-dialog, 
-.fingerprint-dialog {
-  background: rgba(0, 0, 0, 0.8) !important;
-}
-
-/* === BUTTON COLORS PRESERVED === */
-.v-btn--success {
-  background-color: #4CAF50 !important;
-}
-
-.v-btn--primary {
-  background-color: #1976D2 !important;
-}
-
-.v-btn--teal {
-  background-color: #009688 !important;
-}
-
-/* === REMOVED REDUNDANT STYLES === */
-/* Deleted: .col-fname, .col-mi, .col-lname, .col-course, .col-year, 
-   .col-actions, .fine-details-header, .fine-details-table, 
-   .total-fines, .student-info, .status-change-container */
-
-/* === OPTIMIZED STYLES === */
-.v-card-title, 
-.v-card-text {
+  padding: 12px 8px !important;
   color: white !important;
+  background: rgba(0, 0, 0, 0.76) !important;
+  text-align: center !important;
 }
 
-.student-fines-table tr:hover {
-  background-color: rgba(40, 155, 184, 0.2) !important;
-}
-
-.student-fines-table td {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
-}
-
+/* === ACTION BUTTONS === */
 .action-buttons {
   display: flex;
   justify-content: center;
   gap: 4px;
 }
 
-.v-card .v-btn:hover {
-  background: #289bb8 !important;
-  color: #fff !important;
+.action-btn {
+  min-width: 100px;
+  height: 32px;
+  font-size: 12px;
 }
 
+/* === FINGERPRINT SECTION === */
+.fingerprint-section {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 15px;
+  border-radius: 8px;
+}
+
+.fingerprint-icon {
+  font-size: 64px;
+  color: #289bb8;
+}
+
+.fingerprint-message {
+  font-size: 1.1rem;
+  margin-bottom: 20px;
+}
+
+/* === RESPONSIVE ADJUSTMENTS === */
 @media (max-width: 960px) {
   .student-list-header,
   .student-table >>> tbody tr {
-    grid-template-columns: 20% 5% 20% 15% 15% 25%; /* Adjusted for mobile */
+    grid-template-columns: 22% 8% 22% 18% 15% 15%;
   }
   
   .action-btn {
-    min-width: 70px;
+    min-width: 80px;
     font-size: 0.7rem;
+    padding: 0 4px;
+  }
+  
+  .details-title {
+    font-size: 1.2rem !important;
+    padding: 12px !important;
+  }
+}
+
+@media (max-width: 600px) {
+  .student-list-header,
+  .student-table >>> tbody tr {
+    grid-template-columns: 25% 8% 25% 20% 22%;
+    grid-template-areas: 
+      "fname mi lname course year"
+      "actions actions actions actions actions";
+  }
+  
+  .col-actions { grid-area: actions; }
+  
+  .action-buttons {
+    justify-content: space-around;
+    margin-top: 10px;
   }
 }
 </style>

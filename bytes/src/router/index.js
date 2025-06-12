@@ -16,6 +16,8 @@ import store from '@/store';
 import Dev from '../views/DevDashboard.vue';
 import Reg from '../views/RegisterPage.vue';
 import Event from '../views/EventPage.vue';
+import attendance from '../views/AttendanceFingerprint.vue';
+import StudentManage from '../views/StudentsManagement.vue';
 
 const routes = [
    {
@@ -79,6 +81,12 @@ const routes = [
      meta: { requiresAuth: true, adminOnly: true }
   },
   {
+    path: '/StudentManage',
+    name: 'StudentManage',
+    component: StudentManage, 
+     meta: { requiresAuth: true, adminOnly: true }
+  },
+  {
     path:'/history-log',
     name:'history-log',
     component: HistoryLog,
@@ -111,6 +119,13 @@ const routes = [
     path: '/attendance-history',
     name: 'attendance-history',
     component: AttendanceHistory,
+    meta: { requiresAuth: true }
+    
+  },
+  {
+    path: '/attendance',
+    name: 'attendance',
+    component: attendance,
     meta: { requiresAuth: true }
     
   },

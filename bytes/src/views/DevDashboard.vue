@@ -41,30 +41,36 @@ export default {
   components: {
     PageHeader
   },
-  data() {
-    return {
-      devButtons: [
-        { 
-          text: 'Registration', 
-          route: 'Register', 
-          color: 'black-transparent', 
-          icon: 'mdi-account-plus' 
-        },
-        { 
-          text: 'Create Event', 
-          route: 'Event', 
-          color: 'black-transparent', 
-          icon: 'mdi-calendar-plus' 
-        },
-        { 
-          text: 'Attendance', 
-          route: 'take-attendance', 
-          color: 'black-transparent', 
-          icon: 'mdi-fingerprint' 
-        }
-      ]
-    };
-  },
+ data() {
+  return {
+    devButtons: [
+      { 
+        text: 'Registration', 
+        route: 'Register', 
+        color: 'black-transparent', 
+        icon: 'mdi-account-plus' 
+      },
+      { 
+        text: 'Create Event', 
+        route: 'Event', 
+        color: 'black-transparent', 
+        icon: 'mdi-calendar-plus' 
+      },
+      { 
+        text: 'Attendance', 
+        route: 'attendance', 
+        color: 'black-transparent', 
+        icon: 'mdi-fingerprint' 
+      },
+      { 
+        text: 'Student Management', 
+        route: 'StudentManage', // Make sure this matches your named route
+        color: 'black-transparent', 
+        icon: 'mdi-account-group' 
+      }
+    ]
+  };
+},
   computed: {
     mainContentStyle() {
       return {
