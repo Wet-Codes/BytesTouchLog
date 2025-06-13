@@ -170,7 +170,7 @@ async toggleAccountStatus(req, res) {
  async updateAccount(req, res) {
   try {
     const user = await User.findByPk(req.params.id);
-    
+    console.log(user)
     if (req.body.username) user.username = req.body.username;
     if (req.body.role) user.role = req.body.role;
     if (req.body.password) user.password = req.body.password;

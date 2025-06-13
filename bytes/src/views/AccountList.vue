@@ -188,7 +188,7 @@ export default {
       search: '',
       passwordConfirmDialog: false,
       editForm: {
-         
+        
         newPassword: ''
       },
       statusOptions: ['Active', 'Inactive'],
@@ -226,8 +226,7 @@ export default {
   },
   methods: {
 
-    
-
+  
      initiateAction(actionType, account) {
        this.currentAction = { 
     type: actionType, 
@@ -356,13 +355,16 @@ export default {
       this.dialogMessage = 'No changes detected to save.';
       return;
     }
-
+      console.log(this.editForm.id)
+      console.log(this.editForm.newPassword)
+       
       const payload = { 
-        ...this.editForm,
-        password: this.editForm.newPassword || undefined
-      };
-      
-      await AccountService.updateAccount(this.editForm.id, payload);
+      id: this.editForm.id,
+      password: this.editForm.newPassword || undefined
+};
+     console.log(payload.password)
+     
+      await AccountService.updateAccount(payload);
       await this.loadAccounts();
      this.dialogTitle = 'Success';
      this.dialogMessage = 'Account updated successfully.';

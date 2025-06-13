@@ -182,6 +182,42 @@ module.exports = {
     }
   },
 
+  async updateStudent(req, res) {
+    try {
+      const student = await Student.findByPk(req.params.id);
+      if (!student) return res.status(404).send({ error: 'Student not found' });
+
+      const {
+        firstName,
+        lastName,
+        middleInitial,
+        yearLevel,
+        department,
+        status
+      } = req.body;
+
+      student.firstName = firstName || student.firstName;
+      student.lastName = lastName || student.lastName;
+      student.middleInitial = middleInitial ?? student.middleInitial;
+      student.yearLevel = yearLevel || student.yearLevel;
+      student.department = department || student.department;
+      student.status = status || student.status;
+
+      await student.save();
+
+      res.send({
+        message: 'Student updated successfully',
+        student,
+      });
+    } catch (err) {
+      console.error('Update Student Error:', err);
+      res.status(500).send({
+        error: 'Update failed',
+        ...(process.env.NODE_ENV === 'development' && { debug: err.message })
+      });
+    }
+  },
+
   async upload(req, res) {
     try {
       console.log('Upload request received. Files:', req.files);

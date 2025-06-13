@@ -1,6 +1,7 @@
 import Api from '@/services/Api';
 
 export default {
+
   login(credentials) {
     return Api.post('/', credentials); // Remove the ()
   },
@@ -10,6 +11,7 @@ export default {
    verifyDevPassword: (password) => Api.post('/api/verify-dev', {
     password: password // Send simple string
   }),
+
   getAccounts() {
     return Api.get('/api/users');
   },
@@ -20,9 +22,14 @@ export default {
     });
 },
 
+ updateAccount(userData) {
+  return Api.put(`/api/users/${userData.id}`, userData);
+},
+
   getStudents() {
     return Api.get('/students');
   },
+  
   createStudent(studentData) {
     return Api.post('/students', studentData);
   },
@@ -43,6 +50,9 @@ export default {
   });
 },
 
+  updateStudents(id, userData) {
+  return Api.put(`/students/${id}/api`, userData);
+},
   EnrollExist(existingstudent){
     return Api.post('/student/enrollexist', existingstudent)
   },
@@ -57,7 +67,7 @@ export default {
     return Api.put(`/events/${eventId}`, eventData);
   },
 
-    enrollFingerprint(data) {
+  enrollFingerprint(data) {
     return Api.post('/fingerprint/enroll', data);
   },
   
