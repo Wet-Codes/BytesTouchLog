@@ -14,7 +14,7 @@
 **Front End:** Vue.js via JavaScript  
 **Back End:** Express.js via Javascript  
 **Sub-Back End Service:** Fingerprint Service via gRPC by Dahir Muhammad Dahur (Ethic41)  
-**Database:** Sequelize/MongoDB
+**Database:** Sequelize/MySql
 ---
 
 ## Description (in terms of thesis)
