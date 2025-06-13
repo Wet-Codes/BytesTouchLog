@@ -1,260 +1,311 @@
 <template>
-  <div>
+  <v-app>
+    <!-- Page Header -->
     <page-header />
-    <div :style="backgroundStyle">
-      <v-container>
-        <v-row>
-          <v-col cols="12">
-            <v-card class="fine-card" elevation="2">
-              <v-card-title class="d-flex justify-space-between align-center">
-                <h1 class="table-title">Event Management</h1>
-                <v-btn 
-                  color="teal" 
-                  dark
-                  @click="openCreateDialog"
-                >
-                  <v-icon left>mdi-plus</v-icon>
-                  Create New Event
-                </v-btn>
-              </v-card-title>
+    
+    <!-- Main Layout with Sidebar -->
+    <v-layout>
+      <!-- Left Sidebar Navigation - Overlapping -->
+      <v-navigation-drawer
+        permanent
+        width="250"
+        class="sidebar overlapping-sidebar"
+      >
+        <div class="sidebar-header">
+          <v-icon size="40" color="white">mdi-account-circle</v-icon>
+        </div>
+        
+        <v-list class="sidebar-buttons">
+          <v-list-item
+            v-for="button in sidebarButtons"
+            :key="button.route"
+            class="sidebar-button-wrapper"
+            @click="navigateTo(button.route)"
+          >
+            <div class="sidebar-button-content">
+              <v-icon size="30" class="sidebar-icon">{{ button.icon }}</v-icon>
+              <span class="sidebar-text">{{ button.text }}</span>
+            </div>
+            <div class="border-animation"></div>
+          </v-list-item>
+        </v-list>
+      </v-navigation-drawer>
+
+      <!-- Main Content Area -->
+      <v-main>
+        <div :style="backgroundStyle">
+          <v-container>
+            <v-row>
+              <v-col cols="12">
+                <v-card class="fine-card" elevation="2">
+                  <v-card-title class="d-flex justify-space-between align-center">
+                    <h1 class="table-title">Event Management</h1>
+                    <v-btn 
+                      color="teal" 
+                      dark
+                      @click="openCreateDialog"
+                    >
+                      <v-icon left>mdi-plus</v-icon>
+                      Create New Event
+                    </v-btn>
+                  </v-card-title>
+                  <v-card-text>
+                    <div class="filter-container">
+                      <v-row>
+                        <v-col cols="6">
+                          <v-text-field
+                            v-model="searchQuery"
+                            append-icon="mdi-magnify"
+                            label="Search events..."
+                            single-line
+                            hide-details
+                            outlined
+                            dense
+                            dark
+                            class="search-field"
+                          ></v-text-field>
+                        </v-col>
+                        <v-col cols="6">
+                          <v-select
+                            v-model="filter.semester"
+                            :items="semesters"
+                            label="Filter by Semester"
+                            outlined
+                            dense
+                            dark
+                            hide-details
+                            class="semester-select"
+                          ></v-select>
+                        </v-col>
+                      </v-row>
+                    </div>
+                    <div class="event-list-header">
+                      <span class="col-name">Event Name</span>
+                      <span class="col-semester">Semester</span>
+                      <span class="col-fee">Fee Amount</span>
+                      <span class="col-date">Date</span>
+                      <span class="col-actions">Actions</span>
+                    </div>
+                    <v-data-table
+                      :headers="tableHeaders"
+                      :items="filteredEvents"
+                      :items-per-page="-1"
+                      :hide-default-footer="true"
+                      class="elevation-1 event-table"
+                      dark
+                      hide-default-header
+                    >
+                      <template v-slot:item="{ item }">
+                        <tr>
+                          <td class="col-name text-left">{{ item.name }}</td>
+                          <td class="col-semester text-left">{{ item.semester }}</td>
+                          <td class="col-fee text-left">₱{{ item.fee.toFixed(2) }}</td>
+                          <td class="col-date text-left">{{ formatDate(item.date) }}</td>
+                          <td class="col-actions text-center">
+                            <div class="action-buttons">
+                              <v-btn small color="teal" @click="openAttendanceDialog(item)">
+                                <v-icon small left>mdi-fingerprint</v-icon>
+                                Attendance
+                              </v-btn>
+                              <v-btn small color="primary" @click="initiateEdit(item)">
+                                <v-icon small left>mdi-pencil</v-icon>
+                                Edit
+                              </v-btn>
+                              <v-btn small color="error" @click="confirmDeletion(item)">
+                                <v-icon small left>mdi-delete</v-icon>
+                                Remove
+                              </v-btn>
+                            </div>
+                          </td>
+                        </tr>
+                      </template>
+                    </v-data-table>
+                  </v-card-text>
+                </v-card>
+              </v-col>
+            </v-row>
+          </v-container>
+
+          <!-- Create Event Dialog -->
+          <v-dialog v-model="createDialog" max-width="600" persistent>
+            <v-card class="fine-card">
+              <v-card-title>Create New Event</v-card-title>
               <v-card-text>
-                <div class="filter-container">
+                <v-form ref="creationForm" @submit.prevent="submitNewEvent">
+                  <v-text-field 
+                    v-model="newEvent.name" 
+                    label="Event Name"
+                    outlined
+                    dark
+                    :rules="[v => !!v || 'Event name is required']"
+                    required
+                  ></v-text-field>
                   <v-select
-                    v-model="filter.semester"
-                    :items="semesters"
-                    label="Filter by Semester"
+                    v-model="newEvent.semester"
+                    :items="semesters.filter(s => s !== 'All')"
+                    label="Semester"
                     outlined
                     dense
                     dark
                     hide-details
-                    style="max-width: 200px;"
+                    :rules="[v => !!v || 'Semester is required']"
+                    required
                   ></v-select>
-                </div>
-                <div class="event-list-header">
-                  <span class="col-name">Event Name</span>
-                  <span class="col-semester">Semester</span>
-                  <span class="col-fee">Fee Amount</span>
-                  <span class="col-date">Date</span>
-                  <span class="col-actions">Actions</span>
-                </div>
-                <v-data-table
-                  :headers="tableHeaders"
-                  :items="filteredEvents"
-                  :items-per-page="-1"
-                  :hide-default-footer="true"
-                  class="elevation-1 event-table"
-                  dark
-                  hide-default-header
-                >
-                  <template v-slot:item="{ item }">
-                    <tr>
-                      <td class="col-name text-left">{{ item.name }}</td>
-                      <td class="col-semester text-left">{{ item.semester }}</td>
-                      <td class="col-fee text-left">₱{{ item.fee.toFixed(2) }}</td>
-                      <td class="col-date text-left">{{ formatDate(item.date) }}</td>
-                      <td class="col-actions text-center">
-                        <div class="action-buttons">
-                          <v-btn small color="teal" @click="openAttendanceDialog(item)">
-                            <v-icon small left>mdi-fingerprint</v-icon>
-                            Attendance
-                          </v-btn>
-                          <v-btn small color="primary" @click="initiateEdit(item)">
-                            <v-icon small left>mdi-pencil</v-icon>
-                            Edit
-                          </v-btn>
-                          <v-btn small color="error" @click="confirmDeletion(item)">
-                            <v-icon small left>mdi-delete</v-icon>
-                            Remove
-                          </v-btn>
-                        </div>
-                      </td>
-                    </tr>
-                  </template>
-                </v-data-table>
+                  <v-text-field 
+                    v-model="newEvent.fee" 
+                    label="Fee Amount" 
+                    type="number" 
+                    prefix="₱"
+                    outlined
+                    dark
+                    :rules="[
+                      v => !!v || 'Fee is required',
+                      v => v >= 0 || 'Fee must be positive'
+                    ]"
+                    required
+                  ></v-text-field>
+                  <v-text-field 
+                    v-model="newEvent.date" 
+                    label="Date" 
+                    type="date"
+                    outlined
+                    dark
+                    :rules="[v => !!v || 'Date is required']"
+                    required
+                  ></v-text-field>
+                </v-form>
               </v-card-text>
+              <v-card-actions>
+                <v-spacer></v-spacer>
+                <v-btn color="secondary" @click="closeCreateDialog">Cancel</v-btn>
+                <v-btn color="teal" dark @click="submitNewEvent">Create</v-btn>
+              </v-card-actions>
             </v-card>
-          </v-col>
-        </v-row>
-      </v-container>
+          </v-dialog>
 
-      <!-- Create Event Dialog -->
-      <v-dialog v-model="createDialog" max-width="600" persistent>
-        <v-card class="fine-card">
-          <v-card-title>Create New Event</v-card-title>
-          <v-card-text>
-            <v-form ref="creationForm" @submit.prevent="submitNewEvent">
-              <v-text-field 
-                v-model="newEvent.name" 
-                label="Event Name"
-                outlined
-                dark
-                :rules="[v => !!v || 'Event name is required']"
-                required
-              ></v-text-field>
-              <v-select
-                v-model="newEvent.semester"
-                :items="semesters.filter(s => s !== 'All')"
-                label="Semester"
-                outlined
-                dense
-                dark
-                hide-details
-                :rules="[v => !!v || 'Semester is required']"
-                required
-              ></v-select>
-              <v-text-field 
-                v-model="newEvent.fee" 
-                label="Fee Amount" 
-                type="number" 
-                prefix="₱"
-                outlined
-                dark
-                :rules="[
-                  v => !!v || 'Fee is required',
-                  v => v >= 0 || 'Fee must be positive'
-                ]"
-                required
-              ></v-text-field>
-              <v-text-field 
-                v-model="newEvent.date" 
-                label="Date" 
-                type="date"
-                outlined
-                dark
-                :rules="[v => !!v || 'Date is required']"
-                required
-              ></v-text-field>
-            </v-form>
-          </v-card-text>
-          <v-card-actions>
-            <v-spacer></v-spacer>
-            <v-btn color="secondary" @click="closeCreateDialog">Cancel</v-btn>
-            <v-btn color="teal" dark @click="submitNewEvent">Create</v-btn>
-          </v-card-actions>
-        </v-card>
-      </v-dialog>
+          <!-- Edit Event Dialog -->
+          <v-dialog v-model="editDialog" max-width="600" persistent>
+            <v-card class="fine-card">
+              <v-card-title>Edit Event</v-card-title>
+              <v-card-text>
+                <v-form ref="editForm" @submit.prevent="updateEvent">
+                  <v-text-field 
+                    v-model="editingEvent.name" 
+                    label="Event Name"
+                    outlined
+                    dark
+                    :rules="[v => !!v || 'Event name is required']"
+                    required
+                  ></v-text-field>
+                  <v-select
+                    v-model="editingEvent.semester"
+                    :items="semesters.filter(s => s !== 'All')"
+                    label="Semester"
+                    outlined
+                    dense
+                    dark
+                    hide-details
+                    :rules="[v => !!v || 'Semester is required']"
+                    required
+                  ></v-select>
+                  <v-text-field 
+                    v-model="editingEvent.fee" 
+                    label="Fee Amount" 
+                    type="number" 
+                    prefix="₱"
+                    outlined
+                    dark
+                    :rules="[
+                      v => !!v || 'Fee is required',
+                      v => v >= 0 || 'Fee must be positive'
+                    ]"
+                    required
+                  ></v-text-field>
+                  <v-text-field 
+                    v-model="editingEvent.date" 
+                    label="Date" 
+                    type="date"
+                    outlined
+                    dark
+                    :rules="[v => !!v || 'Date is required']"
+                    required
+                  ></v-text-field>
+                </v-form>
+              </v-card-text>
+              <v-card-actions>
+                <v-spacer></v-spacer>
+                <v-btn color="secondary" @click="closeEditDialog">Cancel</v-btn>
+                <v-btn color="teal" dark @click="updateEvent">Save</v-btn>
+              </v-card-actions>
+            </v-card>
+          </v-dialog>
 
-      <!-- Edit Event Dialog -->
-      <v-dialog v-model="editDialog" max-width="600" persistent>
-        <v-card class="fine-card">
-          <v-card-title>Edit Event</v-card-title>
-          <v-card-text>
-            <v-form ref="editForm" @submit.prevent="updateEvent">
-              <v-text-field 
-                v-model="editingEvent.name" 
-                label="Event Name"
-                outlined
-                dark
-                :rules="[v => !!v || 'Event name is required']"
-                required
-              ></v-text-field>
-              <v-select
-                v-model="editingEvent.semester"
-                :items="semesters.filter(s => s !== 'All')"
-                label="Semester"
-                outlined
-                dense
-                dark
-                hide-details
-                :rules="[v => !!v || 'Semester is required']"
-                required
-              ></v-select>
-              <v-text-field 
-                v-model="editingEvent.fee" 
-                label="Fee Amount" 
-                type="number" 
-                prefix="₱"
-                outlined
-                dark
-                :rules="[
-                  v => !!v || 'Fee is required',
-                  v => v >= 0 || 'Fee must be positive'
-                ]"
-                required
-              ></v-text-field>
-              <v-text-field 
-                v-model="editingEvent.date" 
-                label="Date" 
-                type="date"
-                outlined
-                dark
-                :rules="[v => !!v || 'Date is required']"
-                required
-              ></v-text-field>
-            </v-form>
-          </v-card-text>
-          <v-card-actions>
-            <v-spacer></v-spacer>
-            <v-btn color="secondary" @click="closeEditDialog">Cancel</v-btn>
-            <v-btn color="teal" dark @click="updateEvent">Save</v-btn>
-          </v-card-actions>
-        </v-card>
-      </v-dialog>
-
-      <!-- Attendance Dialog -->
-      <v-dialog v-model="attendanceDialog" max-width="500" persistent>
-        <v-card class="fingerprint-dialog">
-          <v-card-title class="headline text-center">
-            Biometric Attendance - {{ currentEvent.name }}
-          </v-card-title>
-          <v-card-text class="text-center">
-            <div class="fingerprint-sensor">
-              <p class="instruction">{{ instructionText }}</p>
-              <div class="fingerprint-image-container" @click="startScan">
-                <v-icon 
-                  x-large
-                  class="fingerprint-icon"
-                  :class="{ 'scanning': isScanning }"
-                >
-                  {{ isScanning ? 'mdi-fingerprint-off' : 'mdi-fingerprint' }}
-                </v-icon>
-                <div class="fingerprint-animation" v-if="isScanning">
-                  <div class="scan-line"></div>
+          <!-- Attendance Dialog -->
+          <v-dialog v-model="attendanceDialog" max-width="500" persistent>
+            <v-card class="fingerprint-dialog">
+              <v-card-title class="headline text-center">
+                Biometric Attendance - {{ currentEvent.name }}
+              </v-card-title>
+              <v-card-text class="text-center">
+                <div class="fingerprint-sensor">
+                  <p class="instruction">{{ instructionText }}</p>
+                  <div class="fingerprint-image-container" @click="startScan">
+                    <v-icon 
+                      x-large
+                      class="fingerprint-icon"
+                      :class="{ 'scanning': isScanning }"
+                    >
+                      {{ isScanning ? 'mdi-fingerprint-off' : 'mdi-fingerprint' }}
+                    </v-icon>
+                    <div class="fingerprint-animation" v-if="isScanning">
+                      <div class="scan-line"></div>
+                    </div>
+                  </div>
+                  
+                  <v-progress-linear
+                    v-if="isScanning"
+                    indeterminate
+                    color="#FFA000"
+                    height="5"
+                    class="progress-bar"
+                  ></v-progress-linear>
+                  
+                  <div v-if="scanResult" class="scan-result">
+                    <v-icon large :color="scanResult.success ? 'green' : 'red'">
+                      {{ scanResult.success ? 'mdi-check-circle' : 'mdi-alert-circle' }}
+                    </v-icon>
+                    <p>{{ scanResult.message }}</p>
+                    <v-btn 
+                      v-if="!scanResult.success"
+                      color="orange" 
+                      small
+                      @click="startScan"
+                      class="retry-btn"
+                    >
+                      Try Again
+                    </v-btn>
+                  </div>
                 </div>
-              </div>
-              
-              <v-progress-linear
-                v-if="isScanning"
-                indeterminate
-                color="#FFA000"
-                height="5"
-                class="progress-bar"
-              ></v-progress-linear>
-              
-              <div v-if="scanResult" class="scan-result">
-                <v-icon large :color="scanResult.success ? 'green' : 'red'">
-                  {{ scanResult.success ? 'mdi-check-circle' : 'mdi-alert-circle' }}
-                </v-icon>
-                <p>{{ scanResult.message }}</p>
+              </v-card-text>
+              <v-card-actions>
+                <v-spacer></v-spacer>
                 <v-btn 
-                  v-if="!scanResult.success"
-                  color="orange" 
-                  small
-                  @click="startScan"
-                  class="retry-btn"
+                  color="secondary" 
+                  @click="closeAttendanceDialog"
                 >
-                  Try Again
+                  Close
                 </v-btn>
-              </div>
-            </div>
-          </v-card-text>
-          <v-card-actions>
-            <v-spacer></v-spacer>
-            <v-btn 
-              color="secondary" 
-              @click="closeAttendanceDialog"
-            >
-              Close
-            </v-btn>
-          </v-card-actions>
-        </v-card>
-      </v-dialog>
-    </div>
-  </div>
+              </v-card-actions>
+            </v-card>
+          </v-dialog>
+        </div>
+      </v-main>
+    </v-layout>
+  </v-app>
 </template>
 
 <script>
-import PageHeader from '@/components/CustomHeader2.vue';
+import PageHeader from '@/components/CustomHeaderNav.vue';
 import { format } from 'date-fns';
 
 export default {
@@ -263,10 +314,33 @@ export default {
   },
   data() {
     return {
+      sidebarButtons: [
+        { 
+          text: 'Dashboard', 
+          route: 'Home', 
+          icon: 'mdi-view-dashboard' 
+        },
+        { 
+          text: 'Manage Student', 
+          route: 'manage-students', 
+          icon: 'mdi-account-group' 
+        },
+        { 
+          text: 'Manage Event', 
+          route: 'manage-events', 
+          icon: 'mdi-calendar-multiple' 
+        },
+        { 
+          text: 'History Log', 
+          route: 'history-log', 
+          icon: 'mdi-history' 
+        }
+      ],
       backgroundImage: "https://cdn.vuetifyjs.com/images/backgrounds/vbanner.jpg",
       createDialog: false,
       editDialog: false,
       attendanceDialog: false,
+      searchQuery: '',
       filter: {
         semester: 'All'
       },
@@ -295,7 +369,9 @@ export default {
       // Sample events data with semester
       events: [
         { id: 1, name: 'Orientation', semester: '1st Semester', fee: 100.00, date: '2023-06-15' },
-        { id: 2, name: 'Seminar', semester: '2nd Semester', fee: 150.00, date: '2023-07-20' }
+        { id: 2, name: 'Seminar', semester: '2nd Semester', fee: 150.00, date: '2023-07-20' },
+        { id: 3, name: 'Workshop', semester: '1st Semester', fee: 200.00, date: '2023-08-10' },
+        { id: 4, name: 'Conference', semester: '2nd Semester', fee: 300.00, date: '2023-11-05' }
       ],
       tableHeaders: [
         { text: 'Event Name', value: 'name' },
@@ -317,12 +393,31 @@ export default {
       };
     },
     filteredEvents() {
-      return this.events.filter(event => 
-        this.filter.semester === 'All' || event.semester === this.filter.semester
-      );
+      let filtered = this.events;
+      
+      // Apply semester filter
+      if (this.filter.semester !== 'All') {
+        filtered = filtered.filter(event => event.semester === this.filter.semester);
+      }
+      
+      // Apply search query
+      if (this.searchQuery) {
+        const query = this.searchQuery.toLowerCase();
+        filtered = filtered.filter(event => 
+          event.name.toLowerCase().includes(query) ||
+          event.semester.toLowerCase().includes(query) ||
+          event.fee.toString().includes(query) ||
+          this.formatDate(event.date).toLowerCase().includes(query)
+        );
+      }
+      
+      return filtered;
     }
   },
   methods: {
+    navigateTo(route) {
+      this.$router.push({ name: route });
+    },
     formatDate(dateString) {
       return dateString ? format(new Date(dateString), 'MMM dd, yyyy') : 'N/A';
     },
@@ -447,6 +542,120 @@ export default {
 @import url('https://fonts.googleapis.com/css?family=Poppins:300');
 @import url('https://cdn.jsdelivr.net/npm/@mdi/font@6.x/css/materialdesignicons.min.css');
 
+/* Sidebar Styles */
+.overlapping-sidebar {
+  position: absolute;
+  z-index: 100;
+  height: 100vh;
+}
+
+.sidebar {
+  background: #0d003d!important;
+  backdrop-filter: blur(10px);
+  border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: white !important;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-header {
+  padding: 20px;
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 80px;
+}
+
+.sidebar-buttons {
+  padding: 15px 10px;
+  background: transparent !important;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+}
+
+.sidebar-button-wrapper {
+  position: relative;
+  margin: 15px 0;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.08);
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar-button-wrapper:hover {
+  background: rgba(255, 255, 255, 0.15) !important;
+  transform: translateX(5px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.border-animation {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.border-animation::before {
+  content: '';
+  position: absolute;
+  width: 150%;
+  height: 150%;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  animation: borderLight 3s linear infinite;
+  transform: rotate(45deg);
+}
+
+@keyframes borderLight {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+.sidebar-button-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 10px;
+  position: relative;
+  z-index: 1;
+}
+
+.sidebar-icon {
+  color: white !important;
+  margin-bottom: 8px;
+}
+
+.sidebar-text {
+  font-size: 16px;
+  font-weight: 500;
+  color: white;
+  text-align: center;
+  line-height: 1.3;
+}
+
+/* Main Content Styles */
 .fine-card {
   background: rgba(0, 0, 0, .5);
   box-shadow: 0 15px 25px rgba(0, 0, 0, .6);
@@ -461,9 +670,12 @@ export default {
 }
 
 .filter-container {
-  display: flex;
-  justify-content: flex-start;
   margin-bottom: 16px;
+}
+
+.search-field,
+.semester-select {
+  width: 100%;
 }
 
 /* Event List Header */
@@ -718,5 +930,60 @@ body {
 
 .retry-btn {
   margin-top: 10px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 200px !important;
+  }
+  
+  .sidebar-text {
+    font-size: 14px;
+  }
+  
+  .sidebar-button-wrapper {
+    height: 70px;
+  }
+  
+  .sidebar-icon {
+    font-size: 24px !important;
+  }
+  
+  .filter-container {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .search-field,
+  .semester-select {
+    max-width: 100%;
+  }
+  
+  .event-list-header {
+    display: none;
+  }
+  
+  .event-table .col-name,
+  .event-table .col-semester,
+  .event-table .col-fee,
+  .event-table .col-date,
+  .event-table .col-actions {
+    width: auto;
+    display: block;
+    text-align: left;
+    padding-left: 16px !important;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+    gap: 6px;
+    align-items: flex-start;
+  }
+  
+  .v-btn {
+    width: 100%;
+    margin-bottom: 6px;
+  }
 }
 </style>

@@ -1,389 +1,422 @@
 <template>
-  <div>
+  <v-app>
+    <!-- Page Header -->
     <page-header />
-    <div :style="backgroundStyle">
-      <v-container>
-        <v-row>
-          <v-col cols="12">
-            <v-card class="fine-card" elevation="2">
-              <v-card-title class="d-flex justify-space-between align-center">
-                <h1 class="table-title">STUDENT MANAGEMENT</h1>
-                <v-btn 
-                  color="primary" 
-                  dark
-                  @click="openUploadDialog"
-                >
-                  <v-icon left>mdi-upload</v-icon>
-                  Upload Students
-                </v-btn>
-                
-              </v-card-title>
-              <v-card-text>
-                <v-row>
-                  <v-col :cols="selectedStudent ? 8 : 12">
-                    <v-card class="student-list-card">
-                      <v-card-text>
-                        <v-row class="mb-1" align="center">
-                          <v-col cols="12" class="d-flex">
-                            <v-col cols="6">
-                              <v-select
-                                v-model="filter.course"
-                                :items="courses"
-                                label="Select Course"
-                                outlined
-                                dense
-                                dark
-                              />
-                            </v-col>
-                            <v-col cols="6">
-                              <v-select
-                                v-model="filter.yearLevel"
-                                :items="yearLevels"
-                                label="Select Year Level"
-                                outlined
-                                dense
-                                dark
-                              />
-                            </v-col>
-                          </v-col>
-                          <v-col cols="12" class="mt-n4">
-                            <v-text-field
-                              v-model="search"
-                              append-icon="mdi-magnify"
-                              label="Search students..."
-                              single-line
-                              hide-details
-                              outlined
-                              dark
-                              class="search-field"
-                            ></v-text-field>
-                          </v-col>
-                        </v-row>
-
-                        <div class="student-list-header">
-                          <span class="col-fname">First Name</span>
-                          <span class="col-mi">M.I.</span>
-                          <span class="col-lname">Last Name</span>
-                          <span class="col-course">Course</span>
-                          <span class="col-year">Year Level</span>
-                          <span class="col-status">Status</span>
-                          <span class="col-actions">Actions</span>
-                        </div>
-                        <v-data-table
-                          :headers="studentFinesHeaders"
-                          :items="filteredStudentFines"
-                          :search="search"
-                          :items-per-page="10"
-                          class="elevation-1 student-fines-table"
-                          dark
-                          hide-default-header
-                        >
-                          <template v-slot:item="{ item }">
-                            <tr>
-                              <td class="col-fname text-center">{{ item.fname }}</td>
-                              <td class="col-mi text-center">{{ item.mi }}</td>
-                              <td class="col-lname text-center">{{ item.lname }}</td>
-                              <td class="col-course text-center">{{ item.course }}</td>
-                              <td class="col-year text-center">{{ item.year }}</td>
-                              <td class="col-status text-center">
-                                <v-chip small :color="getStatusColor(item.status)">{{ item.status }}</v-chip>
-                              </td>
-                              <td class="col-actions text-center">
-                                <div class="action-buttons">
-                                  <v-btn 
-                                    small 
-                                    color="primary" 
-                                    @click="viewFine(item)" 
-                                    class="action-btn"
-                                    :disabled="isStudentLocked(item)"
-                                  >
-                                    {{ selectedStudent && selectedStudent.id === item.id ? 'Hide' : 'View' }}
-                                  </v-btn>
-                                  <v-btn 
-                                    small 
-                                    color="warning" 
-                                    @click="editStudent(item)" 
-                                    class="action-btn"
-                                    :disabled="isStudentLocked(item)"
-                                  >
-                                    Update
-                                  </v-btn>
-                                  <v-btn 
-                                    small 
-                                    color="teal" 
-                                    dark 
-                                    @click="openFingerprintDialog(item)" 
-                                    class="action-btn"
-                                    :disabled="isStudentLocked(item)"
-                                  >
-                                    Fingerprint
-                                  </v-btn>
-                                </div>
-                              </td>
-                            </tr>
-                          </template>
-                          <template v-slot:footer>
-                            <div class="text-center pt-2">
-                              <v-pagination
-                                v-model="page"
-                                :length="pageCount"
-                                :total-visible="5"
-                                color="primary"
-                                dark
-                              ></v-pagination>
-                            </div>
-                          </template>
-                        </v-data-table>
-                      </v-card-text>
-                    </v-card>
-                  </v-col>
-
-                  <v-col v-if="selectedStudent" cols="4">
-                    <v-card class="right-side-card">
-                      <div class="details-header">
-                        <v-card-title class="details-title">
-                          {{ selectedStudent.fname }} {{ selectedStudent.lname }}'s Details
-                        </v-card-title>
-                      </div>
-                      <v-card-text>
-                        <v-form v-if="isEditing && !isStudentLocked(selectedStudent)" @submit.prevent="checkStatusBeforeSave">
-                          <v-text-field v-model="editForm.fname" label="First Name" outlined dense class="mb-2"></v-text-field>
-                          <v-text-field v-model="editForm.lname" label="Last Name" outlined dense class="mb-2"></v-text-field>
-                          <v-text-field v-model="editForm.mi" label="Middle Initial" outlined dense class="mb-2"></v-text-field>
-                          <v-select
-                            v-model="editForm.course"
-                            :items="courses.filter(c => c !== 'All')"
-                            label="Course"
-                            outlined
-                            dense
-                            class="mb-2"
-                          ></v-select>
-                          <v-select
-                            v-model="editForm.year"
-                            :items="yearLevels.filter(y => y !== 'All')"
-                            label="Year Level"
-                            outlined
-                            dense
-                            class="mb-2"
-                          ></v-select>
-                          <v-select
-                            v-model="editForm.status"
-                            :items="statusOptions"
-                            label="Status"
-                            outlined
-                            dense
-                            class="mb-2"
-                          ></v-select>
-
-                          <div class="regular-buttons">
-                            <v-btn type="submit" color="success">Save Changes</v-btn>
-                            <v-btn @click="cancelEdit" class="ml-2">Cancel</v-btn>
-                          </div>
-                        </v-form>
-
-                        <template v-else>
-                          <div class="student-info mb-4">
-                            <p><strong>Course:</strong> {{ selectedStudent.course }}</p>
-                            <p><strong>Year Level:</strong> {{ selectedStudent.year }}</p>
-                            <p><strong>Status:</strong> 
-                              <v-chip small :color="getStatusColor(selectedStudent.status)">{{ selectedStudent.status }}</v-chip>
-                            </p>
-                          </div>
-
-                          <div v-if="isStudentLocked(selectedStudent)" class="locked-notice mb-4">
-                            <v-alert type="info" dense>
-                              This student record is locked and cannot be modified.
-                            </v-alert>
-                          </div>
-
-                          <div class="fine-details-header">
-                            <span class="col-event">Event</span>
-                            <span class="col-semester">Semester</span>
-                            <span class="col-fine">Fine Amount</span>
-                            <span class="col-date">Date</span>
-                            <span class="col-actions">Actions</span>
-                          </div>
-                          <v-data-table
-                            :headers="fineDetailsHeaders"
-                            :items="fineDetails"
-                            :hide-default-footer="true"
-                            class="elevation-1 fine-details-table"
-                            dark
-                            hide-default-header
-                          >
-                            <template v-slot:item="{ item }">
-                              <tr>
-                                <td class="col-event">
-                                  <v-edit-dialog
-                                    v-model="item.event"
-                                    @save="updateFineDetail"
-                                    large
-                                    :disabled="isStudentLocked(selectedStudent)"
-                                  >
-                                    {{ item.event }}
-                                    <template v-slot:input>
-                                      <v-text-field
-                                        v-model="item.event"
-                                        label="Edit"
-                                        single-line
-                                      ></v-text-field>
-                                    </template>
-                                  </v-edit-dialog>
-                                </td>
-                                <td class="col-semester">
-                                  {{ item.semester }}
-                                </td>
-                                <td class="col-fine">
-                                  <v-edit-dialog
-                                    v-model="item.fine"
-                                    @save="updateFineDetail"
-                                    large
-                                    :disabled="isStudentLocked(selectedStudent)"
-                                  >
-                                    {{ item.fine }}
-                                    <template v-slot:input>
-                                      <v-text-field
-                                        v-model="item.fine"
-                                        label="Edit"
-                                        single-line
-                                        type="number"
-                                        prefix="₱"
-                                      ></v-text-field>
-                                    </template>
-                                  </v-edit-dialog>
-                                </td>
-                                <td class="col-date">
-                                  {{ formatDate(item.date) }}
-                                </td>
-                                <td class="col-actions">
-                                  <v-btn 
-                                    x-small 
-                                    color="error" 
-                                    @click="removeFine(item)"
-                                    :disabled="isStudentLocked(selectedStudent)"
-                                  >
-                                    Remove
-                                  </v-btn>
-                                </td>
-                              </tr>
-                            </template>
-                          </v-data-table>
-                          <div class="total-fines">
-                            <strong>Total Fines: {{ calculateTotalFines() }}</strong>
-                          </div>
-                          <v-btn 
-                            color="success" 
-                            class="paid-btn mt-2"
-                            @click="clearFines"
-                            :disabled="fineDetails.length === 0 || isStudentLocked(selectedStudent)"
-                          >
-                            Mark All as Paid
-                          </v-btn>
-                        </template>
-                      </v-card-text>
-                    </v-card>
-                  </v-col>
-                </v-row>
-              </v-card-text>
-            </v-card>
-          </v-col>
-        </v-row>
-      </v-container>
-
-      <!-- Confirmation Dialog -->
-      <v-dialog v-model="confirmDialog" max-width="400">
-        <v-card class="confirm-dialog">
-          <v-card-title class="headline">Warning!</v-card-title>
-          <v-card-text>
-            Changing status to <strong>{{ editForm.status }}</strong> will permanently lock this student record.
-            Are you sure you want to proceed?
-          </v-card-text>
-          <v-card-actions>
-            <v-spacer></v-spacer>
-            <v-btn color="grey" @click="confirmDialog = false">Cancel</v-btn>
-            <v-btn color="red darken-1" @click="confirmAndSave">Confirm</v-btn>
-          </v-card-actions>
-        </v-card>
-      </v-dialog>
-
-      <v-dialog v-model="uploadDialog" max-width="600">
-        <v-card class="upload-dialog">
-          <v-card-title class="headline">Upload Students</v-card-title>
-          <v-card-text>
-            <div class="file-input-container">
-              <v-file-input
-                v-model="uploadFile"
-                label="SELECT CSV FILE"
-                accept=".csv"
-                outlined
-                prepend-icon="mdi-paperclip"
-                @change="previewUpload"
-                class="centered-file-input"
-              ></v-file-input>
+    
+    <!-- Main Layout with Sidebar -->
+    <v-layout>
+      <!-- Left Sidebar Navigation - Overlapping -->
+      <v-navigation-drawer
+        permanent
+        width="250"
+        class="sidebar overlapping-sidebar"
+      >
+        <div class="sidebar-header">
+          <v-icon size="40" color="white">mdi-account-circle</v-icon>
+        </div>
+        
+        <v-list class="sidebar-buttons">
+          <v-list-item
+            v-for="button in sidebarButtons"
+            :key="button.route"
+            class="sidebar-button-wrapper"
+            @click="navigateTo(button.route)"
+          >
+            <div class="sidebar-button-content">
+              <v-icon size="30" class="sidebar-icon">{{ button.icon }}</v-icon>
+              <span class="sidebar-text">{{ button.text }}</span>
             </div>
-            <v-data-table
-              :headers="uploadHeaders"
-              :items="uploadPreview"
-              class="elevation-1 upload-table"
-              dark
-            ></v-data-table>
-          </v-card-text>
-          <v-card-actions>
-            <v-spacer></v-spacer>
-            <v-btn color="primary" @click="uploadStudents">Upload</v-btn>
-            <v-btn text @click="uploadDialog = false">Cancel</v-btn>
-          </v-card-actions>
-        </v-card>
-      </v-dialog>
+            <div class="border-animation"></div>
+          </v-list-item>
+        </v-list>
+      </v-navigation-drawer>
 
-      <v-dialog v-model="fingerprintDialog" max-width="500" persistent>
-        <v-card class="fingerprint-dialog">
-          <v-card-title class="headline text-center">
-            Fingerprint Enrollment - {{ fingerprintStudent.fname }} {{ fingerprintStudent.lname }}
-          </v-card-title>
-          <v-card-text class="text-center">
-            <v-icon x-large class="mb-4 fingerprint-icon">mdi-fingerprint</v-icon>
-            <p class="title">{{ fingerprintMessage }}</p>
-            
-            <template v-if="!fingerprintLoading">
-              <v-btn 
-                color="primary" 
-                class="mt-4"
-                @click="startFingerprintProcess"
-                :disabled="isStudentLocked(fingerprintStudent)"
-              >
-                Start Enrollment
-              </v-btn>
-            </template>
-            <template v-else>
-              <v-progress-linear
-                v-model="fingerprintProgress"
-                height="25"
-                color="teal"
-                class="mt-4"
-              >
-                <strong>{{ fingerprintProgress }}%</strong>
-              </v-progress-linear>
-            </template>
-          </v-card-text>
-          <v-card-actions>
-            <v-spacer></v-spacer>
-            <v-btn 
-              color="error" 
-              @click="cancelFingerprintEnrollment"
-              :disabled="fingerprintLoading"
-            >
-              Cancel
-            </v-btn>
-          </v-card-actions>
-        </v-card>
-      </v-dialog>
-    </div>
-  </div>
+      <!-- Main Content Area -->
+      <v-main>
+        <div :style="backgroundStyle">
+          <v-container>
+            <v-row>
+              <v-col cols="12">
+                <v-card class="fine-card" elevation="2">
+                  <v-card-title class="d-flex justify-space-between align-center">
+                    <h1 class="table-title">STUDENT MANAGEMENT</h1>
+                    <v-btn 
+                      color="primary" 
+                      dark
+                      @click="openUploadDialog"
+                    >
+                      <v-icon left>mdi-upload</v-icon>
+                      Upload Students
+                    </v-btn>
+                  </v-card-title>
+                  <v-card-text>
+                    <v-row>
+                      <v-col :cols="selectedStudent ? 8 : 12">
+                        <v-card class="student-list-card">
+                          <v-card-text>
+                            <v-row class="mb-1" align="center">
+                              <v-col cols="12" class="d-flex">
+                                <v-col cols="6">
+                                  <v-select
+                                    v-model="filter.course"
+                                    :items="courses"
+                                    label="Select Course"
+                                    outlined
+                                    dense
+                                    dark
+                                  />
+                                </v-col>
+                                <v-col cols="6">
+                                  <v-select
+                                    v-model="filter.yearLevel"
+                                    :items="yearLevels"
+                                    label="Select Year Level"
+                                    outlined
+                                    dense
+                                    dark
+                                  />
+                                </v-col>
+                              </v-col>
+                              <v-col cols="12" class="mt-n4">
+                                <v-text-field
+                                  v-model="search"
+                                  append-icon="mdi-magnify"
+                                  label="Search students..."
+                                  single-line
+                                  hide-details
+                                  outlined
+                                  dark
+                                  class="search-field"
+                                ></v-text-field>
+                              </v-col>
+                            </v-row>
+
+                            <div class="student-list-header">
+                              <span class="col-fname">First Name</span>
+                              <span class="col-mi">M.I.</span>
+                              <span class="col-lname">Last Name</span>
+                              <span class="col-course">Course</span>
+                              <span class="col-year">Year Level</span>
+                              <span class="col-status">Status</span>
+                              <span class="col-actions">Actions</span>
+                            </div>
+                            <v-data-table
+                              :headers="studentFinesHeaders"
+                              :items="filteredStudentFines"
+                              :search="search"
+                              :items-per-page="10"
+                              class="elevation-1 student-fines-table"
+                              dark
+                              hide-default-header
+                            >
+                              <template v-slot:item="{ item }">
+                                <tr>
+                                  <td class="col-fname text-center">{{ item.fname }}</td>
+                                  <td class="col-mi text-center">{{ item.mi }}</td>
+                                  <td class="col-lname text-center">{{ item.lname }}</td>
+                                  <td class="col-course text-center">{{ item.course }}</td>
+                                  <td class="col-year text-center">{{ item.year }}</td>
+                                  <td class="col-status text-center">
+                                    <v-chip small :color="getStatusColor(item.status)">{{ item.status }}</v-chip>
+                                  </td>
+                                  <td class="col-actions text-center">
+                                    <div class="action-buttons">
+                                      <v-btn 
+                                        small 
+                                        color="primary" 
+                                        @click="viewFine(item)" 
+                                        class="action-btn"
+                                        :disabled="isStudentLocked(item)"
+                                      >
+                                        {{ selectedStudent && selectedStudent.id === item.id ? 'Hide' : 'View' }}
+                                      </v-btn>
+                                      <v-btn 
+                                        small 
+                                        color="warning" 
+                                        @click="editStudent(item)" 
+                                        class="action-btn"
+                                        :disabled="isStudentLocked(item)"
+                                      >
+                                        Update
+                                      </v-btn>
+                                      <v-btn 
+                                        small 
+                                        color="teal" 
+                                        dark 
+                                        @click="openFingerprintDialog(item)" 
+                                        class="action-btn"
+                                        :disabled="isStudentLocked(item)"
+                                      >
+                                        Fingerprint
+                                      </v-btn>
+                                    </div>
+                                  </td>
+                                </tr>
+                              </template>
+                              <template v-slot:footer>
+                                <div class="text-center pt-2">
+                                  <v-pagination
+                                    v-model="page"
+                                    :length="pageCount"
+                                    :total-visible="5"
+                                    color="primary"
+                                    dark
+                                  ></v-pagination>
+                                </div>
+                              </template>
+                            </v-data-table>
+                          </v-card-text>
+                        </v-card>
+                      </v-col>
+
+                      <v-col v-if="selectedStudent" cols="4">
+                        <v-card class="right-side-card">
+                          <div class="details-header">
+                            <v-card-title class="details-title">
+                              {{ selectedStudent.fname }} {{ selectedStudent.lname }}'s Details
+                            </v-card-title>
+                          </div>
+                          <v-card-text>
+                            <v-form v-if="isEditing && !isStudentLocked(selectedStudent)" @submit.prevent="checkStatusBeforeSave">
+                              <v-text-field v-model="editForm.fname" label="First Name" outlined dense class="mb-2"></v-text-field>
+                              <v-text-field v-model="editForm.lname" label="Last Name" outlined dense class="mb-2"></v-text-field>
+                              <v-text-field v-model="editForm.mi" label="Middle Initial" outlined dense class="mb-2"></v-text-field>
+                              <v-select
+                                v-model="editForm.course"
+                                :items="courses.filter(c => c !== 'All')"
+                                label="Course"
+                                outlined
+                                dense
+                                class="mb-2"
+                              ></v-select>
+                              <v-select
+                                v-model="editForm.year"
+                                :items="yearLevels.filter(y => y !== 'All')"
+                                label="Year Level"
+                                outlined
+                                dense
+                                class="mb-2"
+                              ></v-select>
+                              <v-select
+                                v-model="editForm.status"
+                                :items="statusOptions"
+                                label="Status"
+                                outlined
+                                dense
+                                class="mb-2"
+                              ></v-select>
+
+                              <div class="regular-buttons">
+                                <v-btn type="submit" color="success">Save Changes</v-btn>
+                                <v-btn @click="cancelEdit" class="ml-2">Cancel</v-btn>
+                              </div>
+                            </v-form>
+
+                            <template v-else>
+                              <div class="student-info mb-4">
+                                <p><strong>Course:</strong> {{ selectedStudent.course }}</p>
+                                <p><strong>Year Level:</strong> {{ selectedStudent.year }}</p>
+                                <p><strong>Status:</strong> 
+                                  <v-chip small :color="getStatusColor(selectedStudent.status)">{{ selectedStudent.status }}</v-chip>
+                                </p>
+                              </div>
+
+                              <div v-if="isStudentLocked(selectedStudent)" class="locked-notice mb-4">
+                                <v-alert type="info" dense>
+                                  This student record is locked and cannot be modified.
+                                </v-alert>
+                              </div>
+
+                              <div class="fine-details-header">
+                                <span class="col-event">Event</span>
+                                <span class="col-semester">Semester</span>
+                                <span class="col-fine">Fine Amount</span>
+                                <span class="col-date">Date</span>
+                                <span class="col-actions">Actions</span>
+                              </div>
+                              <v-data-table
+                                :headers="fineDetailsHeaders"
+                                :items="fineDetails"
+                                :hide-default-footer="true"
+                                class="elevation-1 fine-details-table"
+                                dark
+                                hide-default-header
+                              >
+                                <template v-slot:item="{ item }">
+                                  <tr>
+                                    <td class="col-event">
+                                      <v-edit-dialog
+                                        v-model="item.event"
+                                        @save="updateFineDetail"
+                                        large
+                                        :disabled="isStudentLocked(selectedStudent)"
+                                      >
+                                        {{ item.event }}
+                                        <template v-slot:input>
+                                          <v-text-field
+                                            v-model="item.event"
+                                            label="Edit"
+                                            single-line
+                                          ></v-text-field>
+                                        </template>
+                                      </v-edit-dialog>
+                                    </td>
+                                    <td class="col-semester">
+                                      {{ item.semester }}
+                                    </td>
+                                    <td class="col-fine">
+                                      <v-edit-dialog
+                                        v-model="item.fine"
+                                        @save="updateFineDetail"
+                                        large
+                                        :disabled="isStudentLocked(selectedStudent)"
+                                      >
+                                        {{ item.fine }}
+                                        <template v-slot:input>
+                                          <v-text-field
+                                            v-model="item.fine"
+                                            label="Edit"
+                                            single-line
+                                            type="number"
+                                            prefix="₱"
+                                          ></v-text-field>
+                                        </template>
+                                      </v-edit-dialog>
+                                    </td>
+                                    <td class="col-date">
+                                      {{ formatDate(item.date) }}
+                                    </td>
+                                    <td class="col-actions">
+                                      <v-btn 
+                                        x-small 
+                                        color="error" 
+                                        @click="removeFine(item)"
+                                        :disabled="isStudentLocked(selectedStudent)"
+                                      >
+                                        Remove
+                                      </v-btn>
+                                    </td>
+                                  </tr>
+                                </template>
+                              </v-data-table>
+                              <div class="total-fines">
+                                <strong>Total Fines: {{ calculateTotalFines() }}</strong>
+                              </div>
+                              <v-btn 
+                                color="success" 
+                                class="paid-btn mt-2"
+                                @click="clearFines"
+                                :disabled="fineDetails.length === 0 || isStudentLocked(selectedStudent)"
+                              >
+                                Mark All as Paid
+                              </v-btn>
+                            </template>
+                          </v-card-text>
+                        </v-card>
+                      </v-col>
+                    </v-row>
+                  </v-card-text>
+                </v-card>
+              </v-col>
+            </v-row>
+          </v-container>
+
+          <!-- Confirmation Dialog -->
+          <v-dialog v-model="confirmDialog" max-width="400">
+            <v-card class="confirm-dialog">
+              <v-card-title class="headline">Warning!</v-card-title>
+              <v-card-text>
+                Changing status to <strong>{{ editForm.status }}</strong> will permanently lock this student record.
+                Are you sure you want to proceed?
+              </v-card-text>
+              <v-card-actions>
+                <v-spacer></v-spacer>
+                <v-btn color="grey" @click="confirmDialog = false">Cancel</v-btn>
+                <v-btn color="red darken-1" @click="confirmAndSave">Confirm</v-btn>
+              </v-card-actions>
+            </v-card>
+          </v-dialog>
+
+          <v-dialog v-model="uploadDialog" max-width="600">
+            <v-card class="upload-dialog">
+              <v-card-title class="headline">Upload Students</v-card-title>
+              <v-card-text>
+                <div class="file-input-container">
+                  <v-file-input
+                    v-model="uploadFile"
+                    label="SELECT CSV FILE"
+                    accept=".csv"
+                    outlined
+                    prepend-icon="mdi-paperclip"
+                    @change="previewUpload"
+                    class="centered-file-input"
+                  ></v-file-input>
+                </div>
+                <v-data-table
+                  :headers="uploadHeaders"
+                  :items="uploadPreview"
+                  class="elevation-1 upload-table"
+                  dark
+                ></v-data-table>
+              </v-card-text>
+              <v-card-actions>
+                <v-spacer></v-spacer>
+                <v-btn color="primary" @click="uploadStudents">Upload</v-btn>
+                <v-btn text @click="uploadDialog = false">Cancel</v-btn>
+              </v-card-actions>
+            </v-card>
+          </v-dialog>
+
+          <v-dialog v-model="fingerprintDialog" max-width="500" persistent>
+            <v-card class="fingerprint-dialog">
+              <v-card-title class="headline text-center">
+                Fingerprint Enrollment - {{ fingerprintStudent.fname }} {{ fingerprintStudent.lname }}
+              </v-card-title>
+              <v-card-text class="text-center">
+                <v-icon x-large class="mb-4 fingerprint-icon">mdi-fingerprint</v-icon>
+                <p class="title">{{ fingerprintMessage }}</p>
+                
+                <template v-if="!fingerprintLoading">
+                  <v-btn 
+                    color="primary" 
+                    class="mt-4"
+                    @click="startFingerprintProcess"
+                    :disabled="isStudentLocked(fingerprintStudent)"
+                  >
+                    Start Enrollment
+                  </v-btn>
+                </template>
+                <template v-else>
+                  <v-progress-linear
+                    v-model="fingerprintProgress"
+                    height="25"
+                    color="teal"
+                    class="mt-4"
+                  >
+                    <strong>{{ fingerprintProgress }}%</strong>
+                  </v-progress-linear>
+                </template>
+              </v-card-text>
+              <v-card-actions>
+                <v-spacer></v-spacer>
+                <v-btn 
+                  color="error" 
+                  @click="cancelFingerprintEnrollment"
+                  :disabled="fingerprintLoading"
+                >
+                  Cancel
+                </v-btn>
+              </v-card-actions>
+            </v-card>
+          </v-dialog>
+        </div>
+      </v-main>
+    </v-layout>
+  </v-app>
 </template>
 
 <script>
-import PageHeader from '@/components/CustomHeader2.vue';
+import PageHeader from '@/components/CustomHeaderNav.vue';
 import { format } from 'date-fns';
 
 export default {
@@ -392,16 +425,50 @@ export default {
   },
   data() {
     return {
+      //Side Bar
+      sidebarButtons: [
+        { 
+          text: 'Dashboard', 
+          route: 'Home', 
+          icon: 'mdi-view-dashboard' 
+        },
+        { 
+          text: 'Manage Student', 
+          route: 'manage-students', 
+          icon: 'mdi-account-group' 
+        },
+        { 
+          text: 'Manage Event', 
+          route: 'manage-events', 
+          icon: 'mdi-calendar-multiple' 
+        },
+        { 
+          text: 'History Log', 
+          route: 'history-log', 
+          icon: 'mdi-history' 
+        }
+
+      ],
+
+      //UI elements
       backgroundImage: "https://cdn.vuetifyjs.com/images/backgrounds/vbanner.jpg",
+      page: 1,
+      pageCount: 3,
+      
+      //UI Parts
+      search: '',
       filter: {
         course: null,
         yearLevel: null
       },
-      search: '',
+
+      //Ui States
       selectedStudent: null,
       isEditing: false,
       editForm: {},
       confirmDialog: false,
+      
+      //Dialogs
       uploadDialog: false,
       uploadFile: null,
       uploadPreview: [],
@@ -412,16 +479,21 @@ export default {
         { text: 'Course', value: 'course' },
         { text: 'Year Level', value: 'year' }
       ],
+
+      //Dialogs - Fingerpritn
       fingerprintDialog: false,
       fingerprintStudent: {},
       fingerprintLoading: false,
       fingerprintMessage: 'Ready to enroll fingerprint',
       fingerprintProgress: 0,
-      statusOptions: ['Regular', 'Irregular', 'Graduated', 'Shifted', 'Dropped'],
+      //other dialogs
+      statusOptions: ['Enrolled', 'Graduated', 'Shifted', 'Dropped'],
       fineDetails: [],
       courses: ['All', 'BSIT', 'BSIS', 'BSCS'],
       yearLevels: ['All', '1st Year', '2nd Year', '3rd Year', '4th Year'],
       semesters: ['1st Semester', '2nd Semester'],
+
+      //Student Header
       studentFinesHeaders: [
         { text: 'First Name', value: 'fname', align: 'center', width: '15%' },
         { text: 'M.I.', value: 'mi', align: 'center', width: '5%' },
@@ -431,6 +503,8 @@ export default {
         { text: 'Status', value: 'status', align: 'center', width: '15%' },
         { text: 'Actions', value: 'actions', align: 'center', width: '20%', sortable: false }
       ],
+
+      //fine Header
       fineDetailsHeaders: [
         { text: 'Event Name', value: 'event', width: '30%' },
         { text: 'Semester', value: 'semester', width: '20%' },
@@ -438,9 +512,9 @@ export default {
         { text: 'Date', value: 'date', width: '20%' },
         { text: 'Actions', value: 'actions', width: '15%' }
       ],
-      page: 1,
-      pageCount: 3,
-      studentFines: [
+      
+      //Temporary Data
+       studentFines: [
         { 
           id: 1, 
           fname: 'Al-shiolla', 
@@ -535,10 +609,12 @@ export default {
           hasFingerprint: false,
           isLocked: false
         }
-      ]
+      ],
+      
     };
   },
   computed: {
+
     filteredStudentFines() {
       return this.studentFines.filter((student) => {
         return (
@@ -552,6 +628,7 @@ export default {
         );
       });
     },
+
     backgroundStyle() {
       return {
         backgroundImage: `url(${this.backgroundImage})`,
@@ -562,36 +639,27 @@ export default {
       };
     }
   },
+
   methods: {
+    navigateTo(route) {
+      this.$router.push({ name: route });
+    },
+
     isStudentLocked(student) {
       return student.isLocked || ['Graduated', 'Shifted', 'Dropped'].includes(student.status);
     },
     getStatusColor(status) {
       const colors = {
-        'Regular': 'green',
-        'Irregular': 'orange',
+        'Enrolled': 'green',
         'Shifted': 'blue',
         'Graduated': 'purple',
         'Dropped': 'red'
       };
       return colors[status] || 'gray';
     },
-    calculateTotalFines() {
-      const total = this.fineDetails.reduce((sum, item) => {
-        return sum + parseFloat(item.fine.replace('₱', ''));
-      }, 0);
-      return `₱${total.toFixed(2)}`;
-    },
-    viewFine(student) {
-      if (this.selectedStudent && this.selectedStudent.id === student.id) {
-        this.selectedStudent = null;
-        this.isEditing = false;
-      } else {
-        this.selectedStudent = student;
-        this.isEditing = false;
-        this.fineDetails = this.generateMockFineDetails();
-      }
-    },
+
+
+
     editStudent(student) {
       if (this.isStudentLocked(student)) return;
       
@@ -599,6 +667,7 @@ export default {
       this.isEditing = true;
       this.editForm = { ...student };
     },
+
     checkStatusBeforeSave() {
       if (['Graduated', 'Shifted', 'Dropped'].includes(this.editForm.status)) {
         this.confirmDialog = true;
@@ -606,10 +675,12 @@ export default {
         this.saveStudent();
       }
     },
+
     confirmAndSave() {
       this.confirmDialog = false;
       this.saveStudent(true);
     },
+
     saveStudent(shouldLock = false) {
       const index = this.studentFines.findIndex(s => s.id === this.editForm.id);
       if (index !== -1) {
@@ -633,17 +704,23 @@ export default {
     cancelEdit() {
       this.isEditing = false;
     },
+
+
     clearFines() {
       this.fineDetails = [];
       if (this.$toast) {
         this.$toast.success(`${this.selectedStudent.fname} ${this.selectedStudent.lname}'s fines have been marked as paid!`);
       }
     },
+
+
+    
     openUploadDialog() {
       this.uploadDialog = true;
       this.uploadFile = null;
       this.uploadPreview = [];
     },
+
     previewUpload() {
       if (this.uploadFile) {
         this.uploadPreview = [
@@ -654,12 +731,14 @@ export default {
         this.uploadPreview = [];
       }
     },
+
     uploadStudents() {
       if (this.$toast) {
         this.$toast.success('Students uploaded successfully');
       }
       this.uploadDialog = false;
     },
+
     openFingerprintDialog(student) {
       if (this.isStudentLocked(student)) return;
       
@@ -669,6 +748,7 @@ export default {
       this.fingerprintMessage = 'Ready to enroll fingerprint';
       this.fingerprintProgress = 0;
     },
+
     startFingerprintProcess() {
       this.fingerprintLoading = true;
       this.fingerprintMessage = 'Place your finger on the sensor';
@@ -681,6 +761,7 @@ export default {
         }
       }, 500);
     },
+
     completeFingerprintEnrollment() {
       const index = this.studentFines.findIndex(s => s.id === this.fingerprintStudent.id);
       if (index !== -1) {
@@ -700,12 +781,33 @@ export default {
         }
       }, 1500);
     },
+
     cancelFingerprintEnrollment() {
       this.fingerprintDialog = false;
       if (this.$toast) {
         this.$toast.info('Fingerprint enrollment canceled');
       }
     },
+
+
+    
+    calculateTotalFines() {
+      const total = this.fineDetails.reduce((sum, item) => {
+        return sum + parseFloat(item.fine.replace('₱', ''));
+      }, 0);
+      return `₱${total.toFixed(2)}`;
+    },
+    viewFine(student) {
+      if (this.selectedStudent && this.selectedStudent.id === student.id) {
+        this.selectedStudent = null;
+        this.isEditing = false;
+      } else {
+        this.selectedStudent = student;
+        this.isEditing = false;
+        this.fineDetails = this.generateMockFineDetails();
+      }
+    },
+
     updateFineDetail() {
       if (this.$toast) {
         this.$toast.success('Fine updated successfully');
@@ -753,7 +855,122 @@ export default {
 
 <style scoped>
 @import url('https://fonts.googleapis.com/css?family=Poppins:300');
+@import url('https://cdn.jsdelivr.net/npm/@mdi/font@6.x/css/materialdesignicons.min.css');
 
+/* Sidebar Styles */
+.overlapping-sidebar {
+  position: absolute;
+  z-index: 100;
+  height: 100vh;
+}
+
+.sidebar {
+  background: #0d003d !important;
+  backdrop-filter: blur(10px);
+  border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: white !important;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-header {
+  padding: 20px;
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 80px;
+}
+
+.sidebar-buttons {
+  padding: 15px 10px;
+  background: transparent !important;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+}
+
+.sidebar-button-wrapper {
+  position: relative;
+  margin: 15px 0;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.08);
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar-button-wrapper:hover {
+  background: rgba(255, 255, 255, 0.15) !important;
+  transform: translateX(5px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.border-animation {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.border-animation::before {
+  content: '';
+  position: absolute;
+  width: 150%;
+  height: 150%;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  animation: borderLight 3s linear infinite;
+  transform: rotate(45deg);
+}
+
+@keyframes borderLight {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+.sidebar-button-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 10px;
+  position: relative;
+  z-index: 1;
+}
+
+.sidebar-icon {
+  color: white !important;
+  margin-bottom: 8px;
+}
+
+.sidebar-text {
+  font-size: 16px;
+  font-weight: 500;
+  color: white;
+  text-align: center;
+  line-height: 1.3;
+}
+
+/* Main Content Styles */
 .page-title {
   color: white;
   text-align: center;
@@ -1143,6 +1360,10 @@ body {
 }
 
 @media (max-width: 960px) {
+  .sidebar {
+    width: 200px !important;
+  }
+  
   .student-list-header .col-fname,
   .student-list-header .col-lname,
   .student-fines-table .col-fname,
@@ -1172,6 +1393,18 @@ body {
   .details-title {
     font-size: 1.2rem !important;
     padding: 12px !important;
+  }
+  
+  .sidebar-text {
+    font-size: 14px;
+  }
+  
+  .sidebar-button-wrapper {
+    height: 70px;
+  }
+  
+  .sidebar-icon {
+    font-size: 24px !important;
   }
 }
 </style>

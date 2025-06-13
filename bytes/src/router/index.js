@@ -1,8 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import LoginPage from '../views/LoginPage.vue';
 import UserPage from '../views/UserPage.vue';
-import Home from '../views/AdminDashboard.vue';
-import StudentDashboard from '../views/StudentDashboard.vue';
+import Home from '../views/StudentDashboard.vue';
 import ManageEvent from '../views/ManageEvent.vue';
 import ManageStudent from '../views/ManageStudent.vue'; 
 import AboutView from '../views/AboutView.vue';
@@ -68,12 +67,7 @@ const routes = [
     component: Home,
     meta: { requiresAuth: true }
   },
-  {
-    path: '/students',
-    name: 'students',
-    component: StudentDashboard,
-    meta: { requiresAuth: true }
-  },
+  
   {
     path: '/manage-students',
     name: 'manage-students',

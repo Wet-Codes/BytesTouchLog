@@ -1,356 +1,347 @@
 <template>
-  <div>
+  <v-app>
+    <!-- Page Header -->
     <page-header />
-    <div :style="backgroundStyle">
-      <v-container>
-        <v-row>
-          <v-col cols="12">
-            <v-card class="history-card" elevation="2">
-              <v-card-title class="d-flex justify-space-between align-center">
-                <h1 class="table-title">HISTORY LOG</h1>
-                <v-text-field
-                  v-model="search"
-                  append-icon="mdi-magnify"
-                  label="Search..."
-                  single-line
-                  hide-details
-                  outlined
-                  dark
-                  class="search-field"
-                ></v-text-field>
-              </v-card-title>
-              <v-card-text>
-                <!-- Tabs for different log types -->
-                <div class="tabs-container">
-                  <v-btn
-                    v-for="(item, index) in tabs"
-                    :key="item"
-                    :class="['tab-btn', { 'active-tab': tab === index }]"
-                    @click="tab = index"
-                    depressed
-                    height="40"
-                  >
-                    <v-icon left v-if="index === 0">mdi-login-variant</v-icon>
-                    <v-icon left v-if="index === 1">mdi-cash-multiple</v-icon>
-                    <v-icon left v-if="index === 2">mdi-database-edit</v-icon>
-                    {{ item }}
+    
+    <!-- Main Layout with Sidebar -->
+    <v-layout>
+      <!-- Left Sidebar Navigation - Overlapping -->
+      <v-navigation-drawer
+        permanent
+        width="250"
+        class="sidebar overlapping-sidebar"
+      >
+        <div class="sidebar-header">
+          <v-icon size="40" color="white">mdi-account-circle</v-icon>
+        </div>
+        
+        <v-list class="sidebar-buttons">
+          <v-list-item
+            v-for="button in sidebarButtons"
+            :key="button.route"
+            class="sidebar-button-wrapper"
+            @click="navigateTo(button.route)"
+          >
+            <div class="sidebar-button-content">
+              <v-icon size="30" class="sidebar-icon">{{ button.icon }}</v-icon>
+              <span class="sidebar-text">{{ button.text }}</span>
+            </div>
+            <div class="border-animation"></div>
+          </v-list-item>
+        </v-list>
+      </v-navigation-drawer>
+
+      <!-- Main Content Area -->
+      <v-main>
+        <div :style="backgroundStyle">
+          <v-container>
+            <v-row>
+              <v-col cols="12">
+                <v-card class="history-card" elevation="2">
+                  <v-card-title class="d-flex justify-space-between align-center">
+                    <h1 class="table-title">HISTORY LOG</h1>
+                    <v-text-field
+                      v-model="search"
+                      append-icon="mdi-magnify"
+                      label="Search..."
+                      single-line
+                      hide-details
+                      outlined
+                      dark
+                      class="search-field"
+                    ></v-text-field>
+                  </v-card-title>
+                  <v-card-text>
+                    <!-- Tabs for different log types -->
+                    <div class="tabs-container">
+                      <v-btn
+                        v-for="(item, index) in tabs"
+                        :key="item"
+                        :class="['tab-btn', { 'active-tab': tab === index }]"
+                        @click="tab = index; page = 1"
+                        depressed
+                        height="40"
+                      >
+                        <v-icon left v-if="index === 0">mdi-login-variant</v-icon>
+                        <v-icon left v-if="index === 1">mdi-cash-multiple</v-icon>
+                        <v-icon left v-if="index === 2">mdi-database-edit</v-icon>
+                        {{ item }}
+                      </v-btn>
+                    </div>
+                    <!-- Login/Logout Logs -->
+                    <div v-if="tab === 0" class="table-container">
+                      <div class="table-header login-header">
+                        <span class="col-user">User</span>
+                        <span class="col-ip">IP Address</span>
+                        <span class="col-device">Device</span>
+                        <span class="col-login-timestamp">Login/Logout</span>
+                      </div>
+                      <v-data-table
+                        :headers="loginHeaders"
+                        :items="paginatedLoginLogs"
+                        :search="search"
+                        hide-default-header
+                        hide-default-footer
+                        class="elevation-1 history-table login-table"
+                        dark
+                      >
+                        <template #[`item.user`]="{ item }">
+                          <div class="table-cell text-center">{{ item.user }}</div>
+                        </template>
+                        <template #[`item.ip`]="{ item }">
+                          <div class="table-cell text-center">{{ item.ip }}</div>
+                        </template>
+                        <template #[`item.device`]="{ item }">
+                          <div class="table-cell text-center">{{ item.device }}</div>
+                        </template>
+                        <template #[`item.timestamp`]="{ item }">
+                          <div class="table-cell">
+                            <div class="login-entry text-center">
+                              <v-icon small color="success" class="icon-bg">mdi-login</v-icon>
+                              Login: {{ formatDateTime(item.timestamp) }}
+                            </div>
+                            <div class="logout-entry text-center" v-if="item.logoutTimestamp">
+                              <v-icon small color="error" class="icon-bg">mdi-logout</v-icon>
+                              Logout: {{ formatDateTime(item.logoutTimestamp) }}
+                            </div>
+                          </div>
+                        </template>
+                      </v-data-table>
+                      <div class="text-center pt-2">
+                        <v-pagination
+                          v-model="page"
+                          :length="loginPageCount"
+                          :total-visible="7"
+                          color="primary"
+                          dark
+                        ></v-pagination>
+                      </div>
+                    </div>
+
+                    <!-- Fine Payment Logs -->
+                    <div v-if="tab === 1" class="table-container">
+                      <div class="table-header payment-header">
+                        <span class="col-student">Student</span>
+                        <span class="col-admin">Admin</span>
+                        <span class="col-event">Event</span>
+                        <span class="col-amount">Amount</span>
+                        <span class="col-timestamp">Timestamp</span>
+                        <span class="col-receipt">Receipt</span>
+                      </div>
+                      <v-data-table
+                        :headers="paymentHeaders"
+                        :items="paginatedPaymentLogs"
+                        :search="search"
+                        hide-default-header
+                        hide-default-footer
+                        class="elevation-1 history-table payment-table"
+                        dark
+                      >
+                        <template #[`item.studentName`]="{ item }">
+                          <div class="table-cell text-center">{{ item.studentName }}</div>
+                        </template>
+                        <template #[`item.adminName`]="{ item }">
+                          <div class="table-cell text-center">{{ item.adminName }}</div>
+                        </template>
+                        <template #[`item.event`]="{ item }">
+                          <div class="table-cell text-center">{{ item.event }}</div>
+                        </template>
+                        <template #[`item.amount`]="{ item }">
+                          <div class="table-cell text-center">₱{{ item.amount.toFixed(2) }}</div>
+                        </template>
+                        <template #[`item.timestamp`]="{ item }">
+                          <div class="table-cell text-center">{{ formatDateTime(item.timestamp) }}</div>
+                        </template>
+                        <template #[`item.receipt`]="{ item }">
+                          <div class="table-cell text-center">
+                            <v-btn small color="success" @click="generateReceipt(item)" class="receipt-btn white--text">
+                              <v-icon left small>mdi-receipt</v-icon>
+                              E-Receipt
+                            </v-btn>
+                          </div>
+                        </template>
+                      </v-data-table>
+                      <div class="text-center pt-2">
+                        <v-pagination
+                          v-model="page"
+                          :length="paymentPageCount"
+                          :total-visible="7"
+                          color="primary"
+                          dark
+                        ></v-pagination>
+                      </div>
+                    </div>
+
+                    <!-- Transaction Logs -->
+                    <div v-if="tab === 2" class="table-container">
+                      <div class="table-header transaction-header">
+                        <span class="col-admin">Admin</span>
+                        <span class="col-target">Target</span>
+                        <span class="col-changes">Changes</span>
+                        <span class="col-timestamp">Timestamp</span>
+                      </div>
+                      <v-data-table
+                        :headers="transactionHeaders"
+                        :items="paginatedTransactionLogs"
+                        :search="search"
+                        hide-default-header
+                        hide-default-footer
+                        class="elevation-1 history-table transaction-table"
+                        dark
+                      >
+                        <template #[`item.adminName`]="{ item }">
+                          <div class="table-cell text-center">{{ item.adminName }}</div>
+                        </template>
+                        <template #[`item.target`]="{ item }">
+                          <div class="table-cell text-center">{{ item.target }}</div>
+                        </template>
+                        <template #[`item.changes`]="{ item }">
+                          <div class="table-cell text-center">
+                            <v-btn small color="info" @click="showChanges(item)" class="changes-btn white--text">
+                              <v-icon left small>mdi-eye</v-icon>
+                              View
+                            </v-btn>
+                          </div>
+                        </template>
+                        <template #[`item.timestamp`]="{ item }">
+                          <div class="table-cell text-center">
+                            <div>{{ item.action }}:</div>
+                            <div>{{ formatDateTime(item.timestamp) }}</div>
+                          </div>
+                        </template>
+                      </v-data-table>
+                      <div class="text-center pt-2">
+                        <v-pagination
+                          v-model="page"
+                          :length="transactionPageCount"
+                          :total-visible="7"
+                          color="primary"
+                          dark
+                        ></v-pagination>
+                      </div>
+                    </div>
+                  </v-card-text>
+                </v-card>
+              </v-col>
+            </v-row>
+
+            <!-- E-Receipt Dialog -->
+            <v-dialog v-model="receiptDialog" max-width="600">
+              <v-card class="receipt-card">
+                <v-card-title class="receipt-header">
+                  <div class="receipt-title">Payment Receipt</div>
+                  <v-spacer></v-spacer>
+                  <v-btn icon @click="receiptDialog = false" class="close-btn">
+                    <v-icon small>mdi-close</v-icon>
                   </v-btn>
-                </div>
-
-                <!-- Login/Logout Logs -->
-                <div v-if="tab === 0" class="table-container">
-                  <div class="table-header login-header">
-                    <span class="col-user">User</span>
-                    <span class="col-ip">IP Address</span>
-                    <span class="col-device">Device</span>
-                    <span class="col-login-timestamp">Login/Logout</span>
-                  </div>
-                 <v-data-table
-  :headers="loginHeaders"
-  :items="filteredLoginLogs"
-  :search="search"
-  :items-per-page="itemsPerPage"
-  v-model:page="page"
-  class="elevation-1 history-table login-table"
-  dark
-  hide-default-header
-  hide-default-footer
->
-                    <template #[`item.user`]="{ item }">
-                      <div class="table-cell user-cell">{{ item.user }}</div>
-                    </template>
-                    <template #[`item.ip`]="{ item }">
-                      <div class="table-cell ip-cell">{{ item.ip }}</div>
-                    </template>
-                    <template #[`item.device`]="{ item }">
-                      <div class="table-cell device-cell">{{ item.device }}</div>
-                    </template>
-                    <template #[`item.timestamp`]="{ item }">
-                      <div class="table-cell timestamp-cell">
-                        <div class="login-entry">
-                          <v-icon small color="success" class="icon-bg">mdi-login</v-icon>
-                          Login: {{ formatDateTime(item.timestamp) }}
-                        </div>
-                        <div class="logout-entry" v-if="item.logoutTimestamp">
-                          <v-icon small color="error" class="icon-bg">mdi-logout</v-icon>
-                          Logout: {{ formatDateTime(item.logoutTimestamp) }}
-                        </div>
+                </v-card-title>
+                <v-card-text>
+                  <div class="receipt-content">
+                    <div class="receipt-details">
+                      <div class="receipt-row">
+                        <span class="receipt-label">Receipt No:</span>
+                        <span class="receipt-value white--text">{{ currentReceipt.id }}</span>
                       </div>
-                    </template>
-                    
-                    <template v-slot:footer>
-                      <div class="custom-pagination">
-                        <span class="items-per-page">Items per page: {{ itemsPerPage }}</span>
-                        <span class="page-range">{{ pageRange }}</span>
-                        <div class="pagination-controls">
-                          <v-btn icon small @click="firstPage" :disabled="page === 1" class="pagination-btn">
-                            <v-icon small>mdi-page-first</v-icon>
-                          </v-btn>
-                          <v-btn icon small @click="prevPage" :disabled="page === 1" class="pagination-btn">
-                            <v-icon small>mdi-chevron-left</v-icon>
-                          </v-btn>
-                          <v-btn icon small @click="nextPage" :disabled="page >= pageCount" class="pagination-btn">
-                            <v-icon small>mdi-chevron-right</v-icon>
-                          </v-btn>
-                          <v-btn icon small @click="lastPage" :disabled="page >= pageCount" class="pagination-btn">
-                            <v-icon small>mdi-page-last</v-icon>
-                          </v-btn>
-                        </div>
+                      <div class="receipt-row">
+                        <span class="receipt-label">Date:</span>
+                        <span class="receipt-value white--text">{{ formatDateTime(currentReceipt.timestamp) }}</span>
                       </div>
-                    </template>
-                  </v-data-table>
-                </div>
-
-                <!-- Fine Payment Logs -->
-                <div v-if="tab === 1" class="table-container">
-                  <div class="table-header payment-header">
-                    <span class="col-student">Student</span>
-                    <span class="col-admin">Admin</span>
-                    <span class="col-event">Event</span>
-                    <span class="col-amount">Amount</span>
-                    <span class="col-timestamp">Timestamp</span>
-                    <span class="col-receipt">Receipt</span>
-                  </div>
-                 <v-data-table
-  :headers="paymentHeaders"
-  :items="filteredPaymentLogs"
-  :search="search"
-  :items-per-page="itemsPerPage"
-  v-model:page="page"
-  class="elevation-1 history-table payment-table"
-  dark
-  hide-default-header
-  hide-default-footer
->
-                    <template #[`item.studentName`]="{ item }">
-                      <div class="table-cell">{{ item.studentName }}</div>
-                    </template>
-                    <template #[`item.adminName`]="{ item }">
-                      <div class="table-cell">{{ item.adminName }}</div>
-                    </template>
-                    <template #[`item.event`]="{ item }">
-                      <div class="table-cell">{{ item.event }}</div>
-                    </template>
-                    <template #[`item.amount`]="{ item }">
-                      <div class="table-cell">₱{{ item.amount.toFixed(2) }}</div>
-                    </template>
-                    <template #[`item.timestamp`]="{ item }">
-                      <div class="table-cell">{{ formatDateTime(item.timestamp) }}</div>
-                    </template>
-                    <template #[`item.receipt`]="{ item }">
-                      <div class="table-cell">
-                        <v-btn small color="success" @click="generateReceipt(item)" class="receipt-btn white--text">
-                          <v-icon left small>mdi-receipt</v-icon>
-                          E-Receipt
+                      <div class="receipt-row">
+                        <span class="receipt-label">Student:</span>
+                        <span class="receipt-value white--text">{{ currentReceipt.studentName }}</span>
+                      </div>
+                      <div class="receipt-row">
+                        <span class="receipt-label">Admin:</span>
+                        <span class="receipt-value white--text">{{ currentReceipt.adminName }}</span>
+                      </div>
+                      <div class="receipt-row">
+                        <span class="receipt-label">Event:</span>
+                        <span class="receipt-value white--text">{{ currentReceipt.event }}</span>
+                      </div>
+                      <div class="receipt-row">
+                        <span class="receipt-label">Amount:</span>
+                        <span class="receipt-value white--text">₱{{ currentReceipt.amount.toFixed(2) }}</span>
+                      </div>
+                    </div>
+                    <div class="receipt-footer">
+                      <div class="receipt-total white--text">
+                        <span>Total Paid:</span>
+                        <span class="total-amount">₱{{ currentReceipt.amount.toFixed(2) }}</span>
+                      </div>
+                      <div class="receipt-actions">
+                        <v-btn color="primary" @click="printReceipt" class="action-btn white--text">
+                          <v-icon left>mdi-printer</v-icon>
+                          Print Receipt
+                        </v-btn>
+                        <v-btn color="success" @click="downloadReceipt" class="action-btn ml-2 white--text">
+                          <v-icon left>mdi-download</v-icon>
+                          Download PDF
                         </v-btn>
                       </div>
-                    </template>
+                    </div>
+                  </div>
+                </v-card-text>
+              </v-card>
+            </v-dialog>
+
+            <!-- Changes Dialog -->
+            <v-dialog v-model="changesDialog" max-width="800">
+              <v-card class="changes-card">
+                <v-card-title class="changes-header">
+                  <div class="changes-title">Transaction Details</div>
+                  <v-spacer></v-spacer>
+                  <v-btn icon @click="changesDialog = false" class="close-btn">
+                    <v-icon small>mdi-close</v-icon>
+                  </v-btn>
+                </v-card-title>
+                <v-card-text>
+                  <div class="changes-content">
+                    <div class="changes-info">
+                      <div class="info-row">
+                        <span class="info-label">Admin:</span>
+                        <span class="info-value">{{ currentTransaction.adminName }}</span>
+                      </div>
+                      <div class="info-row">
+                        <span class="info-label">Action:</span>
+                        <span class="info-value">{{ currentTransaction.action }}</span>
+                      </div>
+                      <div class="info-row">
+                        <span class="info-label">Target:</span>
+                        <span class="info-value">{{ currentTransaction.target }}</span>
+                      </div>
+                      <div class="info-row">
+                        <span class="info-label">Timestamp:</span>
+                        <span class="info-value">{{ formatDateTime(currentTransaction.timestamp) }}</span>
+                      </div>
+                    </div>
                     
-                    <template v-slot:footer>
-                      <div class="custom-pagination">
-                        <span class="items-per-page">Items per page: {{ itemsPerPage }}</span>
-                        <span class="page-range">{{ pageRange }}</span>
-                        <div class="pagination-controls">
-                          <v-btn icon small @click="firstPage" :disabled="page === 1" class="pagination-btn">
-                            <v-icon small>mdi-page-first</v-icon>
-                          </v-btn>
-                          <v-btn icon small @click="prevPage" :disabled="page === 1" class="pagination-btn">
-                            <v-icon small>mdi-chevron-left</v-icon>
-                          </v-btn>
-                          <v-btn icon small @click="nextPage" :disabled="page >= pageCount" class="pagination-btn">
-                            <v-icon small>mdi-chevron-right</v-icon>
-                          </v-btn>
-                          <v-btn icon small @click="lastPage" :disabled="page >= pageCount" class="pagination-btn">
-                            <v-icon small>mdi-page-last</v-icon>
-                          </v-btn>
-                        </div>
-                      </div>
-                    </template>
-                  </v-data-table>
-                </div>
-
-                <!-- Transaction Logs -->
-                <div v-if="tab === 2" class="table-container">
-                  <div class="table-header transaction-header">
-                    <span class="col-admin">Admin</span>
-                    <span class="col-target">Target</span>
-                    <span class="col-changes">Changes</span>
-                    <span class="col-timestamp">Timestamp</span>
+                    <div class="changes-table-container">
+                      <v-simple-table dark class="changes-table">
+                        <thead>
+                          <tr>
+                            <th class="text-left field-column">Field</th>
+                            <th class="text-center old-value-column">Old Value</th>
+                            <th class="text-center new-value-column">New Value</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr v-for="(change, index) in currentChanges" :key="index">
+                            <td class="text-left field-column">{{ change.field }}</td>
+                            <td class="text-center old-value-column">{{ change.oldValue }}</td>
+                            <td class="text-center new-value-column">{{ change.newValue }}</td>
+                          </tr>
+                        </tbody>
+                      </v-simple-table>
+                    </div>
                   </div>
-                <v-data-table
-  :headers="transactionHeaders"
-  :items="filteredTransactionLogs"
-  :search="search"
-  :items-per-page="itemsPerPage"
-  v-model:page="page"
-  class="elevation-1 history-table transaction-table"
-  dark
-  hide-default-header
-  hide-default-footer
->
-                    <template #[`item.adminName`]="{ item }">
-                      <div class="table-cell">{{ item.adminName }}</div>
-                    </template>
-                    <template #[`item.target`]="{ item }">
-                      <div class="table-cell">{{ item.target }}</div>
-                    </template>
-                    <template #[`item.changes`]="{ item }">
-                      <div class="table-cell">
-                        <v-btn small color="info" @click="showChanges(item)" class="changes-btn white--text">
-                          <v-icon left small>mdi-eye</v-icon>
-                          View
-                        </v-btn>
-                      </div>
-                    </template>
-                    <template #[`item.timestamp`]="{ item }">
-                      <div class="table-cell">
-                        <div>{{ item.action }}:</div>
-                        <div>{{ formatDateTime(item.timestamp) }}</div>
-                      </div>
-                    </template>
-                    
-                    <template v-slot:footer>
-                      <div class="custom-pagination">
-                        <span class="items-per-page">Items per page: {{ itemsPerPage }}</span>
-                        <span class="page-range">{{ pageRange }}</span>
-                        <div class="pagination-controls">
-                          <v-btn icon small @click="firstPage" :disabled="page === 1" class="pagination-btn">
-                            <v-icon small>mdi-page-first</v-icon>
-                          </v-btn>
-                          <v-btn icon small @click="prevPage" :disabled="page === 1" class="pagination-btn">
-                            <v-icon small>mdi-chevron-left</v-icon>
-                          </v-btn>
-                          <v-btn icon small @click="nextPage" :disabled="page >= pageCount" class="pagination-btn">
-                            <v-icon small>mdi-chevron-right</v-icon>
-                          </v-btn>
-                          <v-btn icon small @click="lastPage" :disabled="page >= pageCount" class="pagination-btn">
-                            <v-icon small>mdi-page-last</v-icon>
-                          </v-btn>
-                        </div>
-                      </div>
-                    </template>
-                  </v-data-table>
-                </div>
-              </v-card-text>
-            </v-card>
-          </v-col>
-        </v-row>
-
-        <!-- E-Receipt Dialog -->
-        <v-dialog v-model="receiptDialog" max-width="600">
-          <v-card class="receipt-card">
-            <v-card-title class="receipt-header">
-              <div class="receipt-title">Payment Receipt</div>
-              <v-spacer></v-spacer>
-              <v-btn icon @click="receiptDialog = false" class="close-btn">
-                <v-icon small>mdi-close</v-icon>
-              </v-btn>
-            </v-card-title>
-            <v-card-text>
-              <div class="receipt-content">
-                <div class="receipt-details">
-                  <div class="receipt-row">
-                    <span class="receipt-label">Receipt No:</span>
-                    <span class="receipt-value white--text">{{ currentReceipt.id }}</span>
-                  </div>
-                  <div class="receipt-row">
-                    <span class="receipt-label">Date:</span>
-                    <span class="receipt-value white--text">{{ formatDateTime(currentReceipt.timestamp) }}</span>
-                  </div>
-                  <div class="receipt-row">
-                    <span class="receipt-label">Student:</span>
-                    <span class="receipt-value white--text">{{ currentReceipt.studentName }}</span>
-                  </div>
-                  <div class="receipt-row">
-                    <span class="receipt-label">Admin:</span>
-                    <span class="receipt-value white--text">{{ currentReceipt.adminName }}</span>
-                  </div>
-                  <div class="receipt-row">
-                    <span class="receipt-label">Event:</span>
-                    <span class="receipt-value white--text">{{ currentReceipt.event }}</span>
-                  </div>
-                  <div class="receipt-row">
-                    <span class="receipt-label">Amount:</span>
-                    <span class="receipt-value white--text">₱{{ currentReceipt.amount.toFixed(2) }}</span>
-                  </div>
-                </div>
-                <div class="receipt-footer">
-                  <div class="receipt-total white--text">
-                    <span>Total Paid:</span>
-                    <span class="total-amount">₱{{ currentReceipt.amount.toFixed(2) }}</span>
-                  </div>
-                  <div class="receipt-actions">
-                    <v-btn color="primary" @click="printReceipt" class="action-btn white--text">
-                      <v-icon left>mdi-printer</v-icon>
-                      Print Receipt
-                    </v-btn>
-                    <v-btn color="success" @click="downloadReceipt" class="action-btn ml-2 white--text">
-                      <v-icon left>mdi-download</v-icon>
-                      Download PDF
-                    </v-btn>
-                  </div>
-                </div>
-              </div>
-            </v-card-text>
-          </v-card>
-        </v-dialog>
-
-        <!-- Changes Dialog -->
-        <v-dialog v-model="changesDialog" max-width="800">
-          <v-card class="changes-card">
-            <v-card-title class="changes-header">
-              <div class="changes-title">Transaction Details</div>
-              <v-spacer></v-spacer>
-              <v-btn icon @click="changesDialog = false" class="close-btn">
-                <v-icon small>mdi-close</v-icon>
-              </v-btn>
-            </v-card-title>
-            <v-card-text>
-              <div class="changes-content">
-                <div class="changes-info">
-                  <div class="info-row">
-                    <span class="info-label">Admin:</span>
-                    <span class="info-value">{{ currentTransaction.adminName }}</span>
-                  </div>
-                  <div class="info-row">
-                    <span class="info-label">Action:</span>
-                    <span class="info-value">{{ currentTransaction.action }}</span>
-                  </div>
-                  <div class="info-row">
-                    <span class="info-label">Target:</span>
-                    <span class="info-value">{{ currentTransaction.target }}</span>
-                  </div>
-                  <div class="info-row">
-                    <span class="info-label">Timestamp:</span>
-                    <span class="info-value">{{ formatDateTime(currentTransaction.timestamp) }}</span>
-                  </div>
-                </div>
-                
-                <div class="changes-table-container">
-                  <v-simple-table dark class="changes-table">
-                    <thead>
-                      <tr>
-                        <th class="text-left field-column">Field</th>
-                        <th class="text-center old-value-column">Old Value</th>
-                        <th class="text-center new-value-column">New Value</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr v-for="(change, index) in currentChanges" :key="index">
-                        <td class="text-left field-column">{{ change.field }}</td>
-                        <td class="text-center old-value-column">{{ change.oldValue }}</td>
-                        <td class="text-center new-value-column">{{ change.newValue }}</td>
-                      </tr>
-                    </tbody>
-                  </v-simple-table>
-                </div>
-              </div>
-            </v-card-text>
-          </v-card>
-        </v-dialog>
-      </v-container>
-    </div>
-  </div>
+                </v-card-text>
+              </v-card>
+            </v-dialog>
+          </v-container>
+        </div>
+      </v-main>
+    </v-layout>
+  </v-app>
 </template>
 
 <script>
@@ -363,31 +354,53 @@ export default {
   },
   data() {
     return {
+      sidebarButtons: [
+        { 
+          text: 'Dashboard', 
+          route: 'Home', 
+          icon: 'mdi-view-dashboard' 
+        },
+        { 
+          text: 'Manage Student', 
+          route: 'manage-students', 
+          icon: 'mdi-account-group' 
+        },
+        { 
+          text: 'Manage Event', 
+          route: 'manage-events', 
+          icon: 'mdi-calendar-multiple' 
+        },
+        { 
+          text: 'History Log', 
+          route: 'history-log', 
+          icon: 'mdi-history' 
+        }
+      ],
       backgroundImage: "https://cdn.vuetifyjs.com/images/backgrounds/vbanner.jpg",
       tab: 0,
       tabs: ['Login/Logout', 'Fine Payments', 'Transactions'],
       search: '',
       page: 1,
-      itemsPerPage: 10,
+      itemsPerPage: 5, // Changed to 5 items per page for better demonstration
       loginHeaders: [
-        { text: 'User', value: 'user', width: '20%' },
-        { text: 'IP Address', value: 'ip', width: '20%' },
-        { text: 'Device', value: 'device', width: '20%' },
-        { text: 'Timestamp', value: 'timestamp', width: '40%' }
+        { text: 'User', value: 'user', align: 'center', width: '20%' },
+        { text: 'IP Address', value: 'ip', align: 'center', width: '20%' },
+        { text: 'Device', value: 'device', align: 'center', width: '20%' },
+        { text: 'Timestamp', value: 'timestamp', align: 'center', width: '40%' }
       ],
       paymentHeaders: [
-        { text: 'Student', value: 'studentName', width: '25%' },
-        { text: 'Admin', value: 'adminName', width: '15%' },
-        { text: 'Event', value: 'event', width: '20%' },
-        { text: 'Amount', value: 'amount', width: '10%' },
-        { text: 'Timestamp', value: 'timestamp', width: '15%' },
-        { text: 'Receipt', value: 'receipt', width: '15%' }
+        { text: 'Student', value: 'studentName', align: 'center', width: '25%' },
+        { text: 'Admin', value: 'adminName', align: 'center', width: '15%' },
+        { text: 'Event', value: 'event', align: 'center', width: '20%' },
+        { text: 'Amount', value: 'amount', align: 'center', width: '10%' },
+        { text: 'Timestamp', value: 'timestamp', align: 'center', width: '15%' },
+        { text: 'Receipt', value: 'receipt', align: 'center', width: '15%' }
       ],
       transactionHeaders: [
-        { text: 'Admin', value: 'adminName', width: '20%' },
-        { text: 'Target', value: 'target', width: '35%' },
-        { text: 'Changes', value: 'changes', width: '15%' },
-        { text: 'Timestamp', value: 'timestamp', width: '30%' }
+        { text: 'Admin', value: 'adminName', align: 'center', width: '20%' },
+        { text: 'Target', value: 'target', align: 'center', width: '35%' },
+        { text: 'Changes', value: 'changes', align: 'center', width: '15%' },
+        { text: 'Timestamp', value: 'timestamp', align: 'center', width: '30%' }
       ],
       loginLogs: [
         { 
@@ -615,43 +628,68 @@ export default {
         padding: '20px 0'
       };
     },
+    // Filtered items based on search
     filteredLoginLogs() {
-      return this.loginLogs;
+      if (!this.search) return this.loginLogs;
+      const searchTerm = this.search.toLowerCase();
+      return this.loginLogs.filter(item => 
+        item.user.toLowerCase().includes(searchTerm) ||
+        item.ip.toLowerCase().includes(searchTerm) ||
+        item.device.toLowerCase().includes(searchTerm)
+      );
     },
     filteredPaymentLogs() {
-      return this.paymentLogs;
+      if (!this.search) return this.paymentLogs;
+      const searchTerm = this.search.toLowerCase();
+      return this.paymentLogs.filter(item => 
+        item.studentName.toLowerCase().includes(searchTerm) ||
+        item.adminName.toLowerCase().includes(searchTerm) ||
+        item.event.toLowerCase().includes(searchTerm) ||
+        item.amount.toString().includes(searchTerm)
+      );
     },
     filteredTransactionLogs() {
-      return this.transactionLogs;
+      if (!this.search) return this.transactionLogs;
+      const searchTerm = this.search.toLowerCase();
+      return this.transactionLogs.filter(item => 
+        item.adminName.toLowerCase().includes(searchTerm) ||
+        item.target.toLowerCase().includes(searchTerm) ||
+        item.action.toLowerCase().includes(searchTerm)
+      );
     },
-    pageCount() {
-      let items = [];
-      if (this.tab === 0) items = this.filteredLoginLogs;
-      else if (this.tab === 1) items = this.filteredPaymentLogs;
-      else items = this.filteredTransactionLogs;
-      
-      return Math.ceil(items.length / this.itemsPerPage);
+    
+    // Paginated items
+    paginatedLoginLogs() {
+      const start = (this.page - 1) * this.itemsPerPage;
+      const end = start + this.itemsPerPage;
+      return this.filteredLoginLogs.slice(start, end);
     },
-    pageRange() {
-      const start = ((this.page - 1) * this.itemsPerPage) + 1;
-      let end = this.page * this.itemsPerPage;
-      let total = 0;
-      
-      if (this.tab === 0) total = this.filteredLoginLogs.length;
-      else if (this.tab === 1) total = this.filteredPaymentLogs.length;
-      else total = this.filteredTransactionLogs.length;
-      
-      if (end > total) end = total;
-      
-      return `${start}-${end} of ${total}`;
-    }
-  },
-  watch: {
-    tab() {
-      this.page = 1;
+    paginatedPaymentLogs() {
+      const start = (this.page - 1) * this.itemsPerPage;
+      const end = start + this.itemsPerPage;
+      return this.filteredPaymentLogs.slice(start, end);
+    },
+    paginatedTransactionLogs() {
+      const start = (this.page - 1) * this.itemsPerPage;
+      const end = start + this.itemsPerPage;
+      return this.filteredTransactionLogs.slice(start, end);
+    },
+    
+    // Page counts
+    loginPageCount() {
+      return Math.ceil(this.filteredLoginLogs.length / this.itemsPerPage);
+    },
+    paymentPageCount() {
+      return Math.ceil(this.filteredPaymentLogs.length / this.itemsPerPage);
+    },
+    transactionPageCount() {
+      return Math.ceil(this.filteredTransactionLogs.length / this.itemsPerPage);
     }
   },
   methods: {
+    navigateTo(route) {
+      this.$router.push({ name: route });
+    },
     formatDateTime(date) {
       return format(new Date(date), 'MMM dd yyyy h:mma');
     },
@@ -669,18 +707,6 @@ export default {
       this.currentTransaction = item;
       this.currentChanges = item.changes;
       this.changesDialog = true;
-    },
-    firstPage() {
-      this.page = 1;
-    },
-    prevPage() {
-      if (this.page > 1) this.page--;
-    },
-    nextPage() {
-      if (this.page < this.pageCount) this.page++;
-    },
-    lastPage() {
-      this.page = this.pageCount;
     }
   }
 };
@@ -688,7 +714,122 @@ export default {
 
 <style scoped>
 @import url('https://fonts.googleapis.com/css?family=Poppins:300');
+@import url('https://cdn.jsdelivr.net/npm/@mdi/font@6.x/css/materialdesignicons.min.css');
 
+/* Sidebar Styles */
+.overlapping-sidebar {
+  position: absolute;
+  z-index: 100;
+  height: 100vh;
+}
+
+.sidebar {
+  background: #0d003d !important;
+  backdrop-filter: blur(10px);
+  border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: white !important;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-header {
+  padding: 20px;
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 80px;
+}
+
+.sidebar-buttons {
+  padding: 15px 10px;
+  background: transparent !important;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+}
+
+.sidebar-button-wrapper {
+  position: relative;
+  margin: 15px 0;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.08);
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar-button-wrapper:hover {
+  background: rgba(255, 255, 255, 0.15) !important;
+  transform: translateX(5px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.border-animation {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.border-animation::before {
+  content: '';
+  position: absolute;
+  width: 150%;
+  height: 150%;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  animation: borderLight 3s linear infinite;
+  transform: rotate(45deg);
+}
+
+@keyframes borderLight {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+.sidebar-button-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 10px;
+  position: relative;
+  z-index: 1;
+}
+
+.sidebar-icon {
+  color: white !important;
+  margin-bottom: 8px;
+}
+
+.sidebar-text {
+  font-size: 16px;
+  font-weight: 500;
+  color: white;
+  text-align: center;
+  line-height: 1.3;
+}
+
+/* Main Content Styles */
 .history-card {
   background: rgba(0, 0, 0, 0.5) !important;
   box-shadow: 0 15px 25px rgba(0, 0, 0, 0.6) !important;
@@ -784,12 +925,6 @@ export default {
   grid-template-columns: 20% 35% 15% 30%;
 }
 
-.table-header span {
-  display: flex;
-  align-items: center;
-  padding: 0 8px;
-}
-
 .history-table {
   background-color: rgba(0, 0, 0, 0.3) !important;
   border-radius: 0 0 4px 4px !important;
@@ -799,25 +934,6 @@ export default {
   background-color: rgba(0, 0, 0, 0.2) !important;
   color: white !important;
   font-family: 'Poppins', sans-serif;
-  display: grid;
-}
-
-/* Login/Logout Table Rows */
-.history-table.login-table >>> tbody tr {
-  grid-template-columns: 20% 20% 20% 40%;
-  padding: 12px 0;
-}
-
-/* Fine Payment Table Rows */
-.history-table.payment-table >>> tbody tr {
-  grid-template-columns: 25% 15% 20% 10% 15% 15%;
-  padding: 12px 0;
-}
-
-/* Transaction Table Rows */
-.history-table.transaction-table >>> tbody tr {
-  grid-template-columns: 20% 35% 15% 30%;
-  padding: 12px 0;
 }
 
 .history-table >>> tbody tr:hover {
@@ -829,39 +945,29 @@ export default {
   border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
   padding: 12px 8px !important;
   vertical-align: middle !important;
-  display: flex;
-  align-items: center;
 }
 
-/* Specific cell styles for login table */
-.user-cell, .ip-cell, .device-cell {
-  min-height: 60px;
+.table-cell {
   display: flex;
   align-items: center;
+  justify-content: center;
 }
 
-.timestamp-cell {
-  flex-direction: column;
-  gap: 8px;
-  min-height: 60px;
+.text-center {
+  text-align: center;
 }
 
 .login-entry, .logout-entry {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  width: 100%;
-}
-
-.login-entry {
-  margin-bottom: 4px;
 }
 
 .icon-bg {
   background-color: rgba(0, 0, 0, 0.3) !important;
   border-radius: 50%;
   padding: 4px;
-  margin-right: 4px;
 }
 
 .receipt-btn, .changes-btn {
@@ -888,48 +994,26 @@ export default {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3) !important;
 }
 
-/* Custom Pagination Styles */
-.custom-pagination {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding: 8px 16px;
-  background-color: rgba(0, 0, 0, 0.3);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+.v-pagination {
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.v-pagination__item {
+  background: rgba(253, 253, 253, 0.1);
   color: white;
-  font-family: 'Poppins', sans-serif;
-  font-size: 14px;
+  min-width: 32px;
+  height: 32px;
 }
 
-.items-per-page {
-  margin-right: 16px;
-  color: rgba(255, 255, 255, 0.7);
-}
-
-.page-range {
-  margin-right: 16px;
-}
-
-.pagination-controls {
-  display: flex;
-  gap: 4px;
-}
-
-.pagination-btn {
+.v-pagination__item--active {
+  background: #ffffff !important;
   color: white !important;
-  background: transparent !important;
-  min-width: 32px !important;
-  height: 32px !important;
-  margin: 0 !important;
 }
 
-.pagination-btn:not(.disabled):hover {
-  background: rgba(255, 255, 255, 0.1) !important;
-}
-
-.pagination-btn.disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.v-pagination__navigation {
+  background: rgba(238, 238, 238, 0.1);
+  color: white;
 }
 
 /* Receipt Dialog Styles */
@@ -1123,27 +1207,23 @@ export default {
   color: white !important;
 }
 
-@media print {
-  body * {
-    visibility: hidden;
-  }
-  .receipt-card, .receipt-card * {
-    visibility: visible;
-  }
-  .receipt-card {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    background: white !important;
-    color: black !important;
-  }
-  .receipt-actions {
-    display: none !important;
-  }
-}
-
 @media (max-width: 960px) {
+  .sidebar {
+    width: 200px !important;
+  }
+  
+  .sidebar-text {
+    font-size: 14px;
+  }
+  
+  .sidebar-button-wrapper {
+    height: 70px;
+  }
+  
+  .sidebar-icon {
+    font-size: 24px !important;
+  }
+  
   .search-field {
     width: 100% !important;
     max-width: 100% !important;
@@ -1158,15 +1238,7 @@ export default {
     grid-template-columns: 25% 25% 25% 25%;
   }
   
-  .history-table.login-table >>> tbody tr {
-    grid-template-columns: 25% 25% 25% 25%;
-  }
-  
   .table-header.payment-header {
-    grid-template-columns: 30% 15% 20% 10% 15% 10%;
-  }
-  
-  .history-table.payment-table >>> tbody tr {
     grid-template-columns: 30% 15% 20% 10% 15% 10%;
   }
   
@@ -1200,16 +1272,6 @@ export default {
   .history-table >>> tbody td {
     padding: 8px 4px !important;
     font-size: 0.8rem;
-  }
-  
-  .custom-pagination {
-    flex-direction: column;
-    gap: 8px;
-    align-items: flex-end;
-  }
-  
-  .items-per-page, .page-range {
-    margin-right: 0;
   }
 }
 </style>
