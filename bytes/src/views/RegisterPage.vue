@@ -261,6 +261,8 @@
         </v-row>
       </v-container>
 
+      
+      
       <v-dialog v-model="uploadDialog" max-width="600">
         <v-card class="upload-dialog">
           <v-card-title class="headline">Upload Students</v-card-title>
@@ -412,6 +414,8 @@ export default {
   // LIFECYCLE: FETCH STUDENTS + INIT SDK
   async mounted() {
     await this.fetchStudents();
+
+    //FingerPrint API CHECKER
     try {
       if (!window.Fingerprint?.WebApi) throw new Error("Fingerprint SDK not available");
       console.log("✅ SDK available");

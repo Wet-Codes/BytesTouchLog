@@ -111,11 +111,11 @@
                             >
                               <template v-slot:item="{ item }">
                                 <tr>
-                                  <td class="col-fname text-center">{{ item.fname }}</td>
-                                  <td class="col-mi text-center">{{ item.mi }}</td>
-                                  <td class="col-lname text-center">{{ item.lname }}</td>
-                                  <td class="col-course text-center">{{ item.course }}</td>
-                                  <td class="col-year text-center">{{ item.year }}</td>
+                                  <td class="col-fname text-center">{{ item.firstName }}</td>
+                                  <td class="col-mi text-center">{{ item.middleInitial }}</td>
+                                  <td class="col-lname text-center">{{ item.lastName }}</td>
+                                  <td class="col-course text-center">{{ item.department }}</td>
+                                  <td class="col-year text-center">{{ item.yearLevel }}</td>
                                   <td class="col-status text-center">
                                     <v-chip small :color="getStatusColor(item.status)">{{ item.status }}</v-chip>
                                   </td>
@@ -344,8 +344,8 @@
                 <div class="file-input-container">
                   <v-file-input
                     v-model="uploadFile"
-                    label="SELECT CSV FILE"
-                    accept=".csv"
+                    label="SELECT FILE"
+                    accept=".xlsx"
                     outlined
                     prepend-icon="mdi-paperclip"
                     @change="previewUpload"
@@ -417,6 +417,7 @@
 
 <script>
 import PageHeader from '@/components/CustomHeaderNav.vue';
+import Auth from '../services/AuthServices'
 import { format } from 'date-fns';
 
 export default {
@@ -456,6 +457,7 @@ export default {
       pageCount: 3,
       
       //UI Parts
+      students: [],
       search: '',
       filter: {
         course: null,
@@ -474,11 +476,14 @@ export default {
       uploadPreview: [],
       uploadHeaders: [
         { text: 'ID', value: 'id' },
-        { text: 'First Name', value: 'fname' },
-        { text: 'Last Name', value: 'lname' },
-        { text: 'Course', value: 'course' },
-        { text: 'Year Level', value: 'year' }
+        { text: 'First Name', value: 'firstName' },
+        { text: 'Last Name', value: 'lastName' },
+        { text: 'Course', value: 'department' },
+        { text: 'Year Level', value: 'yearLevel' }
       ],
+
+
+      
 
       //Dialogs - Fingerpritn
       fingerprintDialog: false,
@@ -495,11 +500,11 @@ export default {
 
       //Student Header
       studentFinesHeaders: [
-        { text: 'First Name', value: 'fname', align: 'center', width: '15%' },
-        { text: 'M.I.', value: 'mi', align: 'center', width: '5%' },
-        { text: 'Last Name', value: 'lname', align: 'center', width: '15%' },
-        { text: 'Course', value: 'course', align: 'center', width: '15%' },
-        { text: 'Year Level', value: 'year', align: 'center', width: '15%' },
+        { text: 'First Name', value: 'firstName', align: 'center', width: '15%' },
+        { text: 'M.I.', value: 'middleInitial', align: 'center', width: '5%' },
+        { text: 'Last Name', value: 'lastName', align: 'center', width: '15%' },
+        { text: 'Course', value: 'department', align: 'center', width: '15%' },
+        { text: 'Year Level', value: 'yearLevel', align: 'center', width: '15%' },
         { text: 'Status', value: 'status', align: 'center', width: '15%' },
         { text: 'Actions', value: 'actions', align: 'center', width: '20%', sortable: false }
       ],
@@ -613,12 +618,17 @@ export default {
       
     };
   },
+      //mount first
+    async mounted() {
+    await this.fetchStudents();
+    },
+
   computed: {
 
     filteredStudentFines() {
-      return this.studentFines.filter((student) => {
+      return this.students.filter((student) => {
         return (
-          (this.filter.course === 'All' || !this.filter.course || student.course === this.filter.course) &&
+          (this.filter.department === 'All' || !this.filter.department || student.department === this.filter.department) &&
           (this.filter.yearLevel === 'All' || !this.filter.yearLevel || student.year === this.filter.yearLevel) &&
           (this.search === '' || 
            student.fname.toLowerCase().includes(this.search.toLowerCase()) || 
@@ -705,6 +715,14 @@ export default {
       this.isEditing = false;
     },
 
+    showResponse(type, title, message) {
+      this.responseType = type;
+      this.responseTitle = title;
+      this.responseMessage = message;
+      this.responseIcon = type === 'success' ? 'mdi-check-circle' : 'mdi-alert-circle';
+      this.responseDialog = true;
+    },
+
 
     clearFines() {
       this.fineDetails = [];
@@ -714,7 +732,7 @@ export default {
     },
 
 
-    
+    //Upload 
     openUploadDialog() {
       this.uploadDialog = true;
       this.uploadFile = null;
@@ -732,12 +750,45 @@ export default {
       }
     },
 
-    uploadStudents() {
-      if (this.$toast) {
-        this.$toast.success('Students uploaded successfully');
+
+
+
+    //Upload Function
+      async uploadStudents() {
+      try {
+        if (!this.uploadFile) {
+          this.showResponse('error', 'Upload Error', 'Please select a file first');
+          return;
+        }
+
+        const response = await Auth.uploadStudents(this.uploadFile);
+
+        if (response.data.error) {
+          this.showResponse('error', 'Upload Failed', response.data.error);
+          return;
+        }
+
+        this.showResponse('success', 'Success', `${response.data.count} students uploaded successfully`);
+        await this.fetchStudents();
+        this.uploadDialog = false;
+        this.uploadFile = null;
+
+      } catch (error) {
+        const message = error.response?.data?.message || 'File upload failed';
+        this.showResponse('error', 'Upload Error', message);
       }
-      this.uploadDialog = false;
     },
+
+    //Fetch the uploaded Data
+     async fetchStudents() {
+      try {
+        const response = await Auth.getStudents();
+        this.students = response.data;
+      } catch (error) {
+        console.error('Error fetching students:', error);
+      }
+    },
+
 
     openFingerprintDialog(student) {
       if (this.isStudentLocked(student)) return;
@@ -790,7 +841,7 @@ export default {
     },
 
 
-    
+
     calculateTotalFines() {
       const total = this.fineDetails.reduce((sum, item) => {
         return sum + parseFloat(item.fine.replace('₱', ''));
