@@ -34,97 +34,71 @@
       <!-- Main Content Area -->
       <v-main>
         <div :style="backgroundStyle">
-          <v-container>
-            <v-row>
-              <v-col cols="12">
-                <v-card class="fine-card" elevation="2">
-                  <v-card-title class="d-flex justify-space-between align-center">
-                    <h1 class="table-title">Event Management</h1>
-                    <v-btn 
-                      color="teal" 
-                      dark
-                      @click="openCreateDialog"
-                    >
-                      <v-icon left>mdi-plus</v-icon>
-                      Create New Event
-                    </v-btn>
-                  </v-card-title>
-                  <v-card-text>
-                    <div class="filter-container">
-                      <v-row>
-                        <v-col cols="6">
-                          <v-text-field
-                            v-model="searchQuery"
-                            append-icon="mdi-magnify"
-                            label="Search events..."
-                            single-line
-                            hide-details
-                            outlined
-                            dense
-                            dark
-                            class="search-field"
-                          ></v-text-field>
-                        </v-col>
-                        <v-col cols="6">
-                          <v-select
-                            v-model="filter.semester"
-                            :items="semesters"
-                            label="Filter by Semester"
-                            outlined
-                            dense
-                            dark
-                            hide-details
-                            class="semester-select"
-                          ></v-select>
-                        </v-col>
-                      </v-row>
-                    </div>
-                    <div class="event-list-header">
-                      <span class="col-name">Event Name</span>
-                      <span class="col-semester">Semester</span>
-                      <span class="col-fee">Fee Amount</span>
-                      <span class="col-date">Date</span>
-                      <span class="col-actions">Actions</span>
-                    </div>
-                    <v-data-table
-                      :headers="tableHeaders"
-                      :items="filteredEvents"
-                      :items-per-page="-1"
-                      :hide-default-footer="true"
-                      class="elevation-1 event-table"
-                      dark
-                      hide-default-header
-                    >
-                      <template v-slot:item="{ item }">
-                        <tr>
-                          <td class="col-name text-left">{{ item.name }}</td>
-                          <td class="col-semester text-left">{{ item.semester }}</td>
-                          <td class="col-fee text-left">₱{{ item.fee.toFixed(2) }}</td>
-                          <td class="col-date text-left">{{ formatDate(item.date) }}</td>
-                          <td class="col-actions text-center">
-                            <div class="action-buttons">
+      <v-container>
+        <v-row>
+          <v-col cols="12">
+            <v-card class="fine-card" elevation="2">
+              <v-card-title class="d-flex justify-space-between align-center">
+                <h1 class="table-title">Event Management</h1>
+               
+                <v-btn 
+                  color="teal" 
+                  dark
+                  @click="openCreateDialog"
+                >
+                  <v-icon left>mdi-plus</v-icon>
+                  Create New Event
+                </v-btn>
+              </v-card-title>
+              <v-card-text>
+                <div class="event-list-header">
+                  <span class="col-name">Event Name</span>
+                  <span class="col-fee">Fee Amount</span>
+                  <span class="col-date">Date</span>
+                  <span class="col-actions">Actions</span>
+                </div>
+                
+                <v-data-table
+                  :headers="tableHeaders"
+                  :items="events"
+                  :items-per-page="-1"
+                  :hide-default-footer="true"
+                  class="elevation-1 event-table"
+                  dark
+                  hide-default-header
+                  :loading="loading"
+                >
+                  <template v-slot:item="{ item }">
+                    <tr>
+                      <td class="col-name text-left">{{ item.name }}</td>
+                      <td class="col-sem text-left">₱{{ item.semester }}</td>
+                      <td class="col-fee text-left">₱{{ item.fee }}</td>
+                      <td class="col-date text-left">{{ formatDate(item.date) }}</td>
+                      <td class="col-actions text-center">
+                        <div class="action-buttons">
                               <v-btn small color="teal" @click="openAttendanceDialog(item)">
                                 <v-icon small left>mdi-fingerprint</v-icon>
                                 Attendance
                               </v-btn>
-                              <v-btn small color="primary" @click="initiateEdit(item)">
-                                <v-icon small left>mdi-pencil</v-icon>
-                                Edit
-                              </v-btn>
-                              <v-btn small color="error" @click="confirmDeletion(item)">
-                                <v-icon small left>mdi-delete</v-icon>
-                                Remove
-                              </v-btn>
-                            </div>
-                          </td>
-                        </tr>
-                      </template>
-                    </v-data-table>
-                  </v-card-text>
-                </v-card>
-              </v-col>
-            </v-row>
-          </v-container>
+                          <v-btn small color="primary" @click="initiateEdit(item)">
+                            <v-icon small left>mdi-pencil</v-icon>
+                            Edit
+                          </v-btn>
+                          <v-btn small color="error" @click="confirmDeletion(item)">
+                            <v-icon small left>mdi-delete</v-icon>
+                            Remove
+                          </v-btn>
+                        </div>
+                      </td>
+                    </tr>
+                  </template>
+                </v-data-table>
+              </v-card-text>
+            </v-card>
+          </v-col>
+        </v-row>
+      </v-container>
+
 
           <!-- Create Event Dialog -->
           <v-dialog v-model="createDialog" max-width="600" persistent>
@@ -140,17 +114,20 @@
                     :rules="[v => !!v || 'Event name is required']"
                     required
                   ></v-text-field>
-                  <v-select
-                    v-model="newEvent.semester"
-                    :items="semesters.filter(s => s !== 'All')"
-                    label="Semester"
+                   <v-text-field 
+                    v-model="newEvent.semester" 
+                    label="Fee Amount" 
+                    type="number" 
+                    prefix="₱"
                     outlined
-                    dense
                     dark
-                    hide-details
-                    :rules="[v => !!v || 'Semester is required']"
+                    :rules="[
+                      v => !!v || 'Fee is required',
+                      v => v >= 0 || 'Fee must be positive'
+                    ]"
                     required
-                  ></v-select>
+                  ></v-text-field>
+                 
                   <v-text-field 
                     v-model="newEvent.fee" 
                     label="Fee Amount" 
@@ -182,6 +159,8 @@
               </v-card-actions>
             </v-card>
           </v-dialog>
+
+
 
           <!-- Edit Event Dialog -->
           <v-dialog v-model="editDialog" max-width="600" persistent>
@@ -307,10 +286,13 @@
 <script>
 import PageHeader from '@/components/CustomHeaderNav.vue';
 import { format } from 'date-fns';
-
+import EventService from '@/services/AuthServices';
 export default {
   components: {
     PageHeader
+  },
+   async mounted() {
+    await this.fetchEvents();
   },
   data() {
     return {
@@ -336,6 +318,8 @@ export default {
           icon: 'mdi-history' 
         }
       ],
+
+      
       backgroundImage: "https://cdn.vuetifyjs.com/images/backgrounds/vbanner.jpg",
       createDialog: false,
       editDialog: false,
@@ -344,35 +328,34 @@ export default {
       filter: {
         semester: 'All'
       },
-      semesters: ['All', '1st Semester', '2nd Semester'],
+      semesters: ['All', '1st Semester', '2nd Semester', 'Summer'],
+
       newEvent: {
         name: '',
         semester: '1st Semester',
-        fee: 0,
+        fee: "",
         date: ''
       },
+
       editingEvent: {
         id: null,
         name: '',
         semester: '',
-        fee: 0,
+         fee: "",
         date: ''
       },
+
       currentEvent: {
         id: null,
         name: ''
       },
+      
       // Attendance scanner data
       isScanning: false,
       scanResult: null,
       instructionText: "Place your finger on the sensor to scan",
       // Sample events data with semester
-      events: [
-        { id: 1, name: 'Orientation', semester: '1st Semester', fee: 100.00, date: '2023-06-15' },
-        { id: 2, name: 'Seminar', semester: '2nd Semester', fee: 150.00, date: '2023-07-20' },
-        { id: 3, name: 'Workshop', semester: '1st Semester', fee: 200.00, date: '2023-08-10' },
-        { id: 4, name: 'Conference', semester: '2nd Semester', fee: 300.00, date: '2023-11-05' }
-      ],
+      events: [],
       tableHeaders: [
         { text: 'Event Name', value: 'name' },
         { text: 'Semester', value: 'semester' },
@@ -392,6 +375,9 @@ export default {
         padding: '20px 0'
       };
     },
+
+    
+
     filteredEvents() {
       let filtered = this.events;
       
@@ -413,8 +399,13 @@ export default {
       
       return filtered;
     }
+
+
   },
   methods: {
+
+  
+
     navigateTo(route) {
       this.$router.push({ name: route });
     },
@@ -434,27 +425,34 @@ export default {
         date: '' 
       };
     },
-    async submitNewEvent() {
-      if (!this.$refs.creationForm.validate()) return;
-      
-      const newId = this.events.length > 0 
-        ? Math.max(...this.events.map(e => e.id)) + 1 
-        : 1;
-      
-      this.events.push({
-        id: newId,
-        name: this.newEvent.name,
-        semester: this.newEvent.semester,
-        fee: parseFloat(this.newEvent.fee),
-        date: this.newEvent.date
-      });
-      
-      this.closeCreateDialog();
+    
+    //Event Functions
+      async fetchEvents() {
+      try {
+        const response = await EventService.getEvents();
+        this.events = response.data;
+      } catch (error) {
+        console.error('Error fetching events:', error);
+      }
     },
+
+    async submitNewEvent() {
+  if (!this.$refs.creationForm.validate()) return;
+
+  try {
+    const response = await EventService.createEvent(this.newEvent);
+    this.events.push(response.data);
+    this.closeCreateDialog();
+  } catch (error) {
+    console.error('Failed to create event:', error);
+  }
+},
+
     initiateEdit(item) {
       this.editingEvent = { ...item };
       this.editDialog = true;
     },
+
     closeEditDialog() {
       this.editDialog = false;
       this.$refs.editForm?.reset();
@@ -462,10 +460,12 @@ export default {
         id: null, 
         name: '', 
         semester: '',
-        fee: 0, 
+        fee: "",
         date: '' 
       };
     },
+
+
     async updateEvent() {
       if (!this.$refs.editForm.validate()) return;
       
@@ -478,11 +478,15 @@ export default {
       }
       this.closeEditDialog();
     },
+
+
     confirmDeletion(item) {
       if (confirm(`Are you sure you want to delete "${item.name}"?`)) {
         this.events = this.events.filter(e => e.id !== item.id);
       }
     },
+
+
     // Attendance methods
     openAttendanceDialog(item) {
       this.currentEvent = {

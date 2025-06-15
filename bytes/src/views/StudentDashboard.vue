@@ -250,7 +250,7 @@
                             </div>
                             <v-data-table
                               :headers="studentFinesHeaders"
-                              :items="filteredStudentFines"
+                              :items="filteredStudents"
                               :search="search"
                               :items-per-page="10"
                               v-model:page="page"
@@ -260,11 +260,11 @@
                             >
                               <template v-slot:item="{ item }">
                                 <tr>
-                                  <td class="col-fname text-center">{{ item.fname }}</td>
-                                  <td class="col-mi text-center">{{ item.mi }}</td>
-                                  <td class="col-lname text-center">{{ item.lname }}</td>
-                                  <td class="col-course text-center">{{ item.course }}</td>
-                                  <td class="col-year text-center">{{ item.year }}</td>
+                                  <td class="col-fname text-center">{{ item.firstName }}</td>
+                                  <td class="col-mi text-center">{{ item.middleInitial }}</td>
+                                  <td class="col-lname text-center">{{ item.lastName }}</td>
+                                  <td class="col-course text-center">{{ item.department }}</td>
+                                  <td class="col-year text-center">{{ item.yearLevel }}</td>
                                   <td class="col-status text-center">
                                     <v-chip small :color="getStatusColor(item.status)">{{ item.status }}</v-chip>
                                   </td>
@@ -363,6 +363,7 @@ import BarChart from '@/components/BarChart.vue';
 import DonutChart from '@/components/DonutChart.vue';
 import AreaChart from '@/components/AreaChart.vue';
 import { format } from 'date-fns';
+import Auth from '../services/AuthServices'
 
 export default {
   components: {
@@ -400,13 +401,33 @@ export default {
           icon: 'mdi-history' 
         }
       ],
-      backgroundImage: "https://cdn.vuetifyjs.com/images/backgrounds/vbanner.jpg",
+     
       filter: {
         course: null,
         yearLevel: null,
       },
+
       search: '',
       selectedStudent: null,
+      students: [],
+      backgroundImage:"https://cdn.vuetifyjs.com/images/backgrounds/vbanner.jpg",
+      page: 1,
+      pageCount: 1,
+      courses: ['All', 'BSIT', 'BSIS', 'BSCS'],
+      yearLevels: ['All', '1st Year', '2nd Year', '3rd Year', '4th Year'],
+      statusOptions: ['Enrolled', 'Shifted', 'Graduated', 'Dropped'],
+
+
+
+      //Un-used 
+
+      fineDetailsHeaders: [
+        { text: 'Event Name', value: 'event', width: '30%' },
+        { text: 'Semester', value: 'semester', width: '20%' },
+        { text: 'Fine Amount', value: 'fine', width: '25%' },
+        { text: 'Date', value: 'date', width: '25%' }
+      ],
+      fineDetails: [],
       selectedFineEvent: 'Orientation',
       selectedAttendanceEvent: 'Today',
       selectedSchoolYear: '2023-2024',
@@ -415,18 +436,7 @@ export default {
       fineEvents: ['Orientation', 'Seminar', 'Workshop', 'Meeting'],
       attendanceEvents: ['Today', 'Event A', 'Event B'],
       schoolYears: ['2022-2023', '2023-2024', '2024-2025'],
-      page: 1,
-      pageCount: 1,
-      fineDetailsHeaders: [
-        { text: 'Event Name', value: 'event', width: '30%' },
-        { text: 'Semester', value: 'semester', width: '20%' },
-        { text: 'Fine Amount', value: 'fine', width: '25%' },
-        { text: 'Date', value: 'date', width: '25%' }
-      ],
-      fineDetails: [],
-      courses: ['All', 'BSIT', 'BSIS', 'BSCS'],
-      yearLevels: ['All', '1st Year', '2nd Year', '3rd Year', '4th Year'],
-      statusOptions: ['Regular', 'Irregular', 'Shifted', 'Graduated', 'Dropped'],
+
       studentFinesHeaders: [
         { text: 'First Name', value: 'fname', align: 'center', width: '15%' },
         { text: 'M.I.', value: 'mi', align: 'center', width: '5%' },
@@ -721,20 +731,29 @@ export default {
       }
     };
   },
+  async mounted() {
+    await this.fetchStudents();
+  },
+
   computed: {
-    filteredStudentFines() {
-      return this.studentFines.filter((student) => {
+
+     //Fetch the uploaded Data
+  
+
+    filteredStudents() {
+      return this.students.filter(student => {
         return (
-          (this.filter.course === 'All' || !this.filter.course || student.course === this.filter.course) &&
-          (this.filter.yearLevel === 'All' || !this.filter.yearLevel || student.year === this.filter.yearLevel) &&
+          (this.filter.department === 'All' || !this.filter.department || student.department === this.filter.department) &&
+          (this.filter.yearLevel === 'All' || !this.filter.yearLevel || student.yearLevel === this.filter.yearLevel) &&
           (this.search === '' || 
-           student.fname.toLowerCase().includes(this.search.toLowerCase()) || 
-           student.lname.toLowerCase().includes(this.search.toLowerCase()) ||
-           student.course.toLowerCase().includes(this.search.toLowerCase()) ||
-           student.year.toLowerCase().includes(this.search.toLowerCase()))
+           student.firstName.toLowerCase().includes(this.search.toLowerCase()) || 
+           student.lastName.toLowerCase().includes(this.search.toLowerCase()) ||
+           student.department.toLowerCase().includes(this.search.toLowerCase()) ||
+           student.yearLevel.toLowerCase().includes(this.search.toLowerCase()))
         );
       });
     },
+
     backgroundStyle() {
       return {
         backgroundImage: `url(${this.backgroundImage})`,
@@ -745,23 +764,39 @@ export default {
       };
     }
   },
+
   methods: {
+
+     async fetchStudents() {
+      try {
+        const response = await Auth.getStudents();
+        this.students = response.data;
+      } catch (error) {
+        console.error('Error fetching students:', error);
+      }
+      
+    },
+
+
     navigateTo(route) {
       this.$router.push({ name: route });
     },
     updatePagination() {
-      this.pageCount = Math.ceil(this.filteredStudentFines.length / 10);
+      this.pageCount = Math.ceil(this.filteredStudents.length / 10);
     },
     getStatusColor(status) {
       const colors = {
-        'Regular': 'green',
-        'Irregular': 'orange',
+        'Enrolled': 'green',
         'Shifted': 'blue',
         'Graduated': 'purple',
         'Dropped': 'red'
       };
       return colors[status] || 'gray';
     },
+
+
+//unused data
+
     calculateTotalFines() {
       const total = this.fineDetails.reduce((sum, item) => {
         return sum + parseFloat(item.fine.replace('₱', ''));
@@ -851,10 +886,15 @@ export default {
       
       return details;
     },
+
     formatDate(dateString) {
       return dateString ? format(new Date(dateString), 'MMM dd, yyyy') : 'N/A';
     }
   },
+
+
+
+
   watch: {
     selectedFineEvent(newVal) {
       this.updateFineData(newVal);
@@ -865,7 +905,7 @@ export default {
     selectedSchoolYear(newVal) {
       this.updateAreaChartData(newVal);
     },
-    filteredStudentFines() {
+    filteredStudents() {
       this.updatePagination();
     }
   },

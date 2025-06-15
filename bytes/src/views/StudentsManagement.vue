@@ -3,21 +3,7 @@
     <page-header />
     <div :style="backgroundStyle">
       <v-container>
-        <!-- Welcome Info Dialog -->
-        <v-dialog v-model="welcomeDialog" persistent max-width="600">
-          <v-card class="dark-card">
-            <v-card-title class="text-h5">Important Information</v-card-title>
-            <v-card-text>
-              This is the student management interface. Please handle it with caution as it is strictly intended 
-              for managing student records and fines. Only authorized administrators should perform 
-              actions here to ensure the accuracy of student data.
-            </v-card-text>
-            <v-card-actions>
-              <v-spacer></v-spacer>
-              <v-btn color="primary" @click="welcomeDialog = false">Understood</v-btn>
-            </v-card-actions>
-          </v-card>
-        </v-dialog>
+      
 
         <!-- Confirmation Dialog -->
         <v-dialog v-model="actionDialog" persistent max-width="500">
@@ -122,32 +108,48 @@
                           hide-default-header
                           :loading="loadingStudents"
                         >
-                          <template #[`item.status`]="{ item }">
-                            <v-chip small :color="getStatusColor(item.status)">
-                              {{ item.status }}
-                            </v-chip>
-                          </template>
+                            <template v-slot:item="{ item }">
+                                <tr>
+                                  <td class="col-fname text-center">{{ item.firstName }}</td>
+                                  <td class="col-mi text-center">{{ item.middleInitial }}</td>
+                                  <td class="col-lname text-center">{{ item.lastName }}</td>
+                                  <td class="col-course text-center">{{ item.department }}</td>
+                                  <td class="col-year text-center">{{ item.yearLevel }}</td>
+                                  <td class="col-status text-center">
+                                    <v-chip small :color="getStatusColor(item.status)">{{ item.status }}</v-chip>
+                                  </td>
 
-                          <template #[`item.actions`]="{ item }">
-                            <div class="action-buttons">
-                              <v-btn 
-                                small 
-                                color="primary" 
-                                @click="viewStudent(item)" 
-                                class="action-btn"
-                              >
-                                {{ selectedStudent && selectedStudent._id === item._id ? 'Hide' : 'View' }}
-                              </v-btn>
-                              <v-btn 
-                                small 
-                                color="warning" 
-                                @click="editStudent(item)" 
-                                class="action-btn"
-                              >
-                                Update
-                              </v-btn>
-                            </div>
-                          </template>
+                                     <!-- The buttons -->
+
+                                  <!-- View button -->
+                                  <td class="col-actions text-center">
+                                    <div class="action-buttons">
+                                      <v-btn 
+                                        small 
+                                        color="primary" 
+                                        @click="viewStudent(item);" 
+                                        class="action-btn"
+                                        :disabled="isStudentLocked(item)"
+                                      >
+                                        {{ selectedStudent && selectedStudent.id === item.id ? 'Hide' : 'View' }}
+                                      </v-btn>
+
+                                      <!-- Update button -->
+                                      <v-btn 
+                                        small 
+                                        color="warning" 
+                                        @click="editStudent(item);" 
+                                        class="action-btn"
+                                        :disabled="isStudentLocked(item)"
+                                      >
+                                        Update
+                                      </v-btn>
+
+                                     
+                                    </div>
+                                  </td>
+                                </tr>
+                              </template>
                         </v-data-table>
                       </v-card-text>
                     </v-card>
@@ -299,6 +301,7 @@ export default {
   },
   data() {
     return {
+      search: '',
       welcomeDialog: false,
       actionDialog: false,
       deleteAllDialog: false,
@@ -319,13 +322,15 @@ export default {
                'BS Information Technology (Network Systems)', 
                'BS Information Technology (Database Systems)'],
       yearLevels: ['All', '1st Year', '2nd Year', '3rd Year', '4th Year'],
-      studentHeaders: [
-        { text: 'First Name', value: 'fname', align: 'center', width: '20%' },
-        { text: 'Last Name', value: 'lname', align: 'center', width: '20%' },
-        { text: 'Course', value: 'course', align: 'center', width: '20%' },
-        { text: 'Year Level', value: 'year', align: 'center', width: '15%' },
+      //Student Header
+      studentFinesHeaders: [
+        { text: 'First Name', value: 'firstName', align: 'center', width: '15%' },
+        { text: 'M.I.', value: 'middleInitial', align: 'center', width: '5%' },
+        { text: 'Last Name', value: 'lastName', align: 'center', width: '15%' },
+        { text: 'Course', value: 'department', align: 'center', width: '15%' },
+        { text: 'Year Level', value: 'yearLevel', align: 'center', width: '15%' },
         { text: 'Status', value: 'status', align: 'center', width: '15%' },
-        { text: 'Actions', value: 'actions', align: 'center', width: '10%', sortable: false }
+        { text: 'Actions', value: 'actions', align: 'center', width: '20%', sortable: false }
       ],
       fineDetailsHeaders: [
         { text: 'Event Name', value: 'event.name', align: 'center', width: '40%' },
@@ -351,11 +356,17 @@ export default {
         padding: '20px 0'
       };
     },
+   
     filteredStudents() {
-      return this.students.filter((student) => {
+      return this.students.filter(student => {
         return (
-          (this.filter.course === 'All' || !this.filter.course || student.course === this.filter.course) &&
-          (this.filter.yearLevel === 'All' || !this.filter.yearLevel || student.year === this.filter.yearLevel)
+          (this.filter.department === 'All' || !this.filter.department || student.department === this.filter.department) &&
+          (this.filter.yearLevel === 'All' || !this.filter.yearLevel || student.yearLevel === this.filter.yearLevel) &&
+          (this.search === '' || 
+           student.firstName.toLowerCase().includes(this.search.toLowerCase()) || 
+           student.lastName.toLowerCase().includes(this.search.toLowerCase()) ||
+           student.department.toLowerCase().includes(this.search.toLowerCase()) ||
+           student.yearLevel.toLowerCase().includes(this.search.toLowerCase()))
         );
       });
     },
@@ -365,7 +376,6 @@ export default {
   },
   async mounted() {
     await this.fetchStudents();
-    this.welcomeDialog = true;
   },
   methods: {
     formatDate(dateString) {
@@ -377,7 +387,9 @@ export default {
         day: 'numeric'
       });
     },
-    
+     isStudentLocked(student) {
+      return student.isLocked || ['Graduated', 'Shifted', 'Dropped'].includes(student.status);
+    },
     async fetchStudents() {
       this.loadingStudents = true;
       try {
@@ -677,48 +689,47 @@ export default {
   vertical-align: middle !important;
 }
 
-.col-fname { 
-  width: 20%; 
-  justify-content: center;
+.col-fname {
+  width: 15%;
+}
+.col-mi {
+  width: 5%;
+}
+.col-lname {
+  width: 15%;
+}
+.col-course {
+  width: 15%;
+}
+.col-year {
+  width: 15%;
+}
+.col-status {
+  width: 15%;
+}
+.col-actions {
+  width: 20%;
 }
 
-.col-lname { 
-  width: 20%; 
-  justify-content: center;
-}
-
-.col-course { 
-  width: 20%; 
-  justify-content: center;
-}
-
-.col-year { 
-  width: 15%; 
-  justify-content: center;
-}
-
-.col-status { 
-  width: 15%; 
-  justify-content: center;
-}
-
-.col-actions { 
-  width: 10%; 
-  justify-content: center;
-}
 
 .action-buttons {
   display: flex;
   justify-content: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: nowrap;
 }
 
 .action-btn {
-  min-width: 80px;
-  margin: 2px 0;
+  min-width: 90px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  padding: 0 8px;
+  margin: 0 2px;
 }
-
 .fine-details-header {
   display: flex;
   padding: 12px 16px;

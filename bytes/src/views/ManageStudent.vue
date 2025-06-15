@@ -77,7 +77,7 @@
                   <v-card-text>
                     <v-row>
 
-                      <v-col :cols="selectedStudent ? 8 : 12">
+                      <v-col :cols="(selectedStudent || isNewStudent) ? 8 : 12">
                         <v-card class="student-list-card">
                           <v-card-text>
                             <v-row class="mb-1" align="center">
@@ -150,13 +150,14 @@
                                   </td>
 
                                      <!-- The buttons -->
+
                                   <!-- View button -->
                                   <td class="col-actions text-center">
                                     <div class="action-buttons">
                                       <v-btn 
                                         small 
                                         color="primary" 
-                                        @click="viewFine(item)" 
+                                        @click="viewFine(item);" 
                                         class="action-btn"
                                         :disabled="isStudentLocked(item)"
                                       >
@@ -167,7 +168,7 @@
                                       <v-btn 
                                         small 
                                         color="warning" 
-                                        @click="editStudent(item)" 
+                                        @click="editStudent(item);" 
                                         class="action-btn"
                                         :disabled="isStudentLocked(item)"
                                       >
@@ -209,19 +210,20 @@
                       </v-col>
 
                       <!-- Register side Card -->
-                       <v-col v-if="selectedStudent || isNewStudent" cols="4">
+                       <v-col v-if="isNewStudent" cols="4">
 
                       <v-card class="right-side-card">
                       <div class="details-header">
                         <v-card-title class="details-title">
-                        {{ isNewStudent ? 'New Student Registration' : selectedStudent.firstName + ' ' + selectedStudent.lastName }}
+                         {{ isNewStudent ? 'New Student Registration' : selectedStudent.firstName + ' ' + selectedStudent.lastName }}
+                       
                       </v-card-title>
                       </div>
 
                       <v-card-text>
                         <v-form @submit.prevent="handleRegistration">
                           <v-text-field 
-                            v-model="editForm.firstName" 
+                            v-model="RegForm.firstName" 
                             label="First Name" 
                             outlined 
                             dense 
@@ -229,7 +231,7 @@
                             required
                           ></v-text-field>
                           <v-text-field 
-                            v-model="editForm.middleInitial" 
+                            v-model="RegForm.middleInitial" 
                             label="Middle Initial" 
                             outlined 
                             dense 
@@ -237,7 +239,7 @@
                             maxlength="1"
                           ></v-text-field>
                           <v-text-field 
-                            v-model="editForm.lastName" 
+                            v-model="RegForm.lastName" 
                             label="Last Name" 
                             outlined 
                             dense 
@@ -245,7 +247,7 @@
                             required
                           ></v-text-field>
                           <v-select
-                          v-model="editForm.department" 
+                          v-model="RegForm.department" 
                           :items="courses.filter(c => c !== 'All')"
                           label="Department"
                           outlined
@@ -254,7 +256,7 @@
                           required
                           ></v-select>
                           <v-select
-                            v-model="editForm.yearLevel"
+                            v-model="RegForm.yearLevel"
                             :items="yearLevels.filter(y => y !== 'All')"
                             label="Year Level"
                             outlined
@@ -621,7 +623,7 @@ export default {
       indexFingerSamples: [],
       middleFingerSamples: [],
       currentEnrollFinger: 'index',
-
+      
       //UI elements
       backgroundImage: "https://cdn.vuetifyjs.com/images/backgrounds/vbanner.jpg",
       page: 1,
@@ -647,7 +649,14 @@ export default {
         course: '',
         yearLevel: ''
       },
-      
+        
+       RegForm: {
+        firstName: '',
+        lastName: '',
+        middleInitial: '',
+        course: '',
+        yearLevel: ''
+      },
       
       //Dialogs
       uploadDialog: false,
@@ -791,7 +800,7 @@ export default {
 
     editStudent(student) {
       if (this.isStudentLocked(student)) return;
-      
+      this.isNewStudent = false;
       this.selectedStudent = student;
       this.isEditing = true;
       this.editForm = { ...student };
@@ -935,9 +944,10 @@ export default {
 
     // UI - Open and cancel registration panel
     openRegistrationDialog() {
-      this.selectedStudent = {}; // triggers panel
+      this.selectedStudent = null;
+      this.isEditing = false; 
       this.isNewStudent = true;
-      this.editForm = {
+      this.RegForm = {
         firstName: '',
         middleInitial: '',
         lastName: '',
@@ -952,7 +962,7 @@ export default {
     cancelRegistration() {
       this.selectedStudent = null;
       this.isNewStudent = false;
-      this.editForm = {
+      this.RegForm = {
         firstName: '',
         middleInitial: '',
         lastName: '',
@@ -973,8 +983,8 @@ export default {
 
   // Cleaned-up and correctly structured payload
   const studentPayload = {
-    ...this.editForm,
-    middleInitial: this.editForm.middleInitial?.trim().charAt(0).toUpperCase() || '',
+    ...this.RegForm,
+    middleInitial: this.RegForm.middleInitial?.trim().charAt(0).toUpperCase() || '',
     enrolled_index_finger_data: this.indexFingerSamples,
     enrolled_middle_finger_data: this.middleFingerSamples
   };
@@ -1004,10 +1014,10 @@ console.log(studentPayload)
 
     validateRegistrationForm() {
       return (
-        this.editForm.firstName.trim() &&
-        this.editForm.lastName.trim() &&
-        this.editForm.course &&
-        this.editForm.yearLevel
+        this.RegForm.firstName.trim() &&
+        this.RegForm.lastName.trim() &&
+        this.RegForm.course &&
+        this.RegForm.yearLevel
       );
     },
 
@@ -1204,9 +1214,11 @@ console.log(studentPayload)
       if (this.selectedStudent && this.selectedStudent.id === student.id) {
         this.selectedStudent = null;
         this.isEditing = false;
+        this.isNewStudent = false;
       } else {
         this.selectedStudent = student;
         this.isEditing = false;
+        this.isNewStudent = false;
         this.fineDetails = this.generateMockFineDetails();
       }
     },

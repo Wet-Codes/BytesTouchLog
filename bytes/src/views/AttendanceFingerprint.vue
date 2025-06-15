@@ -9,10 +9,6 @@
               <v-card-title class="d-flex justify-space-between align-center flex-wrap">
                 <h1 class="table-title">ATTENDANCE MANAGEMENT</h1>
                 <div>
-                  <v-btn color="primary" dark @click="openEventDialog">
-                    <v-icon left>mdi-calendar-plus</v-icon>
-                    Add Event
-                  </v-btn>
                 </div>
               </v-card-title>
 
@@ -70,7 +66,7 @@
                           :items="filteredStudents"
                           :items-per-page="itemsPerPage"
                           :v-model="page"
-                          hide-default-footer
+                          
                           class="elevation-1 student-table"
                           dark
                           hide-default-header
@@ -115,17 +111,19 @@
                               </td>
                             </tr>
                           </template>
-                          <template v-slot:footer>
-                            <div class="text-center pt-2">
-                              <v-pagination
-                                v-model="page"
-                                :length="pageCount"
-                                :total-visible="5"
-                                color="primary"
-                                dark
-                              ></v-pagination>
-                            </div>
-                          </template>
+
+
+                            <template v-slot:footer>
+                                <div class="text-center pt-2">
+                                  <v-pagination
+                                    v-model="page"
+                                    :length="pageCount"
+                                    :total-visible="5"
+                                    color="primary"
+                                    dark
+                                  ></v-pagination>
+                                </div>
+                              </template>
                         </v-data-table>
                       </v-card-text>
                     </v-card>
@@ -255,7 +253,7 @@ export default {
     filteredStudents() {
       return this.students.filter((student) => {
         return (
-          (this.filter.course === 'All' || !this.filter.course || student.department === this.filter.course) &&
+          (this.filter.department === 'All' || !this.filter.department || student.department === this.filter.department) &&
           (this.filter.yearLevel === 'All' || !this.filter.yearLevel || student.yearLevel === this.filter.yearLevel)
         );
       });
@@ -400,109 +398,88 @@ export default {
 <style scoped>
 @import url('https://fonts.googleapis.com/css?family=Poppins:300');
 
-/* === FIXED ALIGNMENT === */
-.student-list-header {
-  display: grid;
-  grid-template-columns: 20% 5% 20% 20% 35%;
-  padding: 12px 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  color: #289bb8;
-  font-weight: 600;
-  text-align: center;
-}
-
-.student-table >>> tbody tr {
-  display: grid;
-  grid-template-columns: 20% 5% 20% 20% 35%;
-  text-align: center;
-}
-
-.student-table >>> td {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 12px 0 !important;
-}
-
-/* === WHITE TEXT IN TABLE === */
-.student-table >>> td {
-  color: rgb(255, 255, 255) !important;
-  background: rgba(0, 0, 0, 0.76) !important;
-}
-
-/* === TRANSPARENT BACKGROUNDS === */
 .fine-card {
-  background: rgba(0, 0, 0, 0.5) !important;
+  background: rgba(33, 33, 33, 0.65); /* dark glass effect */
+  backdrop-filter: blur(8px);
+  border-radius: 16px;
+  color: #fff;
 }
 
 .student-list-card {
-  background: rgba(0, 0, 0, 0.3) !important;
+  background: rgba(25, 25, 25, 0.6);
+  backdrop-filter: blur(6px);
+  border-radius: 12px;
+  padding: 16px;
+  color: #fff;
 }
 
-.event-dialog {
-  background: rgba(0, 0, 0, 0.8) !important;
-}
-
-/* === BUTTON COLORS PRESERVED === */
-.v-btn--success {
-  background-color: #4CAF50 !important;
-}
-
-.v-btn--primary {
-  background-color: #1976D2 !important;
-}
-
-.v-btn--teal {
-  background-color: #009688 !important;
-}
-
-/* === TEXT AND UI ELEMENTS === */
-.v-card-title, 
-.v-card-text {
-  color: white !important;
-}
-
-.student-table tr.present-row {
-  background-color: rgba(76, 175, 80, 0.2) !important;
-}
-
-.student-table tr.absent-row {
-  background-color: rgba(244, 67, 54, 0.2) !important;
-}
-
-.action-buttons {
+.student-list-header {
   display: flex;
-  justify-content: center;
-  gap: 4px;
-}
-
-.action-btn {
-  min-width: 100px;
-}
-
-.table-title {
-  font-size: 1.5rem;
+  justify-content: space-between;
+  background: rgba(40, 40, 40, 0.75);
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 8px;
   font-weight: 600;
   color: #fff;
-  margin: 10px 0;
+  font-size: 0.95rem;
 }
 
-/* === PAGINATION STYLES === */
+.student-list-header span {
+  flex: 1;
+  text-align: center;
+}
+
+.col-fname, .col-mi, .col-lname, .col-course, .col-year, .col-actions {
+  text-align: center;
+  justify-content: center;
+  color: #e0e0e0;
+  padding: 12px;
+}
+
+/* Row highlight based on attendance */
+.present-row {
+  background-color: rgba(56, 142, 60, 0.2); /* green tint */
+}
+
+.absent-row {
+  background-color: rgba(211, 47, 47, 0.2); /* red tint */
+}
+
+.v-data-table {
+  background-color: transparent !important;
+  color: #fff;
+}
+
 .v-pagination {
-  background: transparent !important;
+  margin-top: 8px;
 }
 
-.v-pagination__navigation,
-.v-pagination__item {
-  background: rgba(40, 155, 184, 0.3) !important;
-  color: white !important;
+/* Style for dialog */
+.event-dialog {
+  background: rgba(30, 30, 30, 0.85);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  color: #fff;
 }
 
-.v-pagination__item--active {
-  background: #289bb8 !important;
-  color: white !important;
+.v-text-field input,
+.v-select input {
+  color: #fff !important;
 }
 
+.v-label {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.v-select__selections {
+  color: #fff !important;
+}
+
+.theme--dark.v-input input,
+.theme--dark.v-select input {
+  border-color: rgba(255, 255, 255, 0.3);
+}
 @media (max-width: 960px) {
   .student-list-header,
   .student-table >>> tbody tr {

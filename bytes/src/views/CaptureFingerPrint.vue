@@ -8,44 +8,71 @@
           @click="setMode('enroll')" 
           :class="['mode-btn', { active: mode === 'enroll' }]"
         >
-          Enroll Fingerprint
+          <i class="fas fa-fingerprint"></i> Enroll Fingerprint
         </button>
         <button 
           @click="setMode('identify')" 
           :class="['mode-btn', { active: mode === 'identify' }]"
         >
-          Identify Fingerprint
+          <i class="fas fa-search"></i> Identify Fingerprint
         </button>
       </div>
 
       <!-- Reader Selection -->
       <div v-if="!selectedReader" class="reader-section">
-        <select v-model="selectedReaderName" class="reader-select">
-          <option v-for="reader in readers" :key="reader" :value="reader">{{ reader }}</option>
-        </select>
-        <button class="btn" @click="selectReader">Select Reader</button>
+        <div class="select-wrapper">
+          <i class="fas fa-fingerprint select-icon"></i>
+          <select v-model="selectedReaderName" class="reader-select">
+            <option value="" disabled>Select a reader</option>
+            <option v-for="reader in readers" :key="reader" :value="reader">{{ reader }}</option>
+          </select>
+        </div>
+        <button class="btn" @click="selectReader">
+          <i class="fas fa-check"></i> Select Reader
+        </button>
       </div>
 
       <!-- Enrollment Mode -->
       <div v-else-if="mode === 'enroll'">
         <p class="reader-info">Selected Reader: {{ selectedReader }}</p>
-        <h2>Fingerprint Enrollment</h2>
+        <h2><i class="fas fa-user-plus"></i> Fingerprint Enrollment</h2>
 
         <div v-if="!enrollmentStarted" class="enrollment-section">
-          <input
-            v-model="enrollName"
-            type="text"
-            placeholder="Enter name for enrollment"
-            class="name-input"
-          />
-          <button class="btn enroll-btn" @click="startEnrollment">Start Enrollment</button>
+          <div class="input-wrapper">
+            <i class="fas fa-user input-icon"></i>
+            <input
+              v-model="enrollName"
+              type="text"
+              placeholder="Enter name for enrollment"
+              class="name-input"
+            />
+          </div>
+          <button class="btn enroll-btn" @click="startEnrollment">
+            <i class="fas fa-play"></i> Start Enrollment
+          </button>
         </div>
 
         <div v-else class="fingerprint-display">
+          <div class="progress-container">
+            <div class="progress-bar" :style="{ width: enrollmentProgress + '%' }"></div>
+            <span class="progress-text">{{ Math.round(enrollmentProgress) }}% Complete</span>
+          </div>
+          
           <p class="scan-progress">
             Scan {{ enrollScanStep + 1 }}/4 for {{ currentEnrollFinger }} finger
           </p>
-          <img v-if="fingerprintImage" :src="fingerprintImage" alt="Fingerprint" class="fp-image" />
+          
+          <div class="fingerprint-animation">
+            <div class="fingerprint-icon" :class="{ scanning: isScanning }">
+              <i class="fas fa-fingerprint"></i>
+            </div>
+            <div class="loading-dots" v-if="isScanning">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+          </div>
+          
           <p class="status-message">{{ statusMessage }}</p>
         </div>
       </div>
@@ -53,41 +80,53 @@
       <!-- Identification Mode -->
       <div v-else class="identification-section">
         <p class="reader-info">Selected Reader: {{ selectedReader }}</p>
-        <h2>Fingerprint Identification</h2>
+        <h2><i class="fas fa-search"></i> Fingerprint Identification</h2>
 
         <div v-if="!identificationStarted" class="identification-controls">
-          <button class="btn identify-btn" @click="startIdentification">Start Identification</button>
+          <button class="btn identify-btn" @click="startIdentification">
+            <i class="fas fa-play"></i> Start Identification
+          </button>
         </div>
 
         <div v-else class="fingerprint-display">
-          <p class="scan-progress">Scan 1/1</p>
-          <img v-if="fingerprintImage" :src="fingerprintImage" alt="Fingerprint" class="fp-image" />
+          <p class="scan-progress">Place your finger on the scanner</p>
+          
+          <div class="fingerprint-animation">
+            <div class="fingerprint-icon" :class="{ scanning: isScanning }">
+              <i class="fas fa-fingerprint"></i>
+            </div>
+            <div class="loading-dots" v-if="isScanning">
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+          </div>
+          
           <p class="status-message">{{ statusMessage }}</p>
 
           <div v-if="debugInfo" class="debug-info">
-            <h3>Debug Information</h3>
+            <h3><i class="fas fa-bug"></i> Debug Information</h3>
             <pre>{{ debugInfo }}</pre>
           </div>
 
-          <div v-if="identificationResult" class="result-display mt-4 p-4 rounded-xl shadow bg-white max-w-md mx-auto">
-           <div v-if="identificationResult.success">
-        <h3 class="text-lg font-semibold text-green-600 mb-2">🎉 User Identified</h3>
-        <p><strong>Name:</strong> {{ identificationResult.name }}</p>
-        <p v-if="identificationResult.userId"><strong>User ID:</strong> {{ identificationResult.userId }}</p>
-        <p><strong>Enrolled At:</strong> {{ formatDate(identificationResult.enrolledAt) }}</p>
-           </div>
-         <div v-else>
-        <h3 class="text-lg font-semibold text-red-600 mb-2">❌ Identification Failed</h3>
-        <p>{{ identificationResult.error || "No matching fingerprint found." }}</p>
+          <div v-if="identificationResult" class="result-display">
+            <div v-if="identificationResult.success" class="success-result">
+              <h3><i class="fas fa-check-circle"></i> User Identified</h3>
+              <p><strong>Name:</strong> {{ identificationResult.name }}</p>
+              <p v-if="identificationResult.userId"><strong>User ID:</strong> {{ identificationResult.userId }}</p>
+              <p><strong>Enrolled At:</strong> {{ formatDate(identificationResult.enrolledAt) }}</p>
+            </div>
+            <div v-else class="error-result">
+              <h3><i class="fas fa-times-circle"></i> Identification Failed</h3>
+              <p>{{ identificationResult.error || "No matching fingerprint found." }}</p>
+            </div>
           </div>
-        </div>
-
         </div>
       </div>
 
       <div v-if="showLiteClientLink" class="reader-communication-error">
-        Cannot connect to your fingerprint device. Make sure the device is connected.
-        You may need to download and install
+        <i class="fas fa-exclamation-triangle"></i> Cannot connect to your fingerprint device. 
+        Make sure the device is connected. You may need to download and install
         <a href="https://crossmatch.hid.gl/lite-client" target="_blank">DigitalPersona Lite Client</a>.
       </div>
     </div>
@@ -116,6 +155,8 @@ export default {
       indexFingerSamples: [],
       middleFingerSamples: [],
       enrollmentStarted: false,
+      isScanning: false,
+      enrollmentProgress: 0,
 
       // Identification logic
       identificationStarted: false,
@@ -154,9 +195,11 @@ export default {
       };
       this.reader.onDeviceDisconnected = () => {
         this.statusMessage = "Device disconnected.";
+        this.isScanning = false;
       };
       this.reader.onCommunicationFailed = () => {
         this.statusMessage = "Communication with reader failed.";
+        this.isScanning = false;
       };
       this.reader.onSamplesAcquired = this.handleEnrollmentSample;
 
@@ -179,6 +222,10 @@ export default {
     },
 
     selectReader() {
+      if (!this.selectedReaderName) {
+        this.statusMessage = "Please select a reader first";
+        return;
+      }
       this.selectedReader = this.selectedReaderName;
       this.statusMessage = `Reader "${this.selectedReader}" selected.`;
       console.log("🖐️ Reader selected:", this.selectedReader);
@@ -196,15 +243,16 @@ export default {
       this.middleFingerSamples = [];
       this.currentEnrollFinger = 'index';
       this.enrollmentStarted = true;
-      this.statusMessage = "Starting enrollment... Scan 1/4 for index finger";
+      this.isScanning = true;
+      this.enrollmentProgress = 0;
+      this.statusMessage = "Starting enrollment... Place your index finger on the scanner";
 
       try {
-        console.log("🚀 Starting acquisition with reader:", this.selectedReader);
         await this.reader.startAcquisition(window.Fingerprint.SampleFormat.Intermediate, this.selectedReader);
-        console.log("👂 Listening for Intermediate Samples...");
       } catch (err) {
         this.debugInfo += `\nAcquisition error: ${err.message}`;
         this.statusMessage = `Acquisition failed: ${err.message}`;
+        this.isScanning = false;
         console.error("❌ Acquisition error:", err);
       }
     },
@@ -214,39 +262,50 @@ export default {
         const raw = JSON.parse(event.samples);
         const base64Sample = raw[0].Data;
 
-        this.fingerprintImage = null; // Intermediate format is not image
-        console.log("🧬 Sample data acquired");
+        this.isScanning = false; // Pause scanning animation
+        
+        // Update progress (12.5% per scan since 8 total scans)
+        this.enrollmentProgress = ((this.indexFingerSamples.length + this.middleFingerSamples.length) + 1) * 12.5;
 
         if (this.currentEnrollFinger === 'index') {
           this.indexFingerSamples.push(base64Sample);
           this.enrollScanStep++;
-          this.statusMessage = `Scan ${this.enrollScanStep}/4 for index finger`;
+          this.statusMessage = `Scan ${this.enrollScanStep}/4 for index finger (${Math.round(this.enrollmentProgress)}% complete)`;
 
           if (this.indexFingerSamples.length === 4) {
             this.currentEnrollFinger = 'middle';
             this.enrollScanStep = 0;
-            this.statusMessage = "Now scanning middle finger... Scan 1/4";
+            this.statusMessage = "Now scanning middle finger... Place your middle finger on the scanner";
           }
         } else if (this.currentEnrollFinger === 'middle') {
           this.middleFingerSamples.push(base64Sample);
           this.enrollScanStep++;
-          this.statusMessage = `Scan ${this.enrollScanStep}/4 for middle finger`;
+          this.statusMessage = `Scan ${this.enrollScanStep}/4 for middle finger (${Math.round(this.enrollmentProgress)}% complete)`;
 
           if (this.middleFingerSamples.length === 4) {
-            console.log("✅ Middle finger done. Stopping acquisition...");
             await this.reader.stopAcquisition();
             this.statusMessage = "Sending enrollment data to backend...";
             await this.sendEnrollment();
+            return;
           }
         }
+
+        // Brief pause before next scan
+        await this.delay(800);
+        this.isScanning = true;
+        
       } catch (err) {
         this.statusMessage = `❌ Sample error: ${err.message}`;
+        this.isScanning = false;
         console.error("⚠️ Sample error:", err);
       }
     },
 
     async sendEnrollment() {
       try {
+        this.isScanning = true;
+        this.statusMessage = "Processing enrollment data...";
+        
         const response = await AuthService.enrollFingerprint({
           name: this.enrollName,
           enrolled_index_finger_data: this.indexFingerSamples,
@@ -255,88 +314,83 @@ export default {
 
         if (response.data?.message === 'Enrollment successful') {
           this.statusMessage = `✅ ${this.enrollName} enrolled successfully!`;
+          this.enrollmentProgress = 100;
         } else {
           throw new Error(response.data?.error || "Enrollment failed");
         }
       } catch (err) {
         this.statusMessage = `❌ Enrollment error: ${err.message}`;
       } finally {
+        this.isScanning = false;
         setTimeout(() => this.resetEnrollment(), 3000);
       }
     },
 
     async startIdentification() {
-  this.identificationStarted = true;
-  this.autoIdentification = true;
-  this.statusMessage = "Starting identification...";
-  this.debugInfo = "";
-  this.fingerprintImage = null;
-  this.identificationResult = null;
+      this.identificationStarted = true;
+      this.isScanning = true;
+      this.statusMessage = "Starting identification... Place your finger on the scanner";
+      this.debugInfo = "";
+      this.fingerprintImage = null;
+      this.identificationResult = null;
 
-  try {
-    await this.reader.startAcquisition(window.Fingerprint.SampleFormat.Intermediate, this.selectedReader);
-    this.reader.onSamplesAcquired = this.handleIdentificationSample;
-  } catch (err) {
-    this.statusMessage = `Acquisition error: ${err.message}`;
-    console.error("Identification start error:", err);
-  }
-},
+      try {
+        await this.reader.startAcquisition(window.Fingerprint.SampleFormat.Intermediate, this.selectedReader);
+        this.reader.onSamplesAcquired = this.handleIdentificationSample;
+      } catch (err) {
+        this.statusMessage = `Acquisition error: ${err.message}`;
+        this.isScanning = false;
+        console.error("Identification start error:", err);
+      }
+    },
 
-async handleIdentificationSample(event) {
-  try {
-    console.log("📥 Raw event received:", event);
+    async handleIdentificationSample(event) {
+      try {
+        this.isScanning = false;
+        const raw = JSON.parse(event.samples);
+        const base64Sample = raw[0].Data;
 
-    const raw = JSON.parse(event.samples);
-    const base64Sample = raw[0].Data;
-    console.log("📤 FMD being sent:", base64Sample.slice(0, 100) + "...");
+        await this.reader.stopAcquisition();
+        this.statusMessage = "Identifying fingerprint...";
 
-    await this.reader.stopAcquisition();
+        const response = await AuthService.identifyFingerprint({ fmd: base64Sample });
+        
+        if (response.data.success) {
+          const user = response.data.user;
+          this.identificationResult = {
+            success: true,
+            name: user?.name || "Unknown",
+            userId: user?.id || "-",
+            enrolledAt: user?.enrolledAt || null
+          };
+          this.statusMessage = `✅ User identified: ${this.identificationResult.name}`;
 
-    const response = await AuthService.identifyFingerprint({ fmd: base64Sample });
-    console.log("✅ Response from backend:", response);
+          await this.delay(2000);
+        } else {
+          this.identificationResult = {
+            success: false,
+            error: response.data.message || "Identification failed"
+          };
+          this.statusMessage = `❌ ${this.identificationResult.error}`;
+          await this.delay(1000);
+        }
 
-    if (response.data.success) {
-      const user = response.data.user;
-      this.identificationResult = {
-        success: true,
-        name: user?.name || "Unknown",
-        userId: user?.id || "-",
-        enrolledAt: user?.enrolledAt || null
-      };
-      this.statusMessage = `✅ User identified: ${this.identificationResult.name}`;
+        // Restart scanning for next identification
+        this.identificationResult = null;
+        this.isScanning = true;
+        await this.reader.startAcquisition(window.Fingerprint.SampleFormat.Intermediate, this.selectedReader);
+        this.statusMessage = "Place your finger on the scanner";
 
-      // Pause for 2 seconds before restarting
-      await this.delay(2000);
-    } else {
-      this.identificationResult = {
-        success: false,
-        message: response.data.message || "Identification failed"
-      };
-      this.statusMessage = `❌ ${this.identificationResult.message}`;
+      } catch (err) {
+        console.error("❌ Identification error:", err);
+        this.statusMessage = `Identification error: ${err?.response?.data?.error || err.message}`;
+        this.isScanning = false;
+      }
+    },
 
-      // Immediate retry if enabled
-      await this.delay(1000); // Optional short pause to avoid overloading
-    }
-
-    if (this.autoIdentification) {
-      await this.reader.startAcquisition(window.Fingerprint.SampleFormat.Intermediate, this.selectedReader);
-    }
-
-  } catch (err) {
-    console.error("❌ Identification error:", err);
-    console.log("📛 Error response object:", err?.response);
-    this.statusMessage = `Identification error: ${err?.response?.data?.error || err.message}`;
-
-    if (this.autoIdentification) {
-      await this.delay(1500);
-      await this.reader.startAcquisition(window.Fingerprint.SampleFormat.Intermediate, this.selectedReader);
-    }
-  }
-}
-,
- async delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  },
+    async delay(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    },
 
     resetEnrollment() {
       this.enrollScanStep = 0;
@@ -346,6 +400,8 @@ async handleIdentificationSample(event) {
       this.enrollmentStarted = false;
       this.fingerprintImage = null;
       this.currentEnrollFinger = 'index';
+      this.isScanning = false;
+      this.enrollmentProgress = 0;
     },
 
     resetAll() {
@@ -355,6 +411,7 @@ async handleIdentificationSample(event) {
       this.fingerprintImage = null;
       this.statusMessage = "Mode switched. Select reader and start.";
       this.debugInfo = "";
+      this.isScanning = false;
     },
 
     formatDate(date) {
@@ -365,14 +422,11 @@ async handleIdentificationSample(event) {
 };
 </script>
 
-
-
-
-
-
 <style scoped>
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css');
+
 .form {
-  background: rgba(0, 0, 0, 0.6); /* Transparent black */
+  background: rgba(0, 0, 0, 0.6);
   padding: 2rem;
   border-radius: 8px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
@@ -384,32 +438,95 @@ async handleIdentificationSample(event) {
 h2 {
   text-align: center;
   margin-bottom: 1.5rem;
-  color: #2c3e50;
+  color: #fff;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
 }
 
-.reader-select,
-.name-input {
-  padding: 0.5rem;
-  width: 70%;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+.select-wrapper {
+  position: relative;
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.select-icon {
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #ccc;
+}
+
+.reader-select {
+  padding: 0.8rem 1rem 0.8rem 40px;
+  width: 100%;
+  border: 1px solid #555;
+  border-radius: 8px;
+  font-size: 1rem;
+  background-color: rgba(255, 255, 255, 0.1);
   color: #fff;
+  appearance: none;
+}
+
+.reader-select option {
+  background: #333;
+}
+
+.input-wrapper {
+  position: relative;
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.input-icon {
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #ccc;
+}
+
+.name-input {
+  padding: 0.8rem 1rem 0.8rem 40px;
+  width: 100%;
+  border: 1px solid #555;
+  border-radius: 8px;
+  font-size: 1rem;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.name-input::placeholder {
+  color: #aaa;
 }
 
 .btn {
-  padding: 0.5rem 1rem;
+  padding: 0.8rem 1.5rem;
   background-color: #0077aa;
   color: #fff;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
   cursor: pointer;
-  margin-top: 10px;
-  font-weight: 700;
-  transition: background-color 0.3s;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
 }
 
 .btn:hover {
   background-color: #005f8d;
+  transform: translateY(-2px);
+}
+
+.btn:active {
+  transform: translateY(0);
 }
 
 .enroll-btn {
@@ -420,88 +537,6 @@ h2 {
   background-color: #1e7d36;
 }
 
-.reader-info {
-  margin-bottom: 1rem;
-  font-weight: bold;
-  text-align: center;
-  font-size: 0.9rem;
-  color: #555;
-}
-
-.enrollment-section {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-  justify-content: center;
-  margin-top: 1rem;
-}
-
-.fingerprint-display {
-  text-align: center;
-  margin-top: 10px;
-}
-
-.fp-image {
-  width: 150px;
-  height: 150px;
-  border: 2px solid #1976d2;
-  border-radius: 12px;
-  margin-top: 10px;
-}
-
-.scan-progress {
-  font-weight: bold;
-  font-size: 1.2rem;
-  margin-bottom: 5px;
-  color: #1976d2;
-}
-
-.status-message {
-  text-align: center;
-  margin-top: 15px;
-  font-weight: 600;
-  color: #444;
-}
-
-.reader-communication-error {
-  color: red;
-  text-align: center;
-  margin-top: 2rem;
-  font-size: 0.95rem;
-}
-
-.mode-selector {
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-  flex-direction: row;
-}
-
-.mode-btn {
-  padding: 10px 20px;
-  background-color: #e0e0e0;
-  color: #333;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: background-color 0.3s;
-}
-
-.mode-btn:hover {
-  background-color: #d0d0d0;
-}
-
-.mode-btn.active {
-  background-color: #1976d2;
-  color: white;
-}
-
-.identification-section {
-  text-align: center;
-}
-
 .identify-btn {
   background-color: #ff9800;
 }
@@ -510,77 +545,242 @@ h2 {
   background-color: #e68a00;
 }
 
-.result-display {
+.reader-info {
+  margin-bottom: 1.5rem;
+  font-weight: 500;
+  text-align: center;
+  font-size: 1rem;
+  color: #ccc;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.5rem;
+  border-radius: 8px;
+}
+
+.enrollment-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
   margin-top: 1.5rem;
+}
+
+.fingerprint-display {
+  text-align: center;
+  margin-top: 1.5rem;
+}
+
+.scan-progress {
+  font-weight: 600;
+  font-size: 1.1rem;
+  margin-bottom: 1.5rem;
+  color: #4fc3f7;
+}
+
+.status-message {
+  text-align: center;
+  margin-top: 1.5rem;
+  font-weight: 500;
+  color: #fff;
+  font-size: 1rem;
+}
+
+.reader-communication-error {
+  color: #ff6b6b;
+  text-align: center;
+  margin-top: 2rem;
+  font-size: 0.95rem;
+  padding: 1rem;
+  background: rgba(255, 0, 0, 0.1);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mode-selector {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.mode-btn {
+  padding: 0.8rem 1.5rem;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mode-btn:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.mode-btn.active {
+  background-color: #0077aa;
+  color: white;
+  box-shadow: 0 4px 8px rgba(0, 119, 170, 0.3);
+}
+
+.fingerprint-animation {
+  margin: 2rem 0;
+  position: relative;
+}
+
+.fingerprint-icon {
+  font-size: 5rem;
+  color: #4fc3f7;
+  transition: all 0.3s ease;
+}
+
+.fingerprint-icon.scanning {
+  color: #28a745;
+  animation: pulse 1.5s infinite;
+}
+
+.loading-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 1rem;
+}
+
+.loading-dots span {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #4fc3f7;
+  animation: bounce 1.4s infinite ease-in-out;
+}
+
+.loading-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.loading-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+.progress-container {
+  width: 100%;
+  height: 20px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  margin-bottom: 1.5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background-color: #28a745;
+  border-radius: 10px;
+  transition: width 0.5s ease;
+}
+
+.progress-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.result-display {
+  margin-top: 2rem;
   padding: 1.5rem;
   border-radius: 8px;
   text-align: left;
   font-size: 1rem;
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .success-result {
-  background-color: #e8f5e9;
-  color: #2e7d32;
-  padding: 1rem;
-  border-radius: 4px;
+  color: #a5d6a7;
+}
+
+.success-result h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 1rem;
+  color: #a5d6a7;
 }
 
 .success-result p {
-  margin: 5px 0;
-  line-height: 1.4;
-}
-
-.success-result p:first-child {
-  font-size: 1.1rem;
-  font-weight: bold;
-  margin-bottom: 10px;
-}
-
-.success-result p strong {
-  color: #2e7d32;
+  margin: 0.5rem 0;
 }
 
 .error-result {
-  background-color: #ffebee;
-  color: #c62828;
-  padding: 1rem;
-  border-radius: 4px;
+  color: #ffab91;
+}
+
+.error-result h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 1rem;
+  color: #ffab91;
 }
 
 .debug-info {
-  margin-top: 15px;
-  background: #f5f5f5;
-  padding: 10px;
+  margin-top: 1.5rem;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 1rem;
   border-radius: 8px;
-  max-height: 120px;
+  max-height: 150px;
   overflow-y: auto;
-  font-family: monospace;
+  font-family: 'Courier New', monospace;
   font-size: 0.85rem;
   text-align: left;
+  border: 1px solid #555;
+  color: #fff;
 }
 
-#bp {
+.debug-info h3 {
+  margin-bottom: 0.5rem;
   display: flex;
-  justify-content: center;
   align-items: center;
-  height: 100vh;
+  gap: 8px;
+  color: #fff;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.1); opacity: 0.8; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes bounce {
+  0%, 80%, 100% { transform: scale(0); }
+  40% { transform: scale(1); }
 }
 
 /* Responsive adjustments */
 @media (max-width: 600px) {
+  .form {
+    padding: 1.5rem;
+  }
+  
   .mode-selector {
     flex-direction: column;
     gap: 0.5rem;
   }
-
-  .reader-select,
-  .name-input {
+  
+  .btn, .mode-btn {
     width: 100%;
-    margin-bottom: 0.5rem;
   }
-
-  .btn {
-    width: 100%;
+  
+  .fingerprint-icon {
+    font-size: 4rem;
   }
 }
 </style>

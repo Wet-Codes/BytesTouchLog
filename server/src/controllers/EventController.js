@@ -5,7 +5,7 @@ module.exports = {
       const { Event } = require('../models');
 
       const events = await Event.findAll({
-        attributes: ['eventId', 'name', 'semester', 'date'],
+        attributes: ['eventId', 'name', 'semester', 'date', 'fee'],
       });
 
       console.log(`[GET /events] Successfully fetched ${events.length} events`);
@@ -27,12 +27,15 @@ module.exports = {
       const event = await Event.create({
         name: req.body.name,
         semester: req.body.semester,
+        fee: req.body.fee,
         date: req.body.date
+
       });
       res.status(201).send({
         eventId: event.eventId,
         name: event.name,
         semester: event.semester,
+        fee: event.fee ,
         date: event.date
       });
     } catch (err) {
