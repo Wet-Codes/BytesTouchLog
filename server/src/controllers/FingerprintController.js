@@ -1,6 +1,6 @@
 const axios = require('axios');
 const qs = require('qs');
-const { Fingerprint } = require('../models');
+const { Fingerprint, Student } = require('../models');
 
 // ENROLL
 const enroll = async (req, res) => {
@@ -182,8 +182,92 @@ async function checkMatch(sampleFmd, fmd1, fmd2) {
 }
 
 
+const identify2 = async (req, res) => {
+  const { fmd } = req.body;
+  console.log('[IDENTIFY] Incoming body:', req.body);
+
+  if (!fmd) {
+    return res.status(400).json({ success: false, error: 'No fingerprint provided for identification.' });
+  }
+
+  try {
+    const students = await Student.findAll({
+      attributes: ['id', 'firstName', 'lastName', 'department', 'yearLevel', 'status', 'enrolledFMD1', 'enrolledFMD2', 'createdAt']
+    });
+
+    if (!students.length) {
+      return res.status(404).json({ success: false, error: 'No enrolled student fingerprints found.' });
+    }
+
+    let matchedStudent = null;
+
+    for (const student of students) {
+      const isMatch = await checkStudentFingerprintMatch(fmd, student.enrolledFMD1, student.enrolledFMD2);
+
+      if (isMatch) {
+        matchedStudent = student;
+        break;
+      }
+    }
+
+    if (matchedStudent) {
+      console.log('[MATCHED STUDENT]', matchedStudent.firstName, matchedStudent.lastName);
+      return res.json({
+        success: true,
+        message: 'Student identified successfully',
+        student: {
+          id: matchedStudent.id,
+          fullName: `${matchedStudent.firstName} ${matchedStudent.lastName}`,
+          department: matchedStudent.department,
+          yearLevel: matchedStudent.yearLevel,
+          status: matchedStudent.status,
+          enrolledAt: matchedStudent.createdAt
+        }
+      });
+    } else {
+      return res.json({ success: false, message: 'No matching student found' });
+    }
+
+  } catch (err) {
+    console.error('[IDENTIFY ERROR]', err);
+    return res.status(500).json({ success: false, error: 'Identification failed due to server error.' });
+  }
+};
+
+// ✅ Properly defined helper function
+async function checkStudentFingerprintMatch(sampleFmd, fmd1, fmd2) {
+  try {
+    const postData = {
+      data: JSON.stringify({
+        pre_enrolled_finger_data: sampleFmd,
+        all_enrolled: [{
+          indexfinger: fmd1 || '',
+          middlefinger: fmd2 || ''
+        }]
+      })
+    };
+
+    const response = await axios.post(
+      'http://localhost:5555/coreComponents/verify.php',
+      qs.stringify(postData),
+      {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        timeout: 5000
+      }
+    );
+
+    return response.data === "match";
+  } catch (err) {
+    console.error('[checkStudentFingerprintMatch ERROR]', err.message);
+    return false;
+  }
+}
+
+
+
 module.exports = {
   enroll,
   verify,
-  identify
+  identify,
+  identify2
 };

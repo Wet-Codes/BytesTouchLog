@@ -8,10 +8,77 @@
             <v-card class="fine-card" elevation="2">
               <v-card-title class="d-flex justify-space-between align-center flex-wrap">
                 <h1 class="table-title">ATTENDANCE MANAGEMENT</h1>
-                <div>
+                <div class="d-flex align-center flex-wrap" style="gap: 12px;">
+                <v-select
+                    v-model="selectedReader"
+                    :items="readers"
+                    item-title="name"
+                    item-value="serialNumber"
+                    label="Select Reader"
+                    density="compact"
+                    hide-details
+                    outlined
+                    dark
+                    :placeholder="'No Reader'"
+                    class="reader-select"
+                    style="min-width: 220px;"
+                  />
+                
+                  <!-- ADD FINGERPRINT BUTTON HERE -->
+                  <v-btn 
+                    @click="startFingerprintIdentification" 
+                    color="primary" 
+                    class="mb-4"
+                    :disabled="!selectedEvent"
+                  >
+                    <v-icon left>mdi-fingerprint</v-icon>
+                    Identify via Fingerprint
+                  </v-btn>
                 </div>
               </v-card-title>
 
+               <!-- ADD FINGERPRINT DIALOG -->
+              <v-dialog v-model="fingerprintDialog" max-width="600" persistent>
+  <v-card class="fingerprint-dialog">
+    <v-card-title class="headline">Fingerprint Identification</v-card-title>
+    <v-card-text>
+      <div v-if="fingerprintStatusMessage" class="status-message">
+        {{ fingerprintStatusMessage }}
+      </div>
+
+      <div class="fingerprint-animation">
+        <div class="fingerprint-icon" :class="{ scanning: isScanning }">
+          <i class="fas fa-fingerprint"></i>
+        </div>
+        <div class="loading-dots" v-if="isScanning">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+      </div>
+
+      <div v-if="identificationResult" class="result-display">
+        <div v-if="identificationResult.success" class="success-result">
+          <h3><i class="fas fa-check-circle"></i> Student Identified</h3>
+          <p><strong>Name:</strong> {{ identificationResult.student.fullName }}</p>
+          <p><strong>Department:</strong> {{ identificationResult.student.department }}</p>
+          <p><strong>Year Level:</strong> {{ identificationResult.student.yearLevel }}</p>
+          <p><strong>Status:</strong> {{ identificationResult.student.status }}</p>
+        </div>
+        <div v-else class="error-result">
+          <h3><i class="fas fa-times-circle"></i> Identification Failed</h3>
+          <p>{{ identificationResult.message || "No matching fingerprint found." }}</p>
+        </div>
+      </div>
+    </v-card-text>
+    <v-card-actions>
+      <v-spacer></v-spacer>
+      <v-btn color="error" @click="closeFingerprintDialog">Close</v-btn>
+    </v-card-actions>
+  </v-card>
+</v-dialog>
+
+                <!-- Student Table -->
               <v-card-text>
                 <v-row>
                   <v-col cols="12">
@@ -231,6 +298,16 @@ export default {
         course: null,
         yearLevel: null,
       },
+
+      // ADD FINGERPRINT DATA
+      readers: [],
+      fingerprintDialog: false,
+      isScanning: false,
+      fingerprintStatusMessage: "",
+      identificationResult: null,
+      reader: null,
+      selectedReader: null,
+
        errorDialog: false,
       errorMessage: '',
       eventDialog: false,
@@ -292,6 +369,37 @@ export default {
     }
   },
   async mounted() {
+    try {
+      if (!window.Fingerprint?.WebApi) throw new Error("Fingerprint SDK not available");
+      console.log("✅ SDK available");
+
+      this.reader = new window.Fingerprint.WebApi();
+
+      // Bind SDK events
+      this.reader.onDeviceConnected = () => {
+        this.statusMessage = "Device connected. Ready to scan.";
+      };
+      this.reader.onDeviceDisconnected = () => {
+        this.statusMessage = "Device disconnected.";
+        this.isScanning = false;
+      };
+      this.reader.onCommunicationFailed = () => {
+        this.statusMessage = "Communication with reader failed.";
+        this.isScanning = false;
+      };
+      this.reader.onSamplesAcquired = this.handleEnrollmentSample;
+
+      // Load devices
+      const devices = await this.reader.enumerateDevices();
+      this.readers = devices;
+      this.statusMessage = devices.length ? "Select a reader" : "No fingerprint readers found";
+      console.log("📡 Available readers:", devices);
+    } catch (err) {
+      console.error("❌ SDK init error:", err);
+      this.statusMessage = `SDK error: ${err.message}`;
+      this.showLiteClientLink = true;
+    }
+
     await this.fetchEvents();
     await this.fetchStudents();
   },
@@ -437,7 +545,121 @@ export default {
   } catch (error) {
     this.showError('Failed to update attendance', error);
   }
+},
+
+
+
+  async startFingerprintIdentification() {
+      if (!this.selectedEvent) {
+        this.showError('Please select an event first');
+        return;
+      }
+      
+      this.fingerprintDialog = true;
+      this.fingerprintStatusMessage = "Initializing fingerprint scanner...";
+      this.identificationResult = null;
+      
+      try {
+        // Initialize fingerprint SDK
+        if (!window.Fingerprint?.WebApi) throw new Error("Fingerprint SDK not available");
+        
+        this.reader = new window.Fingerprint.WebApi();
+        
+        // Get available readers
+        const devices = await this.reader.enumerateDevices();
+        if (devices.length === 0) {
+          throw new Error("No fingerprint readers found");
+        }
+        
+        // Use the first available reader
+        this.selectedReader = devices[0];
+        this.fingerprintStatusMessage = "Ready to scan. Place your finger on the scanner";
+        
+        // Start acquisition
+        this.isScanning = true;
+        await this.reader.startAcquisition(
+          window.Fingerprint.SampleFormat.Intermediate, 
+          this.selectedReader
+        );
+        
+        // Handle samples
+        this.reader.onSamplesAcquired = this.handleFingerprintSample;
+      } catch (err) {
+        console.error("Fingerprint error:", err);
+        this.fingerprintStatusMessage = `Error: ${err.message}`;
+        this.isScanning = false;
+      }
+    },
+    
+    async handleFingerprintSample(event) {
+  try {
+    this.isScanning = false;
+    this.fingerprintStatusMessage = "Processing fingerprint...";
+
+    const raw = JSON.parse(event.samples);
+    const base64Sample = raw[0].Data;
+
+    // Send to backend for identification
+    const response = await apiService.identifyFingerprint2({ fmd: base64Sample });
+
+    if (response.data.success) {
+      const student = this.students.find(s => s.id === response.data.student.id);
+
+      if (student) {
+        await this.markPresent(student);
+
+        this.identificationResult = {
+          success: true,
+          name: `${student.firstName} ${student.lastName}`
+        };
+        this.fingerprintStatusMessage = `✅ ${this.identificationResult.name} marked present!`;
+      } else {
+        this.identificationResult = {
+          success: false,
+          error: "Student not found in the list"
+        };
+        this.fingerprintStatusMessage = "❌ Student not found in the list";
+      }
+
+      // Restart scanning after a short delay
+      setTimeout(() => {
+        this.identificationResult = null;
+        this.fingerprintStatusMessage = "Place your finger on the scanner";
+        this.isScanning = true;
+      }, 2000);
+    } else {
+      this.identificationResult = {
+        success: false,
+        error: response.data.message || "Identification failed"
+      };
+      this.fingerprintStatusMessage = "❌ Identification failed. Please try again.";
+
+      setTimeout(() => {
+        this.identificationResult = null;
+        this.fingerprintStatusMessage = "Place your finger on the scanner";
+        this.isScanning = true;
+      }, 2000);
+    }
+  } catch (err) {
+    console.error("Identification error:", err);
+    this.fingerprintStatusMessage = `Error: ${err.message}`;
+    this.isScanning = false;
+  }
 }
+
+,
+    
+    closeFingerprintDialog() {
+      this.fingerprintDialog = false;
+      this.isScanning = false;
+      this.identificationResult = null;
+      
+      // Stop acquisition if active
+      if (this.reader && this.reader.isAcquisitionStarted) {
+        this.reader.stopAcquisition();
+      }
+    },
+  
 
   }
 };
@@ -445,7 +667,88 @@ export default {
 
 <style scoped>
 @import url('https://fonts.googleapis.com/css?family=Poppins:300');
+/* ADD FINGERPRINT STYLES */
+.fingerprint-dialog {
+  background: rgba(30, 30, 30, 0.9);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  color: #fff;
+  padding: 20px;
+}
 
+.fingerprint-animation {
+  text-align: center;
+  margin: 30px 0;
+}
+
+.fingerprint-icon {
+  font-size: 5rem;
+  color: #4fc3f7;
+  transition: all 0.3s ease;
+}
+
+.fingerprint-icon.scanning {
+  color: #28a745;
+  animation: pulse 1.5s infinite;
+}
+
+.loading-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 1rem;
+}
+
+.loading-dots span {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #4fc3f7;
+  animation: bounce 1.4s infinite ease-in-out;
+}
+
+.loading-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.loading-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+.status-message {
+  text-align: center;
+  font-weight: 500;
+  color: #fff;
+  font-size: 1.2rem;
+  margin: 20px 0;
+}
+
+.result-display {
+  margin-top: 20px;
+  padding: 15px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.success-result {
+  color: #a5d6a7;
+}
+
+.error-result {
+  color: #ffab91;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.1); opacity: 0.8; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes bounce {
+  0%, 80%, 100% { transform: scale(0); }
+  40% { transform: scale(1); }
+}
 .error-dialog {
   background: rgba(30, 30, 30, 0.9) !important;
   backdrop-filter: blur(10px);

@@ -80,7 +80,7 @@ app.put('/events/:eventId', EventController.updateEvent);
 app.post('/fingerprint/enroll', FingerprintController.enroll);
 
 app.post('/fingerprint/identify', FingerprintController.identify);
-
+app.post('/fingerprint/identify2', FingerprintController.identify2);
 app.get('/fines/student/:studentId', fineController.getStudentFines);
 app.delete('/fines/:id', fineController.deleteFine);
 

@@ -74,6 +74,9 @@ export default {
   identifyFingerprint(data) {
     return Api.post('/fingerprint/identify', data);
   },
+  identifyFingerprint2(data) {
+    return Api.post('/fingerprint/identify2', data);
+  },
 
     // Create or update fine (PUT)
   saveFine(id, data) {
