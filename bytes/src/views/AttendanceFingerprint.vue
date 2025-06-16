@@ -195,6 +195,25 @@
       </v-dialog>
     </div>
   </div>
+
+
+
+   <!-- Add error dialog -->
+  <v-dialog v-model="errorDialog" max-width="500">
+    <v-card class="error-dialog">
+      <v-card-title class="headline">Error</v-card-title>
+      <v-card-text>
+        <div class="error-message">{{ errorMessage }}</div>
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer></v-spacer>
+        <v-btn color="primary" text @click="errorDialog = false">Close</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
+
+
+
 </template>
 
 <script>
@@ -212,6 +231,8 @@ export default {
         course: null,
         yearLevel: null,
       },
+       errorDialog: false,
+      errorMessage: '',
       eventDialog: false,
       dateMenu: false,
       selectedEvent: null,
@@ -292,6 +313,7 @@ export default {
         this.$refs.eventForm.resetValidation();
       }
     },
+    
     async fetchStudents() {
       try {
         const response = await apiService.getStudents();
@@ -327,13 +349,24 @@ export default {
     },
     async fetchAttendanceForEvent(eventId) {
       try {
-        console.log(`Fetching attendance for event: ${eventId}`);
-        this.attendanceRecords = {};
+        if (!eventId) return;
+        const response = await apiService.getAttendanceForEvent(eventId);
+        this.attendanceRecords = response.data;
       } catch (error) {
-        console.error('Error fetching attendance:', error);
-        alert('Failed to load attendance records: ' + (error.response?.data?.message || error.message));
+        this.showError('Failed to load attendance records', error);
       }
     },
+    
+    
+
+    showError(message, error = null) {
+      this.errorMessage = message;
+      if (error) {
+        this.errorMessage += `: ${error.response?.data?.error || error.message}`;
+      }
+      this.errorDialog = true;
+    },
+    
     async saveEvent() {
       if (this.$refs.eventForm.validate()) {
         try {
@@ -386,17 +419,53 @@ export default {
       }
     },
     async updateAttendance(student, status) {
-      this.attendanceRecords = {
-        ...this.attendanceRecords,
-        [student.id]: status
-      };
-    }
+  if (!this.selectedEvent) {
+    this.showError('Please select an event first');
+    return;
+  }
+  
+  try {
+    await apiService.updateAttendance({
+      studentId: student.id,
+      eventId: this.selectedEvent.eventId,
+      status
+    });
+
+    // This works fine in Vue 3
+    this.attendanceRecords[student.id] = status;
+
+  } catch (error) {
+    this.showError('Failed to update attendance', error);
+  }
+}
+
   }
 };
 </script>
 
 <style scoped>
 @import url('https://fonts.googleapis.com/css?family=Poppins:300');
+
+.error-dialog {
+  background: rgba(30, 30, 30, 0.9) !important;
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  color: #fff;
+}
+
+.error-message {
+  padding: 15px;
+  background: rgba(200, 50, 50, 0.2);
+  border-radius: 8px;
+  font-size: 1.1rem;
+}
+
+
+::v-deep .v-dialog {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
 
 .fine-card {
   background: rgba(33, 33, 33, 0.65); /* dark glass effect */

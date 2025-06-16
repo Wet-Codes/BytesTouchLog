@@ -7,7 +7,7 @@ const FingerprintController = require('./controllers/FingerprintController');
 const EventController = require('./controllers/EventController');
 const authMiddleware = require('./middlewares/authMiddleware');
 const adminMiddleware = require('./middlewares/adminMiddleware');
-
+const fineController = require('./controllers/FineController')
 
 const app = express();
 
@@ -81,4 +81,12 @@ app.post('/fingerprint/enroll', FingerprintController.enroll);
 
 app.post('/fingerprint/identify', FingerprintController.identify);
 
+app.get('/fines/student/:studentId', fineController.getStudentFines);
+app.delete('/fines/:id', fineController.deleteFine);
+
+app.get('/attendance/:eventId', fineController.getAttendanceForEvent);
+app.put('/attendance', fineController.updateAttendance);
+
+app.get('/fines/student/:studentId', fineController.getStudentFines);
+app.put('/fines/student/:studentId/clear', fineController.clearStudentFines);
 }

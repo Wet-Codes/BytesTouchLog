@@ -100,7 +100,7 @@
 
                         <!-- Student Table -->
                         <v-data-table
-                          :headers="studentHeaders"
+                         
                           :items="filteredStudents"
                           :items-per-page="10"
                           class="elevation-1 student-fines-table"
@@ -160,7 +160,7 @@
                     <v-card class="right-side-card">
                       <div class="details-header">
                         <v-card-title class="details-title">
-                          {{ selectedStudent.fname }} {{ selectedStudent.lname }}'s Details
+                          {{ selectedStudent.firstName }} {{ selectedStudent.lastName }}'s Details
                         </v-card-title>
                       </div>
                       <v-card-text>
@@ -225,47 +225,74 @@
                         <!-- Student Info Display -->
                         <template v-else>
                           <div class="student-info mb-4">
-                            <p><strong>Course:</strong> {{ selectedStudent.course }}</p>
-                            <p><strong>Year Level:</strong> {{ selectedStudent.year }}</p>
+                            <p><strong>Course:</strong> {{ selectedStudent.department }}</p>
+                            <p><strong>Year Level:</strong> {{ selectedStudent.yearLevel }}</p>
                             <p><strong>Status:</strong> 
                               <v-chip small :color="getStatusColor(selectedStudent.status)">{{ selectedStudent.status }}</v-chip>
                             </p>
                           </div>
 
                           <!-- Fine Details -->
-                          <div class="fine-details-header">
-                            <span class="col-event">Event</span>
-                            <span class="col-fine">Fine Amount</span>
-                            <span class="col-status">Status</span>
-                          </div>
-                          <v-data-table
-                            :headers="fineDetailsHeaders"
-                            :items="fineDetails"
-                            :hide-default-footer="true"
-                            class="elevation-1 fine-details-table"
-                            dark
-                            hide-default-header
-                            :loading="loadingFines"
-                          >
-                            <template #[`item.status`]="{ item }">
-                              <v-chip small :color="item.paid ? 'green' : 'red'">
-                                {{ item.paid ? 'Paid' : 'Unpaid' }}
-                              </v-chip>
-                            </template>
-                            <template #[`item.actions`]="{ item }">
-                              <v-btn 
-                                x-small 
-                                color="error" 
-                                @click="initiateAction('removeFine', item)"
-                                :loading="deletingFine === item._id"
-                              >
-                                Remove
-                              </v-btn>
-                            </template>
-                          </v-data-table>
-                          <div class="total-fines">
-                            <strong>Total Unpaid Fines: ₱{{ calculateTotalUnpaidFines().toFixed(2) }}</strong>
-                          </div>
+                          <!-- Updated fine details header -->
+<div class="fine-details-header">
+  <span class="col-event">Event</span>
+  <span class="col-date">Date</span>
+  <span class="col-amount">Amount Due</span>
+  <span class="col-status">Status</span>
+  <span class="col-actions">Actions</span>
+</div>
+
+<v-alert 
+  v-if="fineDetails.length === 0 && !loadingFines" 
+  type="info"
+  class="my-4"
+>
+  No fine records found for this student
+</v-alert>
+ 
+   <v-data-table
+    :headers="fineDetailsHeaders"
+    :items="processedFineDetails" 
+    hide-default-footer
+    class="elevation-1 fine-details-table"
+    dark
+    :loading="loadingFines"
+  >
+    <template #[`item.event`]="{ item }">
+      {{ item.event?.name || 'N/A' }}
+    </template>
+    
+    <template #[`item.date`]="{ item }">
+      {{ formatDate(item.event?.date) }}
+    </template>    
+    <template #[`item.amount`]="{ item }">
+      <span :class="{'red--text': item.status === 'absent' && !item.paid}">
+        ₱{{ (item.status === 'absent' ? (item.event?.fee || 0) : 0).toFixed(2) }}
+      </span>
+    </template>
+    
+    <template #[`item.status`]="{ item }">
+      <v-chip small :color="getFineStatusColor(item)">
+        {{ getFineStatusText(item) }}
+      </v-chip>
+    </template>
+    
+    <template #[`item.actions`]="{ item }">
+      <v-btn 
+        x-small 
+        color="error" 
+        @click="initiateAction('removeFine', item)"
+        :loading="deletingFine === item.id"
+        :disabled="item.paid"
+      >
+        Remove
+      </v-btn>
+    </template>
+  </v-data-table>
+  
+  <div class="total-fines">
+    <strong>Total Unpaid Fines: ₱{{ calculateTotalUnpaidFines().toFixed(2) }}</strong>
+  </div>
                           <div class="d-flex mt-4">
                             <v-btn 
                               color="success" 
@@ -332,12 +359,14 @@ export default {
         { text: 'Status', value: 'status', align: 'center', width: '15%' },
         { text: 'Actions', value: 'actions', align: 'center', width: '20%', sortable: false }
       ],
+    
       fineDetailsHeaders: [
-        { text: 'Event Name', value: 'event.name', align: 'center', width: '40%' },
-        { text: 'Fine Amount', value: 'amount', align: 'center', width: '30%' },
-        { text: 'Status', value: 'status', align: 'center', width: '20%' },
-        { text: 'Actions', value: 'actions', align: 'center', width: '10%' }
-      ],
+      { text: 'Event Name', value: 'event', align: 'center', width: '25%' },
+      { text: 'Date', value: 'date', align: 'center', width: '15%' },
+      { text: 'Amount Due', value: 'amount', align: 'center', width: '15%' },
+      { text: 'Status', value: 'status', align: 'center', width: '15%' },
+      { text: 'Actions', value: 'actions', align: 'center', width: '15%' }
+    ],
       students: [],
       loadingStudents: false,
       loadingFines: false,
@@ -347,6 +376,17 @@ export default {
     };
   },
   computed: {
+     processedFineDetails() {
+      return this.fineDetails
+        .filter(fine => fine.status === 'absent')  // Only show absent fines
+        .map(fine => ({
+          ...fine,
+          amount: fine.event?.fee || 0,
+          statusText: fine.paid ? 'Paid' : 'Unpaid',
+          statusColor: fine.paid ? 'blue' : 'red'
+        }));
+    },
+
     backgroundStyle() {
       return {
         backgroundImage: `url(${this.backgroundImage})`,
@@ -356,7 +396,7 @@ export default {
         padding: '20px 0'
       };
     },
-   
+ 
     filteredStudents() {
       return this.students.filter(student => {
         return (
@@ -371,13 +411,20 @@ export default {
       });
     },
     hasUnpaidFines() {
-      return this.fineDetails.some(fine => !fine.paid);
+      return this.fineDetails.some(fine => fine.status === 'absent' && !fine.paid);
     }
   },
   async mounted() {
     await this.fetchStudents();
   },
   methods: {
+
+       getFineStatusColor(fine) {
+      return fine.statusColor;
+    },
+  
+
+
     formatDate(dateString) {
       if (!dateString) return 'N/A';
       const date = new Date(dateString);
@@ -385,11 +432,18 @@ export default {
         year: 'numeric',
         month: 'short',
         day: 'numeric'
-      });
+        
+      } );
+      
     },
      isStudentLocked(student) {
       return student.isLocked || ['Graduated', 'Shifted', 'Dropped'].includes(student.status);
     },
+
+
+  
+
+
     async fetchStudents() {
       this.loadingStudents = true;
       try {
@@ -407,15 +461,12 @@ export default {
       }
     },
     
-    async fetchFines(studentId) {
+      async fetchFines(studentId) {
       this.loadingFines = true;
       try {
-        // Log: Frontend is requesting fines for specific student
-        console.log(`Fetching fines for student ID: ${studentId}`);
         const response = await StudentService.getStudentFines(studentId);
-        this.fineDetails = response.data.filter(fine => 
-          fine.status === 'absent' || fine.status === 'unpaid'
-        );
+        console.log('Fines data:', response.data); // Add this
+        this.fineDetails = response.data;
       } catch (error) {
         console.error('Error fetching fines:', error);
         this.dialogTitle = 'Error';
@@ -426,102 +477,103 @@ export default {
       }
     },
 
-    initiateAction(actionType, item) {
-      this.currentAction = { 
-        type: actionType, 
-        item: { ...item },
-        id: item._id || item.id
-      };
-      
-      const messages = {
-        removeFine: `Remove fine for ${this.selectedStudent.fname} ${this.selectedStudent.lname}?`,
-        clearFines: `Mark all fines as paid for ${this.selectedStudent.fname} ${this.selectedStudent.lname}?`,
-        deleteAll: 'Permanently delete all student records? This cannot be undone!',
-        edit: 'Save changes to this student?'
-      };
 
-      this.dialogTitle = `${actionType.charAt(0).toUpperCase() + actionType.slice(1)} Confirmation`;
-      this.dialogMessage = messages[actionType];
-      this.actionDialog = true;
-    },
 
-    async confirmAction() {
-      this.actionDialog = false;
 
-      if (!this.currentAction || !this.currentAction.type) {
-        console.error('No valid currentAction provided.');
-        this.dialogTitle = 'Error';
-        this.dialogMessage = 'No action was selected or the action is invalid.';
-        this.actionDialog = true;
-        return;
-      }
+   initiateAction(actionType, item = {}) {
+  this.currentAction = {
+    type: actionType,
+    item: { ...item },
+    id: item._id || item.id || null,
+  };
 
-      try {
-        switch (this.currentAction.type) {
-          case 'removeFine':
-            await this.removeFine();
-            break;
-          case 'clearFines':
-            await this.clearFines();
-            break;
-          case 'deleteAll':
-            await this.removeAllStudents();
-            break;
-          case 'edit':
-            await this.saveStudent();
-            break;
-          default:
-            this.dialogTitle = 'Error';
-            this.dialogMessage = `Unknown action type: ${this.currentAction.type}`;
-            this.actionDialog = true;
-            break;
-        }
-      } catch (error) {
-        console.error('Action failed:', error);
-        this.dialogTitle = 'Error';
-        this.dialogMessage = 'Action failed. Please try again.';
-        this.actionDialog = true;
-      }
-    },
+  const student = this.selectedStudent || {};
+  const messages = {
+    removeFine: `Remove fine for ${student.firstName} ${student.lastName}?`,
+    clearFines: `Mark all fines as paid for ${student.firstName} ${student.lastName}?`,
+    deleteAll: 'Permanently delete all student records? This cannot be undone!',
+    edit: 'Save changes to this student?',
+  };
 
-    async removeFine() {
-      this.deletingFine = this.currentAction.id;
-      try {
-        // Log: Frontend is deleting a fine
-        console.log(`Deleting fine ID: ${this.currentAction.id}`);
-        await StudentService.deleteFine(this.currentAction.id);
-        this.fineDetails = this.fineDetails.filter(f => f._id !== this.currentAction.id);
-        this.dialogTitle = 'Success';
-        this.dialogMessage = 'Fine removed successfully';
-      } catch (error) {
-        console.error('Error:', error);
-        this.dialogTitle = 'Error';
-        this.dialogMessage = 'Failed to remove fine';
-      } finally {
-        this.deletingFine = null;
-        this.actionDialog = true;
-      }
-    },
+  this.dialogTitle = `${actionType.charAt(0).toUpperCase() + actionType.slice(1)} Confirmation`;
+  this.dialogMessage = messages[actionType] || 'Are you sure?';
+  this.actionDialog = true;
+},
 
-    async clearFines() {
-      this.clearingFines = true;
-      try {
-        // Log: Frontend is clearing fines for student
-        console.log(`Clearing fines for student ID: ${this.currentAction.id}`);
-        await StudentService.clearStudentFines(this.currentAction.id);
-        await this.fetchFines(this.selectedStudent._id);
-        this.dialogTitle = 'Success';
-        this.dialogMessage = 'All fines marked as paid';
-      } catch (error) {
-        console.error('Error clearing fines:', error);
-        this.dialogTitle = 'Error';
-        this.dialogMessage = 'Failed to mark fines as paid';
-      } finally {
-        this.clearingFines = false;
-        this.actionDialog = true;
-      }
-    },
+async confirmAction() {
+  this.actionDialog = false;
 
+  if (!this.currentAction || !this.currentAction.type) {
+    console.error('No valid currentAction provided.');
+    this.dialogTitle = 'Error';
+    this.dialogMessage = 'No action was selected or the action is invalid.';
+    this.actionDialog = true; // Reopen dialog only on error
+    return;
+  }
+
+  try {
+    switch (this.currentAction.type) {
+      case 'removeFine':
+        await this.removeFine();
+        break;
+      case 'clearFines':
+        await this.clearFines();
+        break;
+      case 'deleteAll':
+        await this.removeAllStudents();
+        break;
+      case 'edit':
+        await this.saveStudent();
+        break;
+      default:
+        throw new Error(`Unknown action type: ${this.currentAction.type}`);
+    }
+  } catch (error) {
+    console.error('Action failed:', error);
+    this.dialogTitle = 'Error';
+    this.dialogMessage = error.message || 'Action failed. Please try again.';
+    this.actionDialog = true; // Reopen dialog only on error
+  }
+},
+
+async removeFine() {
+  this.deletingFine = this.currentAction.id;
+  try {
+    console.log(`Deleting fine ID: ${this.currentAction.id}`);
+    await StudentService.deleteFine(this.currentAction.id);
+    this.fineDetails = this.fineDetails.filter(f => f._id !== this.currentAction.id);
+
+    this.dialogTitle = 'Success';
+    this.dialogMessage = 'Fine removed successfully';
+    // Do NOT reopen the dialog
+  } catch (error) {
+    console.error('Error removing fine:', error);
+    this.dialogTitle = 'Error';
+    this.dialogMessage = 'Failed to remove fine';
+    this.actionDialog = true; // Only reopen if there's an error
+  } finally {
+    this.deletingFine = null;
+  }
+},
+
+async clearFines() {
+  this.clearingFines = true;
+  try {
+    await StudentService.clearStudentFines(this.currentAction.id);
+    await this.fetchFines(this.selectedStudent.id);
+
+    this.dialogTitle = 'Success';
+    this.dialogMessage = 'All fines marked as paid';
+    // Do NOT reopen the dialog
+  } catch (error) {
+    console.error('Error clearing fines:', error);
+    this.dialogTitle = 'Error';
+    this.dialogMessage = 'Failed to mark fines as paid';
+    this.actionDialog = true; // Only reopen if there's an error
+  } finally {
+    this.clearingFines = false;
+  }
+},
     async removeAllStudents() {
       this.deleteAllDialog = false;
       try {
@@ -550,22 +602,24 @@ export default {
       };
       return colors[status] || 'gray';
     },
-    
-    calculateTotalUnpaidFines() {
-      return this.fineDetails
+     getFineStatusText(fine) {
+      return fine.statusText;
+    },
+      calculateTotalUnpaidFines() {
+      return this.processedFineDetails
         .filter(fine => !fine.paid)
         .reduce((sum, fine) => sum + fine.amount, 0);
     },
     
     viewStudent(student) {
-      if (this.selectedStudent && this.selectedStudent._id === student._id) {
+      if (this.selectedStudent && this.selectedStudent.id === student.id) {
         this.selectedStudent = null;
         this.isEditing = false;
         this.fineDetails = [];
       } else {
         this.selectedStudent = student;
         this.isEditing = false;
-        this.fetchFines(student._id);
+        this.fetchFines(student.id);
       }
     },
     

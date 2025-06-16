@@ -41,5 +41,12 @@ module.exports = (sequelize, DataTypes) => {
     }
     });
 
-    return Student;
+     Student.associate = (models) => {
+    Student.hasMany(models.Fine, {
+      foreignKey: 'student_id',
+      as: 'fines'
+    });
+  };
+
+  return Student;
 };

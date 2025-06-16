@@ -73,6 +73,38 @@ export default {
   
   identifyFingerprint(data) {
     return Api.post('/fingerprint/identify', data);
-  }
+  },
+
+    // Create or update fine (PUT)
+  saveFine(id, data) {
+    return Api.put(`/fines/${id}`, data);
+  },
+
+  // Get fines for a specific event
+  getFinesForEvent(studentId) {
+    return Api.get(`/fines/student/${studentId}`);
+  },
+
+  // Delete fine by ID
+  deleteFine(id) {
+    return Api.delete(`/fines/${id}`);
+  },
+
+// Update these methods
+getAttendanceForEvent(eventId) {
+  return Api.get(`/attendance/${eventId}`);
+},
+
+updateAttendance(data) {
+  return Api.put('/attendance', data);
+},
+
+getStudentFines(studentId) {
+  return Api.get(`/fines/student/${studentId}`);
+},
+
+clearStudentFines(studentId) {
+  return Api.put(`/fines/student/${studentId}/clear`);
+},
 
 };

@@ -43,7 +43,7 @@
                   class="elevation-1 event-table"
                   dark
                   hide-default-header
-                  :loading="loading"
+                 
                 >
                   <template v-slot:item="{ item }">
                     <tr>
