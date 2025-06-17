@@ -40,6 +40,17 @@ const mapCourse = (courseName) => {
 };
 
 module.exports = {
+
+  async clearStudents (req, res) {
+    try {
+      await Student.destroy({ where: {},  cascade: true });
+      return res.json({ success: true, message: 'All students cleared.' });
+    } catch (err) {
+      console.error('[CLEAR STUDENTS ERROR]', err);
+      return res.status(500).json({ success: false, error: 'Failed to clear students.' });
+    }
+},
+  
    async EnrollExist (req, res) {
     const { studentId, enrolled_index_finger_data, enrolled_middle_finger_data } = req.body;
 
@@ -119,7 +130,7 @@ module.exports = {
     console.log('[CREATE STUDENT] Incoming request:', req.body);
 
     const {    
-      course,
+      department,
       enrolled_index_finger_data,
       enrolled_middle_finger_data
     } = req.body;
@@ -160,10 +171,10 @@ module.exports = {
         console.error('[CREATE STUDENT] PHP enrollment failed:', enrolled);
         return res.status(500).json({ success: false, error: 'Fingerprint enrollment failed in PHP backend.' });
       }
-        console.log('[CREATE STUDENT] course value:', course);
+        console.log('[CREATE STUDENT] course value:', department);
       const newStudent = await Student.create({
          ...req.body,
-        department: mapCourse(course),
+        department: mapCourse(department),
         enrolledFMD1: enrolled.enrolled_index_finger,
         enrolledFMD2: enrolled.enrolled_middle_finger,
         idNumber: generateStudentId()

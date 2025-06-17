@@ -59,14 +59,11 @@
 
       <div v-if="identificationResult" class="result-display">
         <div v-if="identificationResult.success" class="success-result">
-          <h3><i class="fas fa-check-circle"></i> Student Identified</h3>
-          <p><strong>Name:</strong> {{ identificationResult.student.fullName }}</p>
-          <p><strong>Department:</strong> {{ identificationResult.student.department }}</p>
-          <p><strong>Year Level:</strong> {{ identificationResult.student.yearLevel }}</p>
-          <p><strong>Status:</strong> {{ identificationResult.student.status }}</p>
+          <h3><i class="fas fa-check-circle"></i> Student Attended</h3>
+         
         </div>
         <div v-else class="error-result">
-          <h3><i class="fas fa-times-circle"></i> Identification Failed</h3>
+          <h3><i class="fas fa-times-circle"></i>Failed, Try Again</h3>
           <p>{{ identificationResult.message || "No matching fingerprint found." }}</p>
         </div>
       </div>

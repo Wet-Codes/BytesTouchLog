@@ -182,6 +182,36 @@ async function checkMatch(sampleFmd, fmd1, fmd2) {
 }
 
 
+// ✅ Define helper function FIRST so it's available in identify2
+async function checkStudentFingerprintMatch(sampleFmd, fmd1, fmd2) {
+  try {
+    const postData = {
+      data: JSON.stringify({
+        pre_enrolled_finger_data: sampleFmd,
+        all_enrolled: [{
+          indexfinger: fmd1 || '',
+          middlefinger: fmd2 || ''
+        }]
+      })
+    };
+
+    const response = await axios.post(
+      'http://localhost:5555/coreComponents/verify.php',
+      qs.stringify(postData),
+      {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        timeout: 5000
+      }
+    );
+
+    return response.data === "match";
+  } catch (err) {
+    console.error('[checkStudentFingerprintMatch ERROR]', err.message);
+    return false;
+  }
+}
+
+// ✅ Then define the identify2 function
 const identify2 = async (req, res) => {
   const { fmd } = req.body;
   console.log('[IDENTIFY] Incoming body:', req.body);
@@ -214,14 +244,9 @@ const identify2 = async (req, res) => {
       console.log('[MATCHED STUDENT]', matchedStudent.firstName, matchedStudent.lastName);
       return res.json({
         success: true,
-        message: 'Student identified successfully',
+        message: 'Student Attended successfully',
         student: {
           id: matchedStudent.id,
-          fullName: `${matchedStudent.firstName} ${matchedStudent.lastName}`,
-          department: matchedStudent.department,
-          yearLevel: matchedStudent.yearLevel,
-          status: matchedStudent.status,
-          enrolledAt: matchedStudent.createdAt
         }
       });
     } else {
@@ -233,35 +258,6 @@ const identify2 = async (req, res) => {
     return res.status(500).json({ success: false, error: 'Identification failed due to server error.' });
   }
 };
-
-// ✅ Properly defined helper function
-async function checkStudentFingerprintMatch(sampleFmd, fmd1, fmd2) {
-  try {
-    const postData = {
-      data: JSON.stringify({
-        pre_enrolled_finger_data: sampleFmd,
-        all_enrolled: [{
-          indexfinger: fmd1 || '',
-          middlefinger: fmd2 || ''
-        }]
-      })
-    };
-
-    const response = await axios.post(
-      'http://localhost:5555/coreComponents/verify.php',
-      qs.stringify(postData),
-      {
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        timeout: 5000
-      }
-    );
-
-    return response.data === "match";
-  } catch (err) {
-    console.error('[checkStudentFingerprintMatch ERROR]', err.message);
-    return false;
-  }
-}
 
 
 

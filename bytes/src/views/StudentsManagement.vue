@@ -155,84 +155,98 @@
                     </v-card>
                   </v-col>
 
-                  <!-- Student Details Panel -->
-                  <v-col v-if="selectedStudent" cols="4">
-                    <v-card class="right-side-card">
-                      <div class="details-header">
-                        <v-card-title class="details-title">
-                          {{ selectedStudent.firstName }} {{ selectedStudent.lastName }}'s Details
-                        </v-card-title>
-                      </div>
-                      <v-card-text>
-                        <!-- Student Info Edit Form -->
-                        <v-form v-if="isEditing" @submit.prevent="saveStudent">
-                          <v-text-field 
-                            v-model="editForm.fname" 
-                            label="First Name" 
-                            outlined 
-                            dense 
-                            class="mb-2"
-                            :rules="[v => !!v || 'First name is required']"
-                          ></v-text-field>
-                          <v-text-field 
-                            v-model="editForm.lname" 
-                            label="Last Name" 
-                            outlined 
-                            dense 
-                            class="mb-2"
-                            :rules="[v => !!v || 'Last name is required']"
-                          ></v-text-field>
-                          <v-text-field 
-                            v-model="editForm.mi" 
-                            label="Middle Initial" 
-                            outlined 
-                            dense 
-                            class="mb-2"
-                          ></v-text-field>
-                          <v-select
-                            v-model="editForm.course"
-                            :items="courses.filter(c => c !== 'All')"
-                            label="Course"
-                            outlined
-                            dense
-                            class="mb-2"
-                            :rules="[v => !!v || 'Course is required']"
-                          ></v-select>
-                          <v-select
-                            v-model="editForm.year"
-                            :items="yearLevels.filter(y => y !== 'All')"
-                            label="Year Level"
-                            outlined
-                            dense
-                            class="mb-2"
-                            :rules="[v => !!v || 'Year level is required']"
-                          ></v-select>
-                          <v-select
-                            v-model="editForm.status"
-                            :items="statusOptions"
-                            label="Status"
-                            outlined
-                            dense
-                            class="mb-2"
-                            :rules="[v => !!v || 'Status is required']"
-                          ></v-select>
-                          <div class="d-flex justify-end">
-                            <v-btn type="submit" color="success" small :loading="savingStudent">Save</v-btn>
-                            <v-btn @click="cancelEdit" small class="ml-2">Cancel</v-btn>
+                 <!-- Update side Card -->
+                      <v-col v-if="selectedStudent" cols="4">
+                        <v-card class="right-side-card">
+                          <div class="details-header">
+                            <v-card-title class="details-title">
+                              {{ selectedStudent.firstName }} {{ selectedStudent.lastName }}'s Details
+                            </v-card-title>
                           </div>
-                        </v-form>
+                          <v-card-text>
+                            <v-form v-if="isEditing && !isStudentLocked(selectedStudent)" @submit.prevent="checkStatusBeforeSave">
+                              <v-text-field v-model="editForm.firstName" label="First Name" outlined dense class="mb-2"></v-text-field>
+                              <v-text-field v-model="editForm.lastName" label="Last Name" outlined dense class="mb-2"></v-text-field>
+                              <v-text-field v-model="editForm.middleInitial" label="Middle Initial" outlined dense class="mb-2"></v-text-field>
+                              <v-select
+                                v-model="editForm.department"
+                                :items="courses.filter(c => c !== 'All')"
+                                label="Course"
+                                outlined
+                                dense
+                                class="mb-2"
+                              ></v-select>
+                              <v-select
+                                v-model="editForm.yearLevel"
+                                :items="yearLevels.filter(y => y !== 'All')"
+                                label="Year Level"
+                                outlined
+                                dense
+                                class="mb-2"
+                              ></v-select>
+                              <v-select
+                                v-model="editForm.status"
+                                :items="statusOptions"
+                                label="Status"
+                                outlined
+                                dense
+                                class="mb-2"
+                              ></v-select>
 
-                        <!-- Student Info Display -->
-                        <template v-else>
-                          <div class="student-info mb-4">
-                            <p><strong>Course:</strong> {{ selectedStudent.department }}</p>
-                            <p><strong>Year Level:</strong> {{ selectedStudent.yearLevel }}</p>
-                            <p><strong>Status:</strong> 
-                              <v-chip small :color="getStatusColor(selectedStudent.status)">{{ selectedStudent.status }}</v-chip>
-                            </p>
-                          </div>
+                              <div class="regular-buttons">
+                                <v-btn type="submit" color="success">Save Changes</v-btn>
+                                <v-btn @click="cancelEdit" class="ml-2">Cancel</v-btn>
+                              </div>
+                            </v-form>
+
+                            <template v-else>
+                              <div class="student-info mb-4">
+                                <p><strong>Course:</strong> {{ selectedStudent.course }}</p>
+                                <p><strong>Year Level:</strong> {{ selectedStudent.year }}</p>
+                                <p><strong>Status:</strong> 
+                                  <v-chip small :color="getStatusColor(selectedStudent.status)">{{ selectedStudent.status }}</v-chip>
+                                </p>
+                              </div>
+
+                              <div v-if="isStudentLocked(selectedStudent)" class="locked-notice mb-4">
+                                <v-alert type="info" dense>
+                                  This student record is locked and cannot be modified.
+                                </v-alert>
+                              </div>
+  <!-- Add Confirmation Dialog -->
+  <v-dialog v-model="confirmDialog" max-width="400">
+    <v-card class="confirm-dialog">
+      <v-card-title class="headline">Warning!</v-card-title>
+      <v-card-text>
+        Changing status to <strong>{{ editForm.status }}</strong> will permanently lock this student record.
+        Are you sure you want to proceed?
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer></v-spacer>
+        <v-btn color="grey" @click="confirmDialog = false">Cancel</v-btn>
+        <v-btn color="red darken-1" @click="confirmAndSave">Yes, Save and Lock</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
 
                           <!-- Fine Details -->
+
+                            <v-dialog v-model="responseDialog" max-width="400" class="response-dialog">
+  <v-card :class="['pa-4', 'response-dialog-card', responseType === 'success' ? 'response-success' : 'response-error']">
+    <v-card-title class="d-flex align-center">
+      <v-icon :color="responseType === 'success' ? 'green' : 'red'" class="mr-2">
+        {{ responseIcon }}
+      </v-icon>
+      <span class="text-h6">{{ responseTitle }}</span>
+    </v-card-title>
+    <v-card-text class="pt-2">
+      <p class="text-body-2">{{ responseMessage }}</p>
+    </v-card-text>
+    <v-card-actions class="justify-end">
+      <v-btn text @click="responseDialog = false">OK</v-btn>
+    </v-card-actions>
+  </v-card>
+</v-dialog>
                           <!-- Updated fine details header -->
 <div class="fine-details-header">
   <span class="col-event">Event</span>
@@ -328,6 +342,10 @@ export default {
   },
   data() {
     return {
+         confirmDialog: false,
+      confirmDialogMessage: '',
+      confirmDialogCallback: null,
+      
       search: '',
       welcomeDialog: false,
       actionDialog: false,
@@ -343,7 +361,7 @@ export default {
         yearLevel: null,
       },
       editForm: {},
-      statusOptions: ['Regular', 'Irregular', 'Shifted', 'Graduated', 'Dropped'],
+      statusOptions: ['Enrolled', 'Graduated', 'Shifted', 'Dropped'],
       fineDetails: [],
       courses: ['All', 'BSIT', 'BSIS', 'BSCS', 
                'BS Information Technology (Network Systems)', 
@@ -367,6 +385,12 @@ export default {
       { text: 'Status', value: 'status', align: 'center', width: '15%' },
       { text: 'Actions', value: 'actions', align: 'center', width: '15%' }
     ],
+       responseDialog: false,
+      responseType: 'success',
+      responseTitle: '',
+      responseMessage: '',
+      responseIcon: '',
+       
       students: [],
       loadingStudents: false,
       loadingFines: false,
@@ -374,6 +398,7 @@ export default {
       clearingFines: false,
       deletingFine: null
     };
+    
   },
   computed: {
      processedFineDetails() {
@@ -419,6 +444,13 @@ export default {
   },
   methods: {
 
+    showResponse(type, title, message) {
+      this.responseType = type;
+      this.responseTitle = title;
+      this.responseMessage = message;
+      this.responseIcon = type === 'success' ? 'mdi-check-circle' : 'mdi-alert-circle';
+      this.responseDialog = true;
+    },
        getFineStatusColor(fine) {
       return fine.statusColor;
     },
@@ -591,11 +623,14 @@ async clearFines() {
         this.actionDialog = true;
       }
     },
-
-    getStatusColor(status) {
+ // 5. HAS CHANGES VALIDATION
+    hasChanges() {
+      const fields = ['firstName', 'lastName', 'middleInitial', 'department', 'yearLevel', 'status'];
+      return fields.some(field => this.editForm[field] !== this.selectedStudent[field]);
+    },
+   getStatusColor(status) {
       const colors = {
-        'Regular': 'green',
-        'Irregular': 'orange',
+        'Enrolled': 'green',
         'Shifted': 'blue',
         'Graduated': 'purple',
         'Dropped': 'red'
@@ -623,40 +658,89 @@ async clearFines() {
       }
     },
     
-    editStudent(student) {
+       editStudent(student) {
+      if (this.isStudentLocked(student)) return;
+      this.isNewStudent = false;
       this.selectedStudent = student;
       this.isEditing = true;
-      this.editForm = { ...student };
+      this.editForm = { 
+        ...student,
+        id: student.id // Ensure ID is copied
+      };
     },
     
-    async saveStudent() {
-      this.savingStudent = true;
+      async saveStudent(shouldLock = false) {
       try {
-        // Log: Frontend is updating student
-        console.log(`Updating student ID: ${this.editForm._id}`, this.editForm);
-        await StudentService.updateStudent(this.editForm._id, this.editForm);
-        await this.fetchStudents();
+        const studentId = this.editForm.id;
+        const payload = {
+          firstName: this.editForm.firstName,
+          lastName: this.editForm.lastName,
+          middleInitial: this.editForm.middleInitial,
+          department: this.editForm.department,
+          yearLevel: this.editForm.yearLevel,
+          status: this.editForm.status
+        };
+
+        const response = await StudentService.updateStudents(studentId, payload);
+        
+        // Update local state
+        this.selectedStudent = response.data;
         this.isEditing = false;
-        this.dialogTitle = 'Success';
-        this.dialogMessage = 'Student updated successfully';
+
+        if (shouldLock) {
+          this.selectedStudent.isLocked = true;
+        }
+
+        this.showResponse(
+          'success',
+          'Student Updated',
+          `Record has been updated.`
+        );
+        
+        await this.fetchStudents();
+        
       } catch (error) {
-        console.error('Update error:', error);
-        this.dialogTitle = 'Error';
-        this.dialogMessage = 'Failed to update student';
-      } finally {
-        this.savingStudent = false;
-        this.actionDialog = true;
+        console.error('Update failed:', error);
+        this.showResponse(
+          'error',
+          'Update Failed',
+          error.response?.data?.message || 'An error occurred during the update.'
+        );
       }
     },
     
     cancelEdit() {
       this.isEditing = false;
     },
-    
+     confirmAndSave() {
+      this.confirmDialog = false;
+      if (this.confirmDialogCallback) {
+        this.confirmDialogCallback();
+      }
+    },
     openUploadDialog() {
       // Implement similar to AccountList if needed
       console.log('Upload dialog would open here');
-    }
+    },
+    
+    checkStatusBeforeSave() {
+      if (!this.hasChanges()) {
+        this.showResponse(
+          'info',
+          'No Changes Detected',
+          'You haven’t made any changes to the student record.'
+        );
+        return;
+      }
+
+      if (['Graduated', 'Shifted', 'Dropped'].includes(this.editForm.status)) {
+        this.confirmDialogMessage = `Changing the status to "${this.editForm.status}" will lock this student. Proceed?`;
+        this.confirmDialogCallback = () => this.saveStudent(true);
+        this.confirmDialog = true;
+      } else {
+        this.saveStudent();
+      }
+    },
   }
 };
 </script>
@@ -668,7 +752,33 @@ async clearFines() {
   background: rgba(0, 0, 0, 0.9);
   color: white;
 }
+.response-dialog-card.response-success {
+  background: rgba(0, 0, 0, 0.7);
+  border-left: 6px solid #4CAF50;
+  color: white;
+  border-radius: 12px;
+}
 
+.response-dialog-card.response-error {
+  background: rgba(0, 0, 0, 0.7);
+  border-left: 6px solid #F44336;
+  color: white;
+  border-radius: 12px;
+}
+
+.response-dialog-card .v-card-title,
+.response-dialog-card .v-card-text,
+.response-dialog-card .v-card-actions {
+  color: white !important;
+}
+
+.response-dialog-card .v-btn--text {
+  color: #90caf9 !important;
+}
+
+.v-dialog.response-dialog > .v-overlay__content {
+  backdrop-filter: blur(6px);
+}
 .page-title {
   color: white;
   text-align: center;
@@ -676,7 +786,24 @@ async clearFines() {
   font-size: 2rem;
   margin-top: 20px;
 }
+.confirm-dialog {
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+}
 
+.confirm-dialog .headline {
+  color: #FF5252;
+  font-weight: bold;
+}
+
+.confirm-dialog .v-card__text {
+  font-size: 1.1rem;
+  padding: 20px;
+}
+
+.confirm-dialog .v-card__actions {
+  padding: 16px;
+}
 .table-title {
   color: white;
   font-size: 2rem;

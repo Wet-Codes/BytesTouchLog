@@ -501,11 +501,13 @@
                   dark
                 ></v-data-table>
               </v-card-text>
-              <v-card-actions>
-                <v-spacer></v-spacer>
-                <v-btn color="primary" @click="uploadStudents">Upload</v-btn>
-                <v-btn text @click="uploadDialog = false">Cancel</v-btn>
-              </v-card-actions>
+             <v-card-actions>
+  <v-spacer></v-spacer>
+  <v-btn color="error" @click="clearStudentTable">Clear Table</v-btn>
+  <v-btn color="primary" @click="uploadStudents">Upload</v-btn>
+  <v-btn text @click="uploadDialog = false">Cancel</v-btn>
+</v-card-actions>
+              
             </v-card>
           </v-dialog>
 
@@ -779,6 +781,18 @@ export default {
   },
 
   methods: {
+    async clearStudentTable() {
+      if (!confirm('Are you sure you want to delete all students? This action is irreversible.')) return;
+
+      try {
+        await Auth.clearStudents();
+        this.uploadPreview = []; // optional: reset local preview
+        alert('All student records have been cleared.');
+      } catch (err) {
+        console.error('[CLEAR STUDENTS ERROR]', err);
+        alert('Failed to clear student table.');
+      }
+    },
 
     navigateTo(route) {
       this.$router.push({ name: route });

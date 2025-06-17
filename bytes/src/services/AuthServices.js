@@ -49,7 +49,9 @@ export default {
     throw error;
   });
 },
-
+  clearStudents() {
+  return Api.delete('/students/clear');
+},
   updateStudents(id, userData) {
   return Api.put(`/students/${id}/api`, userData);
 },
