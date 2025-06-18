@@ -283,6 +283,8 @@
 <script>
 import PageHeader from '@/components/CustomHeader2.vue';
 import apiService from '@/services/AuthServices';
+import scanSound from '../assets/scan-beep.mp3';
+import successSound from '../assets/success-sound.mp3';
 
 export default {
   components: {
@@ -290,6 +292,8 @@ export default {
   },
   data() {
     return {
+       scanAudio: null,
+      successAudio: null,
       backgroundImage: "https://cdn.vuetifyjs.com/images/backgrounds/vbanner.jpg",
       filter: {
         course: null,
@@ -366,6 +370,8 @@ export default {
     }
   },
   async mounted() {
+    this.scanAudio = new Audio(scanSound);
+    this.successAudio = new Audio(successSound);
     try {
       if (!window.Fingerprint?.WebApi) throw new Error("Fingerprint SDK not available");
       console.log("✅ SDK available");
@@ -401,6 +407,17 @@ export default {
     await this.fetchStudents();
   },
   methods: {
+  playSuccessSound() {
+      if (this.successAudio) {
+        this.successAudio.play().catch(e => console.log("Sound play error", e));
+      }
+    },
+    playScanSound() {
+      if (this.scanAudio) {
+        this.scanAudio.currentTime = 0;
+        this.scanAudio.play().catch(e => console.log("Sound play error", e));
+      }
+    },
     getAttendanceClass(student) {
       const status = this.attendanceRecords[student.id];
       if (status === 'present') return 'present-row';
@@ -590,6 +607,7 @@ export default {
     
     async handleFingerprintSample(event) {
   try {
+    this.playScanSound();
     this.isScanning = false;
     this.fingerprintStatusMessage = "Processing fingerprint...";
 
@@ -600,6 +618,7 @@ export default {
     const response = await apiService.identifyFingerprint2({ fmd: base64Sample });
 
     if (response.data.success) {
+           this.playSuccessSound();
       const student = this.students.find(s => s.id === response.data.student.id);
 
       if (student) {
@@ -647,15 +666,20 @@ export default {
 ,
     
     closeFingerprintDialog() {
-      this.fingerprintDialog = false;
-      this.isScanning = false;
-      this.identificationResult = null;
-      
-      // Stop acquisition if active
-      if (this.reader && this.reader.isAcquisitionStarted) {
-        this.reader.stopAcquisition();
-      }
-    },
+  this.fingerprintDialog = false;
+  this.isScanning = false;
+  this.identificationResult = null;
+
+  // Stop acquisition if active
+  if (this.reader && this.reader.isAcquisitionStarted) {
+    this.reader.stopAcquisition();
+  }
+
+  // 🔃 Refresh the page after a short delay (optional)
+  setTimeout(() => {
+    window.location.reload();
+  }, 500); // delay lets dialog finish closing nicely
+},
   
 
   }

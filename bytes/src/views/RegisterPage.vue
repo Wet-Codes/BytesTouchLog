@@ -211,6 +211,8 @@
           color="white"
         ></v-select>
 
+
+
         <!-- Fingerprint Section -->
         <div class="mt-4 fingerprint-section">
           <v-alert
@@ -282,6 +284,30 @@
     </v-card-actions>
   </v-card>
 </v-dialog>
+
+       <div v-if="fingerprintLoading" class="fingerprint-display">
+    <div class="progress-container">
+      <div class="progress-bar" :style="{ width: fingerprintProgress + '%' }"></div>
+      <span class="progress-text">{{ Math.round(fingerprintProgress) }}% Complete</span>
+    </div>
+    
+    <p class="scan-progress">
+      Scan {{ enrollScanStep + 1 }}/4 for {{ currentEnrollFinger }} finger
+    </p>
+    
+    <div class="fingerprint-animation">
+      <div class="fingerprint-icon" :class="{ scanning: isScanning }">
+        <i class="fas fa-fingerprint"></i>
+      </div>
+      <div class="loading-dots" v-if="isScanning">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </div>
+    
+    <p class="status-message">{{ fingerprintMessage }}</p>
+  </div>
 
       <v-dialog v-model="uploadDialog" max-width="600" dark>
         <v-card class="upload-dialog dark-card">
@@ -357,6 +383,8 @@
 </template>
 
 <script>
+import scanSound from '../assets/scan-beep.mp3';
+import successSound from '../assets/success-sound.mp3';
 import PageHeader from '@/components/CustomHeader2.vue';
 import Auth from '@/services/AuthServices.js';
 
@@ -369,6 +397,8 @@ export default {
       availableReaders: [],
       reader: null,
       readers: [],
+       scanAudio: null,
+      successAudio: null,
       selectedReader: null,
       enrollmentStarted: false,
       enrollScanStep: 0,
@@ -425,6 +455,8 @@ export default {
     };
   },
   async mounted() {
+      this.scanAudio = new Audio(scanSound);
+    this.successAudio = new Audio(successSound);
     await this.fetchStudents();
     try {
       if (!window.Fingerprint?.WebApi) throw new Error("Fingerprint SDK not available");
@@ -666,7 +698,7 @@ export default {
       this.middleFingerSamples = [];
       this.currentEnrollFinger = 'index';
       this.enrollmentStarted = true;
-      this.statusMessage = 'Starting enrollment... Scan 1/4 for index finger';
+      this.statusMessage = 'Starting enrollment... Scan 0/4 for index finger';
       this.fingerprintProgress = 0;
 
       try {
@@ -692,7 +724,7 @@ export default {
         if (this.currentEnrollFinger === 'index') {
           this.currentEnrollFinger = 'middle';
           this.enrollScanStep = 0;
-          this.statusMessage = 'Now scan 1/4 for middle finger';
+          this.statusMessage = 'Now scan 0/4 for middle finger';
         } else {
           await this.reader.stopAcquisition();
           this.enrollmentStarted = false;
@@ -703,6 +735,7 @@ export default {
         
       }
     },
+    
   async startFingerprintProcess() {
   if (!this.readers || !this.selectedReader) {
     this.showResponse('Try again', 'No reader selected', 'Please Select a reader');
@@ -804,10 +837,23 @@ export default {
     await this.safeStopAcquisition?.();
     this.resetFingerprintState();
   }
-
+      this.isScanning = true;
+      // Play scan sound
+      this.playScanSound();
   
 },
-
+ playScanSound() {
+      if (this.scanAudio) {
+        this.scanAudio.currentTime = 0;
+        this.scanAudio.play().catch(e => console.log("Sound play error", e));
+      }
+    },
+    
+    playSuccessSound() {
+      if (this.successAudio) {
+        this.successAudio.play().catch(e => console.log("Sound play error", e));
+      }
+    },
 resetFingerprintState() {
       this.fingerprintLoading = false;
       this.fingerprintProgress = 0;
@@ -1081,5 +1127,103 @@ body {
     min-width: 70px;
     font-size: 0.7rem;
   }
+}
+
+.fingerprint-display {
+  text-align: center;
+  margin-top: 1.5rem;
+}
+
+.scan-progress {
+  font-weight: 600;
+  font-size: 1.1rem;
+  margin-bottom: 1.5rem;
+  color: #4fc3f7;
+}
+
+.progress-container {
+  width: 100%;
+  height: 20px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  margin-bottom: 1.5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background-color: #28a745;
+  border-radius: 10px;
+  transition: width 0.5s ease;
+}
+
+.progress-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.fingerprint-animation {
+  margin: 2rem 0;
+  position: relative;
+}
+
+.fingerprint-icon {
+  font-size: 5rem;
+  color: #4fc3f7;
+  transition: all 0.3s ease;
+}
+
+.fingerprint-icon.scanning {
+  color: #28a745;
+  animation: pulse 1.5s infinite;
+}
+
+.loading-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 1rem;
+}
+
+.loading-dots span {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: #4fc3f7;
+  animation: bounce 1.4s infinite ease-in-out;
+}
+
+.loading-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.loading-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+.status-message {
+  text-align: center;
+  margin-top: 1.5rem;
+  font-weight: 500;
+  color: #fff;
+  font-size: 1rem;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.1); opacity: 0.8; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes bounce {
+  0%, 80%, 100% { transform: scale(0); }
+  40% { transform: scale(1); }
 }
 </style>
