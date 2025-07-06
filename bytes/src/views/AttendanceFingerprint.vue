@@ -9,7 +9,8 @@
               <v-card-title class="d-flex justify-space-between align-center flex-wrap">
                 <h1 class="table-title">ATTENDANCE MANAGEMENT</h1>
                 <div class="d-flex align-center flex-wrap" style="gap: 12px;">
-                <v-select
+       
+                  <v-select
                     v-model="selectedReader"
                     :items="readers"
                     item-title="name"
@@ -79,44 +80,60 @@
               <v-card-text>
                 <v-row>
                   <v-col cols="12">
-                    <v-card class="student-list-card">
+                    <v-card class="student-list-card"
+                    
+  >
                       <v-card-text>
-                        <v-row class="mb-1" align="center">
-                          <v-col cols="12" class="d-flex">
-                            <v-col cols="4">
-                              <v-select
-                                v-model="selectedEvent"
-                                :items="events"
-                                label="Select Event"
-                                outlined
-                                dense
-                                dark
-                                return-object
-                                :item-title="event => event.name + ' (' + formatDate(event.date) + ')'"
-                              ></v-select>
-                            </v-col>
-                            <v-col cols="4">
-                              <v-select
-                                v-model="filter.course"
-                                :items="courses"
-                                label="Select Course"
-                                outlined
-                                dense
-                                dark
-                              />
-                            </v-col>
-                            <v-col cols="4">
-                              <v-select
-                                v-model="filter.yearLevel"
-                                :items="yearLevels"
-                                label="Select Year Level"
-                                outlined
-                                dense
-                                dark
-                              />
-                            </v-col>
-                          </v-col>
-                        </v-row>
+                        <v-row class="mb-1" align="center" dense>
+  <!-- Row for the 3 dropdown filters -->
+  <v-col cols="12" sm="4">
+    <v-select
+      v-model="selectedEvent"
+      :items="events"
+      label="Select Event"
+      outlined
+      dense
+      dark
+      return-object
+      :item-title="event => event.name + ' (' + formatDate(event.date) + ')'">
+    </v-select>
+  </v-col>
+
+  <v-col cols="12" sm="4">
+    <v-select
+      v-model="filter.course"
+      :items="courses"
+      label="Select Course"
+      outlined
+      dense
+      dark
+    />
+  </v-col>
+
+  <v-col cols="12" sm="4">
+    <v-select
+      v-model="filter.yearLevel"
+      :items="yearLevels"
+      label="Select Year Level"
+      outlined
+      dense
+      dark
+    />
+  </v-col>
+
+  <!-- 🔍 Search Input Below Filters -->
+  <v-col cols="12">
+    <v-text-field
+      v-model="searchQuery"
+      label="Search Name"
+      prepend-inner-icon="mdi-magnify"
+      dense
+      outlined
+      dark
+      clearable
+    />
+  </v-col>
+</v-row>
 
                         <div class="student-list-header">
                           <span class="col-fname">First Name</span>
@@ -292,6 +309,7 @@ export default {
   },
   data() {
     return {
+    searchQuery: '',
        scanAudio: null,
       successAudio: null,
       backgroundImage: "https://cdn.vuetifyjs.com/images/backgrounds/vbanner.jpg",
@@ -349,14 +367,25 @@ export default {
         padding: '20px 0'
       };
     },
-    filteredStudents() {
-      return this.students.filter((student) => {
-        return (
-          (this.filter.department === 'All' || !this.filter.department || student.department === this.filter.department) &&
-          (this.filter.yearLevel === 'All' || !this.filter.yearLevel || student.yearLevel === this.filter.yearLevel)
-        );
-      });
+
+    search() {
+    
+    if (!this.searchQuery) return this.students;
+    const query = this.searchQuery.toLowerCase();
+    return this.students.filter(s =>
+      s.firstName.toLowerCase().includes(query) ||
+      s.lastName.toLowerCase().includes(query)
+    )
     },
+    filteredStudents() {
+    const query = this.searchQuery.toLowerCase();
+    return this.students.filter(student => {
+      const matchName = `${student.firstName} ${student.lastName}`.toLowerCase().includes(query);
+      const matchCourse = !this.filter.course || student.department === this.filter.course;
+      const matchYear = !this.filter.yearLevel || student.yearLevel === this.filter.yearLevel;
+      return matchName && matchCourse && matchYear;
+    });
+  },
     // Calculate page count for pagination
     pageCount() {
       return Math.ceil(this.filteredStudents.length / this.itemsPerPage);
@@ -628,7 +657,7 @@ export default {
           success: true,
           name: `${student.firstName} ${student.lastName}`
         };
-        this.fingerprintStatusMessage = `✅ ${this.identificationResult.name} marked present!`;
+        this.fingerprintStatusMessage = `✅ ${this.identificationResult.name} MARKED`;
       } else {
         this.identificationResult = {
           success: false,

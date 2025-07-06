@@ -285,29 +285,7 @@
   </v-card>
 </v-dialog>
 
-       <div v-if="fingerprintLoading" class="fingerprint-display">
-    <div class="progress-container">
-      <div class="progress-bar" :style="{ width: fingerprintProgress + '%' }"></div>
-      <span class="progress-text">{{ Math.round(fingerprintProgress) }}% Complete</span>
-    </div>
-    
-    <p class="scan-progress">
-      Scan {{ enrollScanStep + 1 }}/4 for {{ currentEnrollFinger }} finger
-    </p>
-    
-    <div class="fingerprint-animation">
-      <div class="fingerprint-icon" :class="{ scanning: isScanning }">
-        <i class="fas fa-fingerprint"></i>
-      </div>
-      <div class="loading-dots" v-if="isScanning">
-        <span></span>
-        <span></span>
-        <span></span>
-      </div>
-    </div>
-    
-    <p class="status-message">{{ fingerprintMessage }}</p>
-  </div>
+      
 
       <v-dialog v-model="uploadDialog" max-width="600" dark>
         <v-card class="upload-dialog dark-card">
@@ -343,15 +321,24 @@
             <v-icon x-large class="mb-4 fingerprint-icon">mdi-fingerprint</v-icon>
             <p class="fingerprint-message">{{ fingerprintMessage }}</p>
             
-            <v-progress-linear
-              v-if="fingerprintLoading"
-              :value="fingerprintProgress"
-              height="25"
-              color="teal"
-              class="mt-4"
-            >
-              <strong>{{ fingerprintProgress }}%</strong>
-            </v-progress-linear>
+            <div v-if="fingerprintLoading" class="fingerprint-display">
+    <div class="progress-container">
+      <div class="progress-bar" :style="{ width: fingerprintProgress + '%' }"></div>
+      <span class="progress-text">{{ Math.round(fingerprintProgress) }}% Complete</span>
+    </div>
+    
+ 
+    
+    <div class="fingerprint-animation">
+      <div class="loading-dots" v-if="isScanning">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </div>
+    
+    
+  </div>
 
             <v-btn 
               v-else
@@ -410,7 +397,7 @@ export default {
       fingerprintDialog: false,
       fingerprintStudent: {},
       fingerprintLoading: false,
-      fingerprintMessage: 'Ready to enroll fingerprint',
+      fingerprintMessage: 'Enrolling Fingerprint Requires 8 scans',
       fingerprintProgress: 0,
 
       backgroundImage: "https://cdn.vuetifyjs.com/images/backgrounds/vbanner.jpg",
@@ -583,7 +570,7 @@ export default {
       this.fingerprintStudent = { ...student };
       this.fingerprintDialog = true;
       this.fingerprintLoading = false;
-      this.fingerprintMessage = 'Ready to enroll fingerprint';
+      this.fingerprintMessage = 'Enrolling Fingerprint Requires 8 scans';
       this.fingerprintProgress = 0;
     },
     completeFingerprintEnrollment() {
@@ -752,7 +739,7 @@ export default {
   this.indexFingerSamples = [];
   this.middleFingerSamples = [];
   this.currentEnrollFinger = 'index';
-  this.fingerprintMessage = 'Starting fingerprint enrollment...';
+  this.fingerprintMessage = 'MAKE SURE TO KEEP YOUR FINGER CONSISTENTLY FLAT FACE ON THE READER';
   this.fingerprintProgress = 0;
 
   try {
@@ -781,13 +768,13 @@ export default {
         : this.enrollScanStep + 4;
 
       this.fingerprintProgress = Math.floor((totalScans / 8) * 100);
-      this.fingerprintMessage = `Scan ${this.enrollScanStep}/4 for ${this.currentEnrollFinger} finger`;
+      this.fingerprintMessage = `Scan ${this.enrollScanStep}/4 for this finger `;
 
       if (this.enrollScanStep === 4) {
         if (this.currentEnrollFinger === 'index') {
           this.currentEnrollFinger = 'middle';
           this.enrollScanStep = 0;
-          this.fingerprintMessage = 'Now scan 1/4 for middle finger';
+          this.fingerprintMessage = 'Now scan 0/4 for this finger';
         } else {
           try {
             await reader.stopAcquisition();
@@ -816,9 +803,9 @@ export default {
               this.resetFingerprintState();
               return;
             }
-
+           
             this.showResponse('success', 'Enrollment Complete', 'Fingerprint enrolled successfully.');
-            await this.fetchStudents();
+            await this.fetchStudents(); this.completeFingerprintEnrollment();
           } catch (error) {
             const message = error.response?.data?.message || 'Registration failed due to server error';
             this.showResponse('error', 'Error', message);
@@ -826,7 +813,7 @@ export default {
  await this.fetchStudents();
 
           // ✅ Final cleanup
-          this.completeFingerprintEnrollment();
+         
           this.resetFingerprintState();
           this.resetForm();
         }
