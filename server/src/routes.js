@@ -9,6 +9,8 @@ const authMiddleware = require('./middlewares/authMiddleware');
 const adminMiddleware = require('./middlewares/adminMiddleware');
 const fineController = require('./controllers/FineController')
 const HistoryController = require('./controllers/HistoryController');
+const NoteController = require('./controllers/NoteController');
+
 
 const app = express();
 
@@ -121,4 +123,24 @@ app.put('/attendance', fineController.updateAttendance);
 
 app.get('/fines/student/:studentId', fineController.getStudentFines);
 app.put('/fines/student/:studentId/clear', fineController.clearStudentFines);
+
+
+//Notes
+
+app.post('/api/notes', 
+  authMiddleware,
+  NoteController.createNote
+);
+
+app.get('/api/notes', 
+  authMiddleware,
+  NoteController.getAllNotes
+);
+
+app.post('/api/notes/mark-read', 
+  authMiddleware,
+  NoteController.markAsRead
+);
+
+
 }

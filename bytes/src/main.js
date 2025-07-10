@@ -8,6 +8,7 @@ import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
 import store from './store'
+import socketPlugin from './services/socket';
 
 /*es */
 const vuetify = createVuetify({
@@ -15,4 +16,4 @@ const vuetify = createVuetify({
     directives,
   })
 
-createApp(App).use(store).use(router).use(vuetify).mount('#app')
+createApp(App).use(socketPlugin).use(store).use(router).use(vuetify).mount('#app')

@@ -134,4 +134,17 @@ clearStudentFines(studentId) {
   return Api.put(`/fines/student/${studentId}/clear`);
 },
 
+//Note
+createNote(content) {
+  return Api.post('/api/notes', { content });
+},
+
+getNotes() {
+  return Api.get('/api/notes');
+},
+
+markNotesRead() {
+  return Api.post('/api/notes/mark-read');
+}
+
 };

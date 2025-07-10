@@ -188,7 +188,9 @@ export default {
       search: '',
       passwordConfirmDialog: false,
       editForm: {
-        
+          id: null,
+           role: '',
+        status: '',
         newPassword: ''
       },
       statusOptions: ['Active', 'Inactive'],
@@ -199,6 +201,7 @@ export default {
   { text: 'Status', value: 'status', align: 'center', width: '20%' },
   { text: 'Actions', value: 'actions', align: 'center', width: '30%', sortable: false }
 ],
+
       accounts: []
     };
   },
@@ -335,52 +338,53 @@ export default {
     },
 
     editAccount(account) {
-      this.selectedAccount = account;
-      this.editForm = { 
-        ...account,
-        currentPassword: '',
-        newPassword: ''
-      };
-    },
+  this.selectedAccount = account;
+  this.editForm = { 
+    id: account.id,
+    role: account.role,
+    status: account.isEnabled ? 'Active' : 'Inactive',
+    newPassword: ''
+  };
+},
 
-    async saveAccount() {
-    try {
-      const hasChanges = Object.keys(this.editForm).some(key => {
-      if (key === 'currentPassword' || key === 'newPassword') return false;
-      return this.editForm[key] !== this.selectedAccount[key];
-    });
+
+    
+async saveAccount() {
+  try {
+    const hasChanges = (
+      this.editForm.role !== this.selectedAccount.role ||
+      this.editForm.status !== (this.selectedAccount.isEnabled ? 'Active' : 'Inactive')
+    );
 
     if (!hasChanges && !this.editForm.newPassword) {
       this.dialogTitle = 'No Changes';
       this.dialogMessage = 'No changes detected to save.';
       return;
     }
-      console.log(this.editForm.id)
-      console.log(this.editForm.newPassword)
-       
-      const payload = { 
+
+    const payload = { 
       id: this.editForm.id,
+      role: this.editForm.role,
+      isEnabled: this.editForm.status === 'Active',
       password: this.editForm.newPassword || undefined
-};
-     console.log(payload.password)
-     
-      await AccountService.updateAccount(payload);
-      await this.loadAccounts();
-     this.dialogTitle = 'Success';
-     this.dialogMessage = 'Account updated successfully.';
-     //this.actionDialog = true;
-      
-      this.passwordConfirmDialog = false;
-      this.cancelEdit();
-    } catch (error) {
+    };
+
+    await AccountService.updateAccount(payload);
+    await this.loadAccounts();
+
+    this.dialogTitle = 'Success';
+    this.dialogMessage = 'Account updated successfully.';
+    this.passwordConfirmDialog = false;
+    this.cancelEdit();
+  } catch (error) {
     console.error('Error updating account:', error);
     this.dialogTitle = 'Error';
     this.dialogMessage = 'Failed to update account.';
-    //this.actionDialog = true;
   } finally {
     this.cancelEdit();
   }
 },
+
 
      showConfirmation() {
     if (this.editForm.newPassword) {
@@ -392,11 +396,14 @@ export default {
 
 
     cancelEdit() {
-      this.selectedAccount = null;
-      this.editForm = {
-        newPassword: ''
-      };
-    },
+  this.selectedAccount = null;
+  this.editForm = {
+    id: null,
+    role: '',
+    status: '',
+    newPassword: ''
+  };
+},
 
     
 

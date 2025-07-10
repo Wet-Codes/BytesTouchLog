@@ -39,7 +39,12 @@ const User = sequelize.define('User', {
         type: DataTypes.BOOLEAN,
         defaultValue: true,
         allowNull: false
-    }
+    },
+    lastNoteReadAt: {
+  type: DataTypes.DATE,
+  defaultValue: DataTypes.NOW
+}
+    
 }, {
     hooks: {
         beforeCreate: hashPassword,
