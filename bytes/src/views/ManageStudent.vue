@@ -352,9 +352,9 @@
 
                             <template v-else>
                               <div class="student-info mb-4">
-                                <p><strong>Course:</strong> {{ selectedStudent.course }}</p>
-                                <p><strong>Year Level:</strong> {{ selectedStudent.year }}</p>
-                                <p><strong>Status:</strong> 
+                                <p><strong>Course:    </strong> {{ selectedStudent.department }}</p>
+                                <p><strong>Year Level:</strong> {{ selectedStudent.yearLevel }}</p>
+                                <p><strong>Status:    </strong> 
                                   <v-chip small :color="getStatusColor(selectedStudent.status)">{{ selectedStudent.status }}</v-chip>
                                 </p>
                               </div>
@@ -369,88 +369,78 @@
                               <!-- Fine Side Card -->
 
                               <div class="fine-details-header">
-                                <span class="col-event">Event</span>
-                                <span class="col-semester">Semester</span>
-                                <span class="col-fine">Fine Amount</span>
-                                <span class="col-date">Date</span>
-                                <span class="col-actions">Actions</span>
-                              </div>
-                              <v-data-table
-                                :headers="fineDetailsHeaders"
-                                :items="fineDetails"
-                                :hide-default-footer="true"
-                                class="elevation-1 fine-details-table"
-                                dark
-                                hide-default-header
-                              >
-                                <template v-slot:item="{ item }">
-                                  <tr>
-                                    <td class="col-event">
-                                      <v-edit-dialog
-                                        v-model="item.event"
-                                        @save="updateFineDetail"
-                                        large
-                                        :disabled="isStudentLocked(selectedStudent)"
-                                      >
-                                        {{ item.event }}
-                                        <template v-slot:input>
-                                          <v-text-field
-                                            v-model="item.event"
-                                            label="Edit"
-                                            single-line
-                                          ></v-text-field>
-                                        </template>
-                                      </v-edit-dialog>
-                                    </td>
-                                    <td class="col-semester">
-                                      {{ item.semester }}
-                                    </td>
-                                    <td class="col-fine">
-                                      <v-edit-dialog
-                                        v-model="item.fine"
-                                        @save="updateFineDetail"
-                                        large
-                                        :disabled="isStudentLocked(selectedStudent)"
-                                      >
-                                        {{ item.fine }}
-                                        <template v-slot:input>
-                                          <v-text-field
-                                            v-model="item.fine"
-                                            label="Edit"
-                                            single-line
-                                            type="number"
-                                            prefix="₱"
-                                          ></v-text-field>
-                                        </template>
-                                      </v-edit-dialog>
-                                    </td>
-                                    <td class="col-date">
-                                      {{ formatDate(item.date) }}
-                                    </td>
-                                    <td class="col-actions">
-                                      <v-btn 
-                                        x-small 
-                                        color="error" 
-                                        @click="removeFine(item)"
-                                        :disabled="isStudentLocked(selectedStudent)"
-                                      >
-                                        Remove
-                                      </v-btn>
-                                    </td>
-                                  </tr>
-                                </template>
-                              </v-data-table>
-                              <div class="total-fines">
-                                <strong>Total Fines: {{ calculateTotalFines() }}</strong>
-                              </div>
-                              <v-btn 
-                                color="success" 
-                                class="paid-btn mt-2"
-                                @click="clearFines"
-                                :disabled="fineDetails.length === 0 || isStudentLocked(selectedStudent)"
-                              >
-                                Mark All as Paid
-                              </v-btn>
+  <span class="col-event">Event</span>
+  <span class="col-date">Date</span>
+  <span class="col-amount">Amount Due</span>
+  <span class="col-status">Status</span>
+  <span class="col-actions">Actions</span>
+</div>
+
+<v-alert 
+  v-if="fineDetails.length === 0 && !loadingFines" 
+  type="info"
+  class="my-4"
+>
+  No fine records found for this student
+</v-alert>
+ 
+   <v-data-table
+    :headers="fineDetailsHeaders"
+    :items="processedFineDetails" 
+    hide-default-footer
+    class="elevation-1 fine-details-table"
+    dark
+    hide-default-header
+    :loading="loadingFines"
+  >
+    <template #[`item.event`]="{ item }">
+      {{ item.event?.name || 'N/A' }}
+    </template>
+    
+    <template #[`item.date`]="{ item }">
+      {{ formatDate(item.event?.date) }}
+    </template>    
+    <template #[`item.amount`]="{ item }">
+      <span :class="{'red--text': item.status === 'absent' && !item.paid}">
+        ₱{{ (item.status === 'absent' ? (item.event?.fee || 0) : 0).toFixed(2) }}
+      </span>
+    </template>
+    
+    <template #[`item.status`]="{ item }">
+      <v-chip small :color="getFineStatusColor(item)">
+        {{ getFineStatusText(item) }}
+      </v-chip>
+    </template>
+    
+    <template #[`item.actions`]="{ item }">
+      <v-btn 
+        x-small 
+        color="error" 
+        @click="initiateAction('removeFine', item)"
+        :loading="deletingFine === item.id"
+        :disabled="item.paid"
+      >
+        Remove
+      </v-btn>
+    </template>
+  </v-data-table>
+  
+  <div class="total-fines">
+    <strong>Total Unpaid Fines: ₱{{ calculateTotalUnpaidFines().toFixed(2) }}</strong>
+  </div>
+                          <div class="d-flex mt-4">
+                            <v-btn 
+                              color="success" 
+                              class="paid-btn"
+                              @click="initiateAction('clearFines', selectedStudent)"
+                              :disabled="fineDetails.length === 0 || !hasUnpaidFines"
+                              :loading="clearingFines"
+                            >
+                              Mark All as Paid
+                            </v-btn>
+                          </div>
+
+
                             </template>
                           </v-card-text>
                         </v-card>
@@ -644,6 +634,7 @@ export default {
       selectedStudent: null,
       isEditing: false,
       students: [],
+
       editForm: {
         firstName: '',
         lastName: '',
@@ -767,6 +758,20 @@ export default {
            student.year.toLowerCase().includes(this.search.toLowerCase()))
         );
       });
+    },
+processedFineDetails() {
+      return this.fineDetails
+        .filter(fine => fine.status === 'absent')  // Only show absent fines
+        .map(fine => ({
+          ...fine,
+          amount: fine.event?.fee || 0,
+          statusText: fine.paid ? 'Paid' : 'Unpaid',
+          statusColor: fine.paid ? 'blue' : 'red'
+        }));
+    },
+
+    hasUnpaidFines() {
+      return this.fineDetails.some(fine => fine.status === 'absent' && !fine.paid);
     },
 
     backgroundStyle() {
@@ -1212,28 +1217,42 @@ console.log(studentPayload)
       this.fingerprintDialog = false;
     },
 
-    clearFines() {
-      this.fineDetails = [];
-      if (this.$toast) {
-        this.$toast.success(`${this.selectedStudent.fname} ${this.selectedStudent.lname}'s fines have been marked as paid!`);
-      }
+    async clearFines() {
+  this.clearingFines = true;
+  try {
+    await Auth.clearStudentFines(this.currentAction.id);
+    await this.fetchFines(this.selectedStudent.id);
+
+    this.dialogTitle = 'Success';
+    this.dialogMessage = 'All fines marked as paid';
+    // Do NOT reopen the dialog
+  } catch (error) {
+    console.error('Error clearing fines:', error);
+    this.dialogTitle = 'Error';
+    this.dialogMessage = 'Failed to mark fines as paid';
+    this.actionDialog = true; // Only reopen if there's an error
+  } finally {
+    this.clearingFines = false;
+  }
+},
+    calculateTotalUnpaidFines() {
+      return this.processedFineDetails
+        .filter(fine => !fine.paid)
+        .reduce((sum, fine) => sum + fine.amount, 0);
     },
-    calculateTotalFines() {
-      const total = this.fineDetails.reduce((sum, item) => {
-        return sum + parseFloat(item.fine.replace('₱', ''));
-      }, 0);
-      return `₱${total.toFixed(2)}`;
+    getFineStatusText(fine) {
+      return fine.statusText;
     },
+
     viewFine(student) {
-      if (this.selectedStudent && this.selectedStudent.id === student.id) {
+       if (this.selectedStudent && this.selectedStudent.id === student.id) {
         this.selectedStudent = null;
         this.isEditing = false;
-        this.isNewStudent = false;
+        this.fineDetails = [];
       } else {
         this.selectedStudent = student;
         this.isEditing = false;
-        this.isNewStudent = false;
-        this.fineDetails = this.generateMockFineDetails();
+        this.fetchFines(student.id);
       }
     },
     updateFineDetail() {
@@ -1241,39 +1260,100 @@ console.log(studentPayload)
         this.$toast.success('Fine updated successfully');
       }
     },
-    removeFine(fine) {
+
+    async removeFine() {
+  this.deletingFine = this.currentAction.id;
+  try {
+    console.log(`Deleting fine ID: ${this.currentAction.id}`);
+    await Auth.deleteFine(this.currentAction.id);
+    this.fineDetails = this.fineDetails.filter(f => f._id !== this.currentAction.id);
+
+    this.dialogTitle = 'Success';
+    this.dialogMessage = 'Fine removed successfully';
+    // Do NOT reopen the dialog
+  } catch (error) {
+    console.error('Error removing fine:', error);
+    this.dialogTitle = 'Error';
+    this.dialogMessage = 'Failed to remove fine';
+    this.actionDialog = true; // Only reopen if there's an error
+  } finally {
+    this.deletingFine = null;
+  }
+},
+    
+   async fetchFines(studentId) {
+      this.loadingFines = true;
       try {
-        this.fineDetails = this.fineDetails.filter(f => f !== fine);
-        if (this.$toast) {
-          this.$toast.success('Fine removed successfully');
-        }
+        const response = await Auth.getStudentFines(studentId);
+        console.log('Fines data:', response.data); // Add this
+        this.fineDetails = response.data;
       } catch (error) {
-        console.error('Error removing fine:', error);
-        if (this.$toast) {
-          this.$toast.error('Failed to remove fine');
-        }
+        console.error('Error fetching fines:', error);
+        this.dialogTitle = 'Error';
+        this.dialogMessage = 'Failed to load fines';
+        this.actionDialog = true;
+      } finally {
+        this.loadingFines = false;
       }
     },
-    generateMockFineDetails() {
-      const events = ['Orientation', 'Seminar', 'Workshop', 'Meeting'];
-      const details = [];
-      
-      for (let i = 0; i < 3; i++) {
-        const randomEvent = events[Math.floor(Math.random() * events.length)];
-        const randomDate = new Date();
-        randomDate.setDate(randomDate.getDate() - Math.floor(Math.random() * 30));
-        const randomSemester = this.semesters[Math.floor(Math.random() * this.semesters.length)];
-        
-        details.push({
-          event: randomEvent,
-          fine: '₱' + (Math.random() * 500).toFixed(2),
-          date: randomDate.toISOString(),
-          semester: randomSemester
-        });
-      }
-      
-      return details;
-    },
+
+
+    initiateAction(actionType, item = {}) {
+  this.currentAction = {
+    type: actionType,
+    item: { ...item },
+    id: item._id || item.id || null,
+  };
+
+  const student = this.selectedStudent || {};
+  const messages = {
+    removeFine: `Remove fine for ${student.firstName} ${student.lastName}?`,
+    clearFines: `Mark all fines as paid for ${student.firstName} ${student.lastName}?`,
+    deleteAll: 'Permanently delete all student records? This cannot be undone!',
+    edit: 'Save changes to this student?',
+  };
+
+  this.dialogTitle = `${actionType.charAt(0).toUpperCase() + actionType.slice(1)} Confirmation`;
+  this.dialogMessage = messages[actionType] || 'Are you sure?';
+  this.actionDialog = true;
+},
+
+async confirmAction() {
+  this.actionDialog = false;
+
+  if (!this.currentAction || !this.currentAction.type) {
+    console.error('No valid currentAction provided.');
+    this.dialogTitle = 'Error';
+    this.dialogMessage = 'No action was selected or the action is invalid.';
+    this.actionDialog = true; // Reopen dialog only on error
+    return;
+  }
+
+  try {
+    switch (this.currentAction.type) {
+      case 'removeFine':
+        await this.removeFine();
+        break;
+      case 'clearFines':
+        await this.clearFines();
+        break;
+      case 'deleteAll':
+        await this.removeAllStudents();
+        break;
+      case 'edit':
+        await this.saveStudent();
+        break;
+      default:
+        throw new Error(`Unknown action type: ${this.currentAction.type}`);
+    }
+  } catch (error) {
+    console.error('Action failed:', error);
+    this.dialogTitle = 'Error';
+    this.dialogMessage = error.message || 'Action failed. Please try again.';
+    this.actionDialog = true; // Reopen dialog only on error
+  }
+},
+
     formatDate(dateString) {
       return dateString ? format(new Date(dateString), 'MMM dd, yyyy') : 'N/A';
     }

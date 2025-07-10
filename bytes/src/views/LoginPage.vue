@@ -14,13 +14,17 @@
              <p v-if="errors.password" class="error">{{ errors.password }}</p>
            </div>
 
-            <button class="btn" dark @click="login" rounded="xl" size="x-large" block>
-            <span></span>
-            <span></span>
-            <span></span>
-            <span></span>
-            log in
-          </button>
+
+
+<button class="btn" dark @click="login" rounded="xl" size="x-large" block>
+  <span></span>
+  <span></span>
+  <span></span>
+  <span></span>
+
+  <!-- This will NOT break your animation span order -->
+  <strong>{{ isLoggingIn ? 'Logging in...' : 'log in' }}</strong>
+</button>
           
         </form>
         
@@ -39,7 +43,8 @@
         backgroundImage: "https://cdn.vuetifyjs.com/images/backgrounds/vbanner.jpg",
       User:'',
       Pass:'',
-      errors: {}
+      errors: {},
+      isLoggingIn: false // Add loading state
       };
     },
     watch: {
@@ -53,6 +58,11 @@
     methods: {
 
       async login() {
+         // Prevent multiple clicks
+      if (this.isLoggingIn) return;
+      
+      this.isLoggingIn = true;
+
     this.errors = {};
     try {
       await this.$store.dispatch('login', {
@@ -60,20 +70,22 @@
         password: this.Pass
       });
       
-      const redirectPath = this.$store.getters.userRole === 'admin' 
-        ? '/home' 
-        : '/home';
-      this.$router.push(redirectPath);
-      
-    } catch (error) {
-      if (error.response?.data?.error) {
-        this.handleError(error.response.data.error);
-      } else {
-        console.error('Login error:', error);
-        alert('Login failed. Please try again.');
+      const redirectPath = '/home';
+        this.$router.push(redirectPath);
+      } catch (error) {
+        if (error.response?.data?.error) {
+          this.handleError(error.response.data.error);
+        } else {
+          console.error('Login error:', error);
+          alert('Login failed. Please try again.');
+        }
+      } finally {
+        this.isLoggingIn = false;
       }
-    }
-  },
+    },
+
+
+  
   handleError(errorMessage) {
     if (errorMessage.includes('Username')) {
       this.errors.username = errorMessage;
@@ -125,6 +137,7 @@
     font-family: sans-serif;
     background: linear-gradient(#30142b, #2772a1);
   }
+  
   .login-page {
     width: 400px;
     padding: 8% 0 0;

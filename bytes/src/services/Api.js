@@ -2,7 +2,7 @@ import axios from 'axios';
 import store from '@/store';
 
 const api = axios.create({
-  baseURL: 'http://localhost:2002'
+  baseURL: 'http://192.168.1.6:2002'
 });
 
 // Request interceptor
@@ -18,7 +18,7 @@ api.interceptors.request.use(config => {
 api.interceptors.response.use(
   response => response,
   error => {
-    if (error.response.status === 401) {
+    if (error.response?.status === 401) {
       store.dispatch('logout');
     }
     return Promise.reject(error);

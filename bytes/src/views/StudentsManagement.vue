@@ -201,9 +201,9 @@
 
                             <template v-else>
                               <div class="student-info mb-4">
-                                <p><strong>Course:</strong> {{ selectedStudent.course }}</p>
-                                <p><strong>Year Level:</strong> {{ selectedStudent.year }}</p>
-                                <p><strong>Status:</strong> 
+                                <p><strong>Course:    </strong> {{ selectedStudent.department }}</p>
+                                <p><strong>Year Level:</strong> {{ selectedStudent.yearLevel }}</p>
+                                <p><strong>Status:    </strong> 
                                   <v-chip small :color="getStatusColor(selectedStudent.status)">{{ selectedStudent.status }}</v-chip>
                                 </p>
                               </div>
@@ -270,6 +270,7 @@
     hide-default-footer
     class="elevation-1 fine-details-table"
     dark
+    hide-default-header
     :loading="loadingFines"
   >
     <template #[`item.event`]="{ item }">

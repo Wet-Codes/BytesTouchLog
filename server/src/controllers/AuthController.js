@@ -1,22 +1,28 @@
 const { User } = require('../models');
 const jwt = require('jsonwebtoken');
 const config = require('../config/config');
+const HistoryController = require('./HistoryController');
+
+
+function cleanIP(ip) {
+  if (Array.isArray(ip)) return ip[0];
+  if (ip.includes(',')) return ip.split(',')[0].trim();
+  return ip;
+}
+
+
 
 
 module.exports = {
 
   
     async Login(req, res) {
-        
-
 
         try {
             const { username, password } = req.body; // Get username and password from request
             const user = await User.findOne({ where: { username } });
             //console.log('User object:', user); // Log the user object
-
             //console.log('Password valid:', isPasswordValid); /debbug
-            
             if (!user) {
                 return res.status(403).send({
                     error: 'Unrecognized Username'
@@ -34,6 +40,8 @@ module.exports = {
                 });
             }
 
+
+            
             //token part
                const token = jwt.sign(
         { id: user.id, role: user.role }, // Remove username from payload
@@ -41,6 +49,13 @@ module.exports = {
         { expiresIn: config.authentication.expiresIn }
       );
 
+      
+       // Get IP and device BEFORE sending response
+    const ipAddress = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    const device = req.headers['user-agent'] || 'Unknown device';
+
+    // Record login history BEFORE sending response
+    await HistoryController.recordLogin(user.id, ipAddress, device);
       // Explicit response format
       res.send({
         user: {
@@ -51,6 +66,7 @@ module.exports = {
         token
       });
 
+
     } catch (err) {
       console.error('Login error:', err);
       res.status(500).send({
@@ -59,6 +75,22 @@ module.exports = {
       });
     }
   },
+
+async logout(req, res) {
+  try {
+       const { id: userId } = req.user;
+    let ipAddress = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    ipAddress = cleanIP(ipAddress); // Clean IP here
+    
+    // Record logout history BEFORE sending response
+    await HistoryController.recordLogout(userId, ipAddress);
+    
+    res.send({ message: 'Logged out successfully' });
+  } catch (error) {
+    console.error('Logout error:', error);
+    res.status(500).send({ error: 'Logout failed' });
+  }
+},
 
 
   async verifyDevPassword(req, res) {

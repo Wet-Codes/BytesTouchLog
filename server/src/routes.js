@@ -8,6 +8,7 @@ const EventController = require('./controllers/EventController');
 const authMiddleware = require('./middlewares/authMiddleware');
 const adminMiddleware = require('./middlewares/adminMiddleware');
 const fineController = require('./controllers/FineController')
+const HistoryController = require('./controllers/HistoryController');
 
 const app = express();
 
@@ -18,10 +19,40 @@ app.use(express.urlencoded({ extended: true }));
 //Upload handling
 app.use(fileUpload());
 
-//login controller
+
+
+
+
 module.exports = (app) =>{
-     
-     app.post('/',
+
+     //history logs
+    app.post('/api/history/record-login', 
+  authMiddleware,
+  HistoryController.recordLogin
+);
+
+app.post('/api/history/record-logout', 
+  authMiddleware,
+  HistoryController.recordLogout
+);
+
+app.get('/api/history/login-logs', 
+  authMiddleware,
+  HistoryController.getLoginLogs
+);
+
+app.get('/api/history/session-logs', 
+  authMiddleware,
+  HistoryController.getFullSessionLogs
+);
+
+
+//login controller
+app.post('/api/history/record-logout', 
+  authMiddleware,
+  (req, res) => HistoryController.recordLogout(req, res)
+);
+app.post('/',
           ValidateLogin,
           Authcontroller.Login
           );

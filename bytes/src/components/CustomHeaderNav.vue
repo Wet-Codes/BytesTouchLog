@@ -107,7 +107,10 @@
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn color="primary" @click="confirmLogout">Logout</v-btn>
+          <v-btn color="primary" :loading="isLoggingOut" :disabled="isLoggingOut" @click="confirmLogout">
+  <span v-if="!isLoggingOut">Logout</span>
+  <span v-else>Logging out...</span>
+</v-btn>
           <v-btn @click="showLogoutDialog = false">Cancel</v-btn>
         </v-card-actions>
       </v-card>
@@ -120,6 +123,7 @@
 
 <script>
 import AuthServices from '../services/AuthServices';
+import { getClientIP } from '@/services/ipService';
 export default {
    computed: {
       roleText() {
@@ -139,6 +143,7 @@ export default {
       showAboutDialog: false,
       note: '',
        devPassword: '',
+       isLoggingOut: false, // <- new state
     };
   },
   
@@ -146,17 +151,29 @@ export default {
     logout() {
       this.showLogoutDialog = true;
     },
-    async confirmLogout(){
-      try {
-        await this.$store.dispatch('logout');
-        this.showLogoutDialog = false;
-        this.$router.push({ name: 'login' });
-        window.location.reload(); // Clear cached state
-      } catch (error) {
-        console.error('Logout failed:', error);
-      }
-    
-    },
+       async confirmLogout() {
+         this.isLoggingOut = true;
+  try {
+    const deviceInfo = {
+      ip: await getClientIP(),
+      device: navigator.userAgent
+    };
+
+    await AuthServices.recordLogout({
+      ip: deviceInfo.ip,
+      device: deviceInfo.device
+    });
+
+    await this.$store.dispatch('logout');
+
+    this.showLogoutDialog = false;
+    // this.$router.push({ name: 'login' }); ← optional
+   } catch (error) {
+      console.error('Logout failed:', error);
+    } finally {
+      this.isLoggingOut = false;
+    }
+  },
     
     
     saveNote() {

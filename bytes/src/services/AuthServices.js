@@ -1,7 +1,29 @@
 import Api from '@/services/Api';
 
 export default {
-
+  recordLogin(deviceInfo) {
+    return Api.post('/api/history/record-login', deviceInfo);
+  },
+  
+  recordLogout(deviceInfo) {
+  return Api.post('/api/history/record-logout', {
+    ip: deviceInfo.ip,
+    device: deviceInfo.device
+  });
+},
+  
+  getLoginHistory() {
+    return Api.get('/api/history/login-logs');
+  },
+  
+  getFullSessionHistory() {
+    return Api.get('/api/history/session-logs');
+  },
+  
+  logout() {
+    return Api.post('/api/logout');
+  }
+  ,
   login(credentials) {
     return Api.post('/', credentials); // Remove the ()
   },

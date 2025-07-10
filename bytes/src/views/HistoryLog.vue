@@ -68,6 +68,10 @@
                         {{ item }}
                       </v-btn>
                     </div>
+
+
+
+
                     <!-- Login/Logout Logs -->
                     <div v-if="tab === 0" class="table-container">
                       <div class="table-header login-header">
@@ -76,38 +80,51 @@
                         <span class="col-device">Device</span>
                         <span class="col-login-timestamp">Login/Logout</span>
                       </div>
-                      <v-data-table
-                        :headers="loginHeaders"
-                        :items="paginatedLoginLogs"
-                        :search="search"
-                        hide-default-header
-                        hide-default-footer
-                        class="elevation-1 history-table login-table"
-                        dark
-                      >
-                        <template #[`item.user`]="{ item }">
-                          <div class="table-cell text-center">{{ item.user }}</div>
-                        </template>
-                        <template #[`item.ip`]="{ item }">
-                          <div class="table-cell text-center">{{ item.ip }}</div>
-                        </template>
-                        <template #[`item.device`]="{ item }">
-                          <div class="table-cell text-center">{{ item.device }}</div>
-                        </template>
-                        <template #[`item.timestamp`]="{ item }">
-                          <div class="table-cell">
-                            <div class="login-entry text-center">
-                              <v-icon small color="success" class="icon-bg">mdi-login</v-icon>
-                              Login: {{ formatDateTime(item.timestamp) }}
-                            </div>
-                            <div class="logout-entry text-center" v-if="item.logoutTimestamp">
-                              <v-icon small color="error" class="icon-bg">mdi-logout</v-icon>
-                              Logout: {{ formatDateTime(item.logoutTimestamp) }}
-                            </div>
-                          </div>
-                        </template>
-                      </v-data-table>
+                     <v-data-table
+  :headers="loginHeaders"
+  :items="paginatedLoginLogs"
+  :search="search"
+  hide-default-header
+  hide-default-footer
+  class="elevation-1 history-table login-table"
+  dark
+>
+  <!-- User column -->
+  <template #[`item.user`]="{ item }">
+    <div class="table-cell text-center">{{ item.user }}</div>
+  </template>
+
+  <!-- IP column -->
+  <template #[`item.ip`]="{ item }">
+    <div class="table-cell text-center">{{ item.ip }}</div>
+  </template>
+
+  <!-- Device column -->
+  <template #[`item.device`]="{ item }">
+    <div class="table-cell text-center">{{ item.device }}</div>
+  </template>
+
+  <!-- Timestamp column: dynamically show Login or Logout -->
+  <template #[`item.timestamp`]="{ item }">
+    <div class="table-cell text-center">
+      <div v-if="item.action === 'Login'">
+        <v-icon small color="success">mdi-login</v-icon>
+        Login: {{ formatDateTime(item.timestamp) }}
+      </div>
+      <div v-else-if="item.action === 'Logout'">
+        <v-icon small color="error">mdi-logout</v-icon>
+        Logout: {{ formatDateTime(item.timestamp) }}
+      </div>
+      <div v-else>
+        <v-icon small color="grey">mdi-help-circle</v-icon>
+        Unknown: {{ formatDateTime(item.timestamp) }}
+      </div>
+    </div>
+  </template>
+</v-data-table>
                       <div class="text-center pt-2">
+
+
                         <v-pagination
                           v-model="page"
                           :length="loginPageCount"
@@ -115,6 +132,8 @@
                           color="primary"
                           dark
                         ></v-pagination>
+
+
                       </div>
                     </div>
 
@@ -347,6 +366,7 @@
 <script>
 import PageHeader from '@/components/CustomHeader2.vue';
 import { format } from 'date-fns';
+import AuthService from '@/services/AuthServices';
 
 export default {
   components: {
@@ -382,6 +402,7 @@ export default {
       search: '',
       page: 1,
       itemsPerPage: 5, // Changed to 5 items per page for better demonstration
+
       loginHeaders: [
         { text: 'User', value: 'user', align: 'center', width: '20%' },
         { text: 'IP Address', value: 'ip', align: 'center', width: '20%' },
@@ -402,98 +423,7 @@ export default {
         { text: 'Changes', value: 'changes', align: 'center', width: '15%' },
         { text: 'Timestamp', value: 'timestamp', align: 'center', width: '30%' }
       ],
-      loginLogs: [
-        { 
-          id: 1, 
-          user: 'admin01', 
-          action: 'Login', 
-          ip: '192.168.11', 
-          device: 'Windows Chrome', 
-          timestamp: new Date('2025-05-17T12:59:00'),
-          logoutTimestamp: new Date('2025-05-17T20:39:00')
-        },
-        { 
-          id: 2, 
-          user: 'admin02', 
-          action: 'Login', 
-          ip: '192.168.12', 
-          device: 'Mac Safari', 
-          timestamp: new Date('2025-05-17T06:15:00'),
-          logoutTimestamp: new Date('2025-05-17T12:46:00')
-        },
-        { 
-          id: 3, 
-          user: 'admin01', 
-          action: 'Login', 
-          ip: '192.168.11', 
-          device: 'Windows Chrome', 
-          timestamp: new Date('2025-05-16T08:30:00'),
-          logoutTimestamp: new Date('2025-05-18T17:19:00')
-        },
-        { 
-          id: 4, 
-          user: 'admin03', 
-          action: 'Login', 
-          ip: '192.168.13', 
-          device: 'Linux Firefox', 
-          timestamp: new Date('2025-05-15T09:45:00'),
-          logoutTimestamp: new Date('2025-05-15T18:30:00')
-        },
-        { 
-          id: 5, 
-          user: 'admin02', 
-          action: 'Login', 
-          ip: '192.168.12', 
-          device: 'Mac Safari', 
-          timestamp: new Date('2025-05-14T10:20:00'),
-          logoutTimestamp: new Date('2025-05-14T19:15:00')
-        },
-        { 
-          id: 6, 
-          user: 'admin01', 
-          action: 'Login', 
-          ip: '192.168.11', 
-          device: 'Windows Edge', 
-          timestamp: new Date('2025-05-13T11:10:00'),
-          logoutTimestamp: new Date('2025-05-13T20:05:00')
-        },
-        { 
-          id: 7, 
-          user: 'admin03', 
-          action: 'Login', 
-          ip: '192.168.13', 
-          device: 'Linux Firefox', 
-          timestamp: new Date('2025-05-12T07:30:00'),
-          logoutTimestamp: new Date('2025-05-12T16:25:00')
-        },
-        { 
-          id: 8, 
-          user: 'admin02', 
-          action: 'Login', 
-          ip: '192.168.12', 
-          device: 'Mac Chrome', 
-          timestamp: new Date('2025-05-11T08:45:00'),
-          logoutTimestamp: new Date('2025-05-11T17:40:00')
-        },
-        { 
-          id: 9, 
-          user: 'admin01', 
-          action: 'Login', 
-          ip: '192.168.11', 
-          device: 'Windows Chrome', 
-          timestamp: new Date('2025-05-10T09:15:00'),
-          logoutTimestamp: new Date('2025-05-10T18:10:00')
-        },
-        { 
-          id: 10, 
-          user: 'admin03', 
-          action: 'Login', 
-          ip: '192.168.13', 
-          device: 'Linux Chrome', 
-          timestamp: new Date('2025-05-09T10:30:00'),
-          logoutTimestamp: new Date('2025-05-09T19:25:00')
-        }
-      ],
+      loginLogs: [],
       paymentLogs: [
         { id: 'PAY-001', studentName: 'AI-shields Fiction', adminName: 'admin1', event: 'Orientation', amount: 500, timestamp: new Date('2025-05-18T05:25:00') },
         { id: 'PAY-002', studentName: 'Jane Batuhan', adminName: 'admin2', event: 'Seminar', amount: 500, timestamp: new Date('2025-05-17T05:25:00') },
@@ -618,6 +548,22 @@ export default {
       currentTransaction: {}
     };
   },
+  mounted(){
+      this.fetchLoginHistory();
+
+       this.refreshInterval = setInterval(() => {
+      if (this.tab === 0) {
+        this.fetchLoginHistory();
+      }
+    }, 30000);
+  },
+  
+  beforeUnmount() {
+    clearInterval(this.refreshInterval);
+  },
+
+
+
   computed: {
     backgroundStyle() {
       return {
@@ -687,6 +633,25 @@ export default {
     }
   },
   methods: {
+
+     async fetchLoginHistory() {
+      try {
+        const response = await AuthService.getLoginHistory();
+        this.loginLogs = response.data.map(log => ({
+          id: log.id,
+          user: log.user ? log.user.username : 'Unknown',
+          ip: log.ipAddress,
+          device: log.device,
+          timestamp: log.timestamp,
+            action: log.action, // ✅ include this
+          logoutTimestamp: log.logoutTimestamp || null
+        }));
+      } catch (error) {
+        console.error('Failed to fetch login history:', error);
+        alert('Failed to load login history. Please try again.');
+      }
+    },
+
     navigateTo(route) {
       this.$router.push({ name: route });
     },
