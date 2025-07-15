@@ -368,6 +368,21 @@
 
                               <!-- Fine Side Card -->
 
+                                    <!-- Confirmation Dialog -->
+        <v-dialog v-model="actionDialog" persistent max-width="500">
+          <v-card class="dark-card">
+            <v-card-title class="text-h5">{{ dialogTitle }}</v-card-title>
+            <v-card-text>{{ dialogMessage }}</v-card-text>
+            <v-card-actions>
+              <v-spacer></v-spacer>
+              <v-btn color="grey" @click="actionDialog = false">Cancel</v-btn>
+              <v-btn color="primary" @click="confirmAction">Confirm</v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
+
+
+
                               <div class="fine-details-header">
   <span class="col-event">Event</span>
   <span class="col-date">Date</span>
@@ -401,11 +416,12 @@
       {{ formatDate(item.event?.date) }}
     </template>    
     <template #[`item.amount`]="{ item }">
-      <span :class="{'red--text': item.status === 'absent' && !item.paid}">
-        ₱{{ (item.status === 'absent' ? (item.event?.fee || 0) : 0).toFixed(2) }}
-      </span>
-    </template>
+  <span :class="{'red--text': item.status === 'absent' && !item.paid}">
+    ₱{{ item.amount.toFixed(2) }}
+  </span>
+</template>
     
+
     <template #[`item.status`]="{ item }">
       <v-chip small :color="getFineStatusColor(item)">
         {{ getFineStatusText(item) }}
@@ -423,6 +439,8 @@
         Remove
       </v-btn>
     </template>
+
+
   </v-data-table>
   
   <div class="total-fines">
@@ -604,6 +622,12 @@ export default {
         }
 
       ],
+      loadingFines: false,
+      savingStudent: false,
+      clearingFines: false,
+      deletingFine: null,
+      actionDialog: false,
+
 
       // Fingerprint device & enrollment
       availableReaders: [],
@@ -703,13 +727,13 @@ export default {
       ],
 
       //fine Header
-      fineDetailsHeaders: [
-        { text: 'Event Name', value: 'event', width: '30%' },
-        { text: 'Semester', value: 'semester', width: '20%' },
-        { text: 'Fine Amount', value: 'fine', width: '15%' },
-        { text: 'Date', value: 'date', width: '20%' },
-        { text: 'Actions', value: 'actions', width: '15%' }
-      ],
+    fineDetailsHeaders: [
+      { text: 'Event Name', value: 'event', align: 'center', width: '30%' },
+      { text: 'Date', value: 'date', align: 'center', width: '10%' },
+      { text: 'Amount Due', value: 'amount', align: 'center', width: '35%' },
+      { text: 'Status', value: 'status', align: 'center', width: '5%' },
+      { text: 'Actions', value: 'actions', align: 'center', width: '20%' }
+    ],
       
       
     };
@@ -759,7 +783,7 @@ export default {
         );
       });
     },
-processedFineDetails() {
+ processedFineDetails() {
       return this.fineDetails
         .filter(fine => fine.status === 'absent')  // Only show absent fines
         .map(fine => ({
@@ -786,6 +810,9 @@ processedFineDetails() {
   },
 
   methods: {
+    getFineStatusColor(fine) {
+      return fine.statusColor;
+    },
     async clearStudentTable() {
       if (!confirm('Are you sure you want to delete all students? This action is irreversible.')) return;
 
@@ -1217,20 +1244,41 @@ console.log(studentPayload)
       this.fingerprintDialog = false;
     },
 
-    async clearFines() {
+ async clearFines() {
   this.clearingFines = true;
   try {
-    await Auth.clearStudentFines(this.currentAction.id);
-    await this.fetchFines(this.selectedStudent.id);
+    const unpaidFines = this.fineDetails.filter(fine => 
+      fine.status === 'absent' && !fine.paid
+    );
+    
+    const totalAmount = unpaidFines.reduce((sum, fine) => sum + fine.amount, 0);
+    
+    // Extract event IDs using event_id property
+   const eventDetails = unpaidFines
+  .filter(fine => fine.event && fine.event.name)
+  .map(fine => ({
+    id: fine.event_id,
+    name: fine.event.name
+  }));
 
+// Record payment log with event details
+await Auth.recordPayment({
+  adminId: this.$store.state.user.id,
+  studentId: this.selectedStudent.id,
+  amount: totalAmount,
+  events: eventDetails
+});
+
+    // Existing clear fines logic
+    await Auth.clearStudentFines(this.selectedStudent.id);
+    await this.fetchFines(this.selectedStudent.id);
+    
     this.dialogTitle = 'Success';
     this.dialogMessage = 'All fines marked as paid';
-    // Do NOT reopen the dialog
   } catch (error) {
     console.error('Error clearing fines:', error);
     this.dialogTitle = 'Error';
     this.dialogMessage = 'Failed to mark fines as paid';
-    this.actionDialog = true; // Only reopen if there's an error
   } finally {
     this.clearingFines = false;
   }
@@ -1680,26 +1728,27 @@ async confirmAction() {
 
 .fine-details-header .col-event {
   width: 30%;
-  text-align: left;
+  justify-content: flex-start;
+  text-align: center;
 }
 
-.fine-details-header .col-semester {
+.fine-details-header .col-date {
+  width: 10%;
+  text-align: center;
+}
+
+.fine-details-header .col-amount {
   width: 20%;
   text-align: center;
 }
 
-.fine-details-header .col-fine {
-  width: 15%;
-  text-align: right;
-}
-
-.fine-details-header .col-date {
+.fine-details-header .col-status {
   width: 20%;
   text-align: center;
 }
 
 .fine-details-header .col-actions {
-  width: 15%;
+  width: 20%;
   text-align: center;
 }
 

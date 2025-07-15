@@ -60,16 +60,22 @@
                               <v-icon left color="white">mdi-chart-pie</v-icon>
                               Fines Distribution
                             </v-card-title>
-                            <v-select
-                              v-model="selectedFineEvent"
-                              :items="fineEvents"
-                              label="Select Event"
-                              outlined
-                              dense
-                              dark
-                              class="event-selector"
-                              @update:modelValue="updateFineData"
-                            ></v-select>
+
+
+<v-select
+  v-model="selectedFineEvent"
+  :items="fineEvents"
+ 
+  outlined
+  dense
+  dark
+  return-object
+  label="Select Event"
+  :item-title="event => event.name + ' (' + formatDate(event.date) + ')'"
+  @update:modelValue="updateFineData"
+/>
+
+
                           </div>
                           <v-card-text class="chart-container">
                             <PieChart 
@@ -114,20 +120,12 @@
                               :options="areaChartOptions"
                             />
                             <div class="area-percentage-container">
-                              <div class="area-percentage-box current">
-                                <div class="percentage-value">{{ currentSemesterData.percentage }}%</div>
-                                <div class="percentage-label">{{ currentSemesterData.semester }}</div>
-                                <div class="percentage-year">{{ selectedSchoolYear }}</div>
-                              </div>
-                              <div class="area-percentage-box previous-1">
-                                <div class="percentage-value">{{ previousYear1Data.percentage }}%</div>
-                                <div class="percentage-label">{{ previousYear1Data.year }}</div>
-                              </div>
-                              <div class="area-percentage-box previous-2">
-                                <div class="percentage-value">{{ previousYear2Data.percentage }}%</div>
-                                <div class="percentage-label">{{ previousYear2Data.year }}</div>
-                              </div>
-                            </div>
+          <div class="area-percentage-box current">
+    <div class="percentage-value">₱{{ totalFinesForYear }}</div>
+    <div class="percentage-label">Total Fines</div>
+    <div class="percentage-year">{{ selectedSchoolYear }}</div>
+  </div>
+</div>
                           </v-card-text>
                         </v-card>
                       </v-col>
@@ -140,16 +138,21 @@
                               <v-icon left color="white">mdi-chart-bar</v-icon>
                               Attendance by Course
                             </v-card-title>
-                            <v-select
-                              v-model="selectedAttendanceEvent"
-                              :items="attendanceEvents"
-                              label="Select Event"
-                              outlined
-                              dense
-                              dark
-                              class="event-selector"
-                              @update:modelValue="updateAttendanceData"
-                            ></v-select>
+
+
+<v-select
+  v-model="selectedAttendanceEvent"
+  :items="attendanceEvents"
+  label="Select Event"
+  outlined
+  dense
+  dark
+  return-object
+  :item-title="event => event.name + ' (' + formatDate(event.date) + ')'"
+  @update:modelValue="updateAttendanceData"
+/>
+
+
                           </div>
                           <v-card-text class="chart-container">
                             <BarChart 
@@ -175,22 +178,12 @@
                             />
                             <div class="donut-text-container">
                               <div class="donut-percentage-box">
-                                <div class="percentage-item">
-                                  <span class="percentage-percent">45%</span>
-                                  <span class="percentage-value">1,350 students</span>
-                                  <span class="percentage-course">BSIT</span>
-                                </div>
-                                <div class="percentage-item">
-                                  <span class="percentage-percent">30%</span>
-                                  <span class="percentage-value">900 students</span>
-                                  <span class="percentage-course">BSIS</span>
-                                </div>
-                                <div class="percentage-item">
-                                  <span class="percentage-percent">25%</span>
-                                  <span class="percentage-value">750 students</span>
-                                  <span class="percentage-course">BSCS</span>
-                                </div>
-                              </div>
+  <div v-for="item in donutPercentages" :key="item.course" class="percentage-item">
+    <span class="percentage-percent">{{ item.percent }}%</span>
+    <span class="percentage-value">{{ item.value }} students</span>
+    <span class="percentage-course">{{ item.course }}</span>
+  </div>
+</div>
                             </div>
                           </v-card-text>
                         </v-card>
@@ -270,18 +263,22 @@
                                   </td>
                                   <td class="col-actions text-center">
                                     <div class="action-buttons">
-                                      <v-btn 
-                                        small 
-                                        color="primary" 
-                                        @click="toggleFineDetails(item)" 
-                                        class="action-btn"
-                                      >
-                                        {{ selectedStudent && selectedStudent.id === item.id ? 'Hide' : 'View' }}
-                                      </v-btn>
+ <v-btn 
+    small 
+    color="primary" 
+    @click="viewFine(item)" 
+    class="action-btn"
+    :disabled="isStudentLocked(item)"
+  >
+    {{ selectedStudent && selectedStudent.id === item.id ? 'Hide' : 'View' }}
+  </v-btn>
                                     </div>
                                   </td>
                                 </tr>
                               </template>
+
+
+
                               <template v-slot:footer>
                                 <div class="text-center pt-2">
                                   <v-pagination
@@ -298,49 +295,86 @@
                         </v-card>
                       </v-col>
 
+
+
+
                       <!-- Fine Details Column -->
                       <v-col v-if="showFineDetails" cols="4">
                         <v-card class="fine-details-card">
                           <div class="details-header">
+
+
                             <v-card-title class="details-title">
-                              {{ selectedStudent.fname }} {{ selectedStudent.lname }}'s Details
+                              {{ selectedStudent.firstName }} {{ selectedStudent.lastName }}'s Details
                             </v-card-title>
                           </div>
                           <v-card-text>
-                            <div class="student-info mb-4">
-                              <p><strong>Course:</strong> {{ selectedStudent.course }}</p>
-                              <p><strong>Year Level:</strong> {{ selectedStudent.year }}</p>
-                              <p><strong>Status:</strong> 
-                                <v-chip small :color="getStatusColor(selectedStudent.status)">{{ selectedStudent.status }}</v-chip>
-                              </p>
-                            </div>
+                             <div class="student-info mb-4">
+                                <p><strong>Course:    </strong> {{ selectedStudent.department }}</p>
+                                <p><strong>Year Level:</strong> {{ selectedStudent.yearLevel }}</p>
+                                <p><strong>Status:    </strong> 
+                                  <v-chip small :color="getStatusColor(selectedStudent.status)">{{ selectedStudent.status }}</v-chip>
+                                </p>
+                              </div>
 
                             <div class="fine-details-header">
-                              <span class="col-event">Event</span>
-                              <span class="col-semester">Semester</span>
-                              <span class="col-fine">Fine Amount</span>
-                              <span class="col-date">Date</span>
-                            </div>
-                            <v-data-table
-                              :headers="fineDetailsHeaders"
-                              :items="fineDetails"
-                              :hide-default-footer="true"
-                              class="elevation-1 fine-details-table"
-                              dark
-                              hide-default-header
-                            >
-                              <template v-slot:item="{ item }">
-                                <tr>
-                                  <td class="col-event">{{ item.event }}</td>
-                                  <td class="col-semester">{{ item.semester }}</td>
-                                  <td class="col-fine">{{ item.fine }}</td>
-                                  <td class="col-date">{{ formatDate(item.date) }}</td>
-                                </tr>
-                              </template>
-                            </v-data-table>
-                            <div class="total-fines">
-                              <strong>Total Fines: {{ calculateTotalFines() }}</strong>
-                            </div>
+  <span class="col-event">Event</span>
+  <span class="col-date">Date</span>
+  <span class="col-amount">Amount Due</span>
+  <span class="col-status">Status</span>
+
+</div>
+
+<v-alert 
+  v-if="fineDetails.length === 0 && !loadingFines" 
+  type="info"
+  class="my-4"
+>
+  No fine records found for this student
+</v-alert>
+ 
+   <v-data-table
+    :headers="fineDetailsHeaders"
+    :items="processedFineDetails" 
+    hide-default-footer
+    class="elevation-1 fine-details-table"
+    dark
+    hide-default-header
+    :loading="loadingFines"
+  >
+    <template #[`item.event`]="{ item }">
+      {{ item.event?.name || 'N/A' }}
+    </template>
+    
+    <template #[`item.date`]="{ item }">
+      {{ formatDate(item.event?.date) }}
+    </template>    
+    <template #[`item.amount`]="{ item }">
+  <span :class="{'red--text': item.status === 'absent' && !item.paid}">
+    ₱{{ item.amount.toFixed(2) }}
+  </span>
+</template>
+    
+
+    <template #[`item.status`]="{ item }">
+      <v-chip small :color="getFineStatusColor(item)">
+        {{ getFineStatusText(item) }}
+      </v-chip>
+    </template>
+    
+
+
+  </v-data-table>
+
+
+
+                             <div class="total-fines">
+    <strong>Total Unpaid Fines: ₱{{ calculateTotalUnpaidFines().toFixed(2) }}</strong>
+  </div>
+
+
+
+
                           </v-card-text>
                         </v-card>
                       </v-col>
@@ -364,6 +398,7 @@ import DonutChart from '@/components/DonutChart.vue';
 import AreaChart from '@/components/AreaChart.vue';
 import { format } from 'date-fns';
 import Auth from '../services/AuthServices'
+import DashboardServices from '@/services/AuthServices';
 
 export default {
   components: {
@@ -406,7 +441,7 @@ export default {
         course: null,
         yearLevel: null,
       },
-
+      loadingFines: false,
       search: '',
       selectedStudent: null,
       students: [],
@@ -416,25 +451,27 @@ export default {
       courses: ['All', 'BSIT', 'BSIS', 'BSCS'],
       yearLevels: ['All', '1st Year', '2nd Year', '3rd Year', '4th Year'],
       statusOptions: ['Enrolled', 'Shifted', 'Graduated', 'Dropped'],
-
-
+      
+      studentDistribution: [],
+       fineEvents: [],
+      attendanceEvents: [],
 
       //Un-used 
 
-      fineDetailsHeaders: [
-        { text: 'Event Name', value: 'event', width: '30%' },
-        { text: 'Semester', value: 'semester', width: '20%' },
-        { text: 'Fine Amount', value: 'fine', width: '25%' },
-        { text: 'Date', value: 'date', width: '25%' }
-      ],
+       fineDetailsHeaders: [
+      { text: 'Event Name', value: 'event', align: 'center', width: '30%' },
+      { text: 'Date', value: 'date', align: 'center', width: '10%' },
+      { text: 'Amount Due', value: 'amount', align: 'center', width: '35%' },
+      { text: 'Status', value: 'status', align: 'center', width: '5%' },
+      
+    ],
       fineDetails: [],
-      selectedFineEvent: 'Orientation',
+      selectedFineEvent: null,
       selectedAttendanceEvent: 'Today',
       selectedSchoolYear: '2023-2024',
-      currentFinePercentage: 40,
-      currentGrowthRate: 12.5,
-      fineEvents: ['Orientation', 'Seminar', 'Workshop', 'Meeting'],
-      attendanceEvents: ['Today', 'Event A', 'Event B'],
+      currentFinePercentage: 0,
+      
+     
       schoolYears: ['2022-2023', '2023-2024', '2024-2025'],
 
       studentFinesHeaders: [
@@ -446,92 +483,11 @@ export default {
         { text: 'Status', value: 'status', align: 'center', width: '15%' },
         { text: 'Actions', value: 'actions', align: 'center', width: '20%', sortable: false }
       ],
-      studentFines: [
-        { 
-          id: 1, 
-          fname: 'Al-shiolla', 
-          mi: 'H.', 
-          lname: 'Haron', 
-          course: 'BSIT', 
-          year: '3rd Year', 
-          status: 'Regular',
-          hasFine: true,
-          hasFingerprint: true,
-          fingerprintDate: '2023-05-15'
-        },
-        { 
-          id: 2, 
-          fname: 'Jane', 
-          mi: 'A.', 
-          lname: 'Batuhan', 
-          course: 'BSIT', 
-          year: '4th Year', 
-          status: 'Graduated',
-          hasFine: false,
-          hasFingerprint: false
-        },
-        { 
-          id: 3, 
-          fname: 'Aiman', 
-          mi: 'C.', 
-          lname: 'Pumbaya', 
-          course: 'BSIT', 
-          year: '3rd Year', 
-          status: 'Regular',
-          hasFine: true,
-          hasFingerprint: true,
-          fingerprintDate: '2023-06-20'
-        },
-        { 
-          id: 4, 
-          fname: 'Sodais', 
-          mi: 'M.', 
-          lname: 'Macapantao', 
-          course: 'BSIS', 
-          year: '2nd Year', 
-          status: 'Irregular',
-          hasFine: false,
-          hasFingerprint: false
-        },
-        { 
-          id: 5, 
-          fname: 'Abdulazis', 
-          mi: 'D.', 
-          lname: 'Mapandi', 
-          course: 'BSCS', 
-          year: '1st Year', 
-          status: 'Regular',
-          hasFine: true,
-          hasFingerprint: false
-        },
-        { 
-          id: 6, 
-          fname: 'Faiz', 
-          mi: 'A.', 
-          lname: 'Rataban', 
-          course: 'BSCS', 
-          year: '3rd Year', 
-          status: 'Shifted',
-          hasFine: false,
-          hasFingerprint: true,
-          fingerprintDate: '2023-04-10'
-        },
-        { 
-          id: 7, 
-          fname: 'Doms', 
-          mi: 'M.', 
-          lname: 'Benito', 
-          course: 'BSIS', 
-          year: '2nd Year', 
-          status: 'Regular',
-          hasFine: true,
-          hasFingerprint: false
-        }
-      ],
+     
       pieChartData: {
         labels: ['No Fines', 'With Fines'],
         datasets: [{
-          data: [60, 40],
+          data: [0, 0],
           backgroundColor: ['#2196F3', '#F44336'],
           borderWidth: 0,
           hoverOffset: 10
@@ -542,7 +498,7 @@ export default {
         datasets: [
           {
             label: 'Fines Collected',
-            data: [3200, 4800, 1200],
+            data: [0, 0, 0],
             backgroundColor: 'rgba(33, 150, 243, 0.3)',
             borderColor: '#2196F3',
             borderWidth: 2,
@@ -551,45 +507,35 @@ export default {
           }
         ]
       },
+      
       attendanceBarData: {
-        labels: ['BSIT', 'BSIS', 'BSCS'],
-        datasets: [
-          {
-            label: 'Attended',
-            backgroundColor: '#2196F3',
-            data: [42, 28, 35],
-            borderRadius: 6
-          },
-          {
-            label: 'Absent',
-            backgroundColor: '#F44336',
-            data: [8, 12, 5],
-            borderRadius: 6
-          }
-        ]
-      },
+      labels: ['BSIT', 'BSIS', 'BSCS'],
+      datasets: [
+        {
+          label: 'Attended',
+          backgroundColor: '#2196F3',
+          data: [0, 0, 0], // Initialize with zeros
+          borderRadius: 6
+        },
+        {
+          label: 'Absent',
+          backgroundColor: '#F44336',
+          data: [0, 0, 0], // Initialize with zeros
+          borderRadius: 6
+        }
+      ]
+    },
       donutChartData: {
-        labels: ['BSIT', 'BSIS', 'BSCS'],
-        datasets: [{
-          data: [45, 30, 25],
-          backgroundColor: ['#2196F3', '#4CAF50', '#FFC107'],
-          borderWidth: 0,
-          hoverOffset: 10
-        }]
-      },
-      currentSemesterData: {
-        semester: '2nd Sem',
-        percentage: 12.5,
-        year: '2023-2024'
-      },
-      previousYear1Data: {
-        year: '2022-2023',
-        percentage: 8.2
-      },
-      previousYear2Data: {
-        year: '2021-2022',
-        percentage: 5.5
-      },
+      labels: ['BSIT', 'BSIS', 'BSCS'],
+      datasets: [{
+        data: [0, 0, 0], // Initialize with zeros
+        backgroundColor: ['#2196F3', '#4CAF50', '#FFC107'],
+        borderWidth: 0
+      }]
+    },
+    
+    
+    
       barChartOptions: {
         responsive: true,
         maintainAspectRatio: false,
@@ -629,6 +575,8 @@ export default {
           }
         }
       },
+
+
       pieChartOptions: {
         responsive: true,
         maintainAspectRatio: false,
@@ -642,6 +590,9 @@ export default {
               }
             }
           },
+
+
+
           tooltip: {
             backgroundColor: 'rgba(0, 0, 0, 0.8)',
             titleColor: '#2196F3',
@@ -651,6 +602,7 @@ export default {
           }
         }
       },
+     
       areaChartOptions: {
         responsive: true,
         maintainAspectRatio: false,
@@ -691,6 +643,7 @@ export default {
           }
         }
       },
+
       donutChartOptions: {
         responsive: true,
         maintainAspectRatio: false,
@@ -728,15 +681,55 @@ export default {
             ]
           }
         }
-      }
+      },
+     
     };
   },
   async mounted() {
+
+      await this.fetchEvents();
+    await this.fetchStudentDistribution();
     await this.fetchStudents();
+    // Initialize with first event if available
+      if (this.fineEvents.length) {
+    // Set the first event as the default selected event
+    this.selectedFineEvent = this.fineEvents[0];
+  }
+  
+    if (this.attendanceEvents.length > 0) {
+      this.selectedAttendanceEvent = this.attendanceEvents[0].eventId;
+      this.updateAttendanceData();
+    }
+    // Initialize fines over time
+    this.updateAreaChartData();
+  
   },
 
   computed: {
+     donutPercentages() {
+      if (!this.studentDistribution.length) return [];
+      
+      const total = this.studentDistribution.reduce(
+        (sum, d) => sum + parseInt(d.count), 0
+      );
+      
+      return this.studentDistribution.map(d => ({
+        percent: Math.round((d.count / total) * 100),
+        value: d.count,
+        course: d.department
+      }));
+    
+  },
 
+
+   totalFinesForYear() {
+    if (!this.areaChartData.datasets || this.areaChartData.datasets.length === 0) 
+      return '0.00';
+      
+    return this.areaChartData.datasets[0].data
+      .reduce((sum, val) => sum + val, 0)
+      .toFixed(2);
+  },
      //Fetch the uploaded Data
   
 
@@ -754,6 +747,18 @@ export default {
       });
     },
 
+     processedFineDetails() {
+      return this.fineDetails
+        .filter(fine => fine.status === 'absent')  // Only show absent fines
+        .map(fine => ({
+          ...fine,
+          amount: fine.event?.fee || 0,
+          statusText: fine.paid ? 'Paid' : 'Unpaid',
+          statusColor: fine.paid ? 'blue' : 'red'
+        }));
+    },
+
+
     backgroundStyle() {
       return {
         backgroundImage: `url(${this.backgroundImage})`,
@@ -766,7 +771,38 @@ export default {
   },
 
   methods: {
-
+     getFineStatusColor(fine) {
+      return fine.statusColor;
+    },
+    async fetchEvents() {
+      try {
+        const response = await DashboardServices.getEvents();
+        this.fineEvents = response.data;
+        this.attendanceEvents = [...response.data];
+      } catch (error) {
+        console.error('Error fetching events:', error);
+      }
+    },
+    
+    async fetchStudentDistribution() {
+      try {
+        const response = await DashboardServices.getStudentDistribution();
+        this.studentDistribution = response.data;
+        
+        // Update donut chart
+        this.donutChartData = {
+          labels: this.studentDistribution.map(d => d.department),
+          datasets: [{
+            data: this.studentDistribution.map(d => d.count),
+            backgroundColor: ['#2196F3', '#4CAF50', '#FFC107'],
+            borderWidth: 0
+          }]
+        };
+      } catch (error) {
+        console.error('Error fetching student distribution:', error);
+      }
+    },
+    
      async fetchStudents() {
       try {
         const response = await Auth.getStudents();
@@ -776,7 +812,9 @@ export default {
       }
       
     },
-
+     getFineStatusText(fine) {
+      return fine.statusText;
+    },
 
     navigateTo(route) {
       this.$router.push({ name: route });
@@ -794,16 +832,7 @@ export default {
       return colors[status] || 'gray';
     },
 
-
-//unused data
-
-    calculateTotalFines() {
-      const total = this.fineDetails.reduce((sum, item) => {
-        return sum + parseFloat(item.fine.replace('₱', ''));
-      }, 0);
-      return `₱${total.toFixed(2)}`;
-    },
-    toggleFineDetails(student) {
+     viewFine(student) {
       if (this.selectedStudent && this.selectedStudent.id === student.id) {
         this.selectedStudent = null;
         this.showFineDetails = false;
@@ -811,81 +840,136 @@ export default {
       } else {
         this.selectedStudent = student;
         this.showFineDetails = true;
-        this.fineDetails = this.generateMockFineDetails();
+        this.fetchFines(student.id);
       }
     },
-    updateFineData(event) {
-      const baseValue = event === 'Orientation' ? 40 : 
-                       event === 'Seminar' ? 35 : 
-                       event === 'Workshop' ? 25 : 45;
-      this.currentFinePercentage = baseValue;
-      this.pieChartData = {
-        ...this.pieChartData,
-        datasets: [{
-          ...this.pieChartData.datasets[0],
-          data: [100 - baseValue, baseValue]
-        }]
-      };
+    async updateFineData() {
+  try {
+    // Ensure that we're selecting an event and extract only the eventId
+    const eventId = this.selectedFineEvent ? this.selectedFineEvent.eventId : null;
+
+    if (!eventId) {
+      console.error("No event selected!");
+      return;  // Exit if no event is selected
+    }
+
+    console.log('Selected Event ID:', eventId);  // Debugging line
+
+    const response = await DashboardServices.getFinesDistribution(eventId);
+
+    const data = response.data;
+    this.currentFinePercentage = Math.round(
+      (data.withFines / data.totalStudents) * 100
+    );
+
+    this.pieChartData = {
+      labels: ['No Fines', 'With Fines'],
+      datasets: [{
+        data: [data.withoutFines, data.withFines],
+        backgroundColor: ['#2196F3', '#F44336'],
+        borderWidth: 0
+      }]
+    };
+  } catch (error) {
+    console.error('Error updating fine data:', error);
+  }
+},
+
+    calculateTotalUnpaidFines() {
+      return this.processedFineDetails
+        .filter(fine => !fine.paid)
+        .reduce((sum, fine) => sum + fine.amount, 0);
     },
-    updateAttendanceData(event) {
-      const attended = event === 'Today' ? [42, 28, 35] :
-                      event === 'Event A' ? [38, 25, 32] : [45, 30, 28];
-      const absent = event === 'Today' ? [8, 12, 5] :
-                     event === 'Event A' ? [12, 15, 8] : [5, 10, 12];
-      
-      this.attendanceBarData = {
-        ...this.attendanceBarData,
-        datasets: [
-          {
-            ...this.attendanceBarData.datasets[0],
-            data: attended
-          },
-          {
-            ...this.attendanceBarData.datasets[1],
-            data: absent
-          }
-        ]
-      };
+
+    async fetchFines(studentId) {
+      this.loadingFines = true;
+      try {
+        const response = await Auth.getStudentFines(studentId);
+        console.log('Fines data:', response.data); // Add this
+        this.fineDetails = response.data;
+      } catch (error) {
+        console.error('Error fetching fines:', error);
+        this.dialogTitle = 'Error';
+        this.dialogMessage = 'Failed to load fines';
+        this.actionDialog = true;
+      } finally {
+        this.loadingFines = false;
+      }
     },
-    updateAreaChartData(year) {
-      const data = year === '2022-2023' ? [2800, 3500, 800] :
-                   year === '2023-2024' ? [3200, 4800, 1200] : [3800, 5200, 1500];
-      
-      this.currentSemesterData = {
-        semester: '2nd Sem',
-        percentage: this.yearGrowthRates[year] || 12.5,
-        year: year
-      };
-      
-      this.areaChartData = {
-        ...this.areaChartData,
-        datasets: [{
-          ...this.areaChartData.datasets[0],
-          data: data
-        }]
-      };
+
+
+    isStudentLocked(student) {
+      return ['Graduated', 'Shifted', 'Dropped'].includes(student.status);
     },
-    generateMockFineDetails() {
-      const events = ['Orientation', 'Seminar', 'Workshop', 'Meeting'];
-      const semesters = ['1st Semester', '2nd Semester'];
-      const details = [];
-      
-      for (let i = 0; i < 3; i++) {
-        const randomEvent = events[Math.floor(Math.random() * events.length)];
-        const randomSemester = semesters[Math.floor(Math.random() * semesters.length)];
-        const randomDate = new Date();
-        randomDate.setDate(randomDate.getDate() - Math.floor(Math.random() * 30));
+
+
+
+
+//unused data
+
+    
+
+  
+    async updateAttendanceData() {
+      try {
+        const response = await DashboardServices.getAttendanceByCourse(
+          this.selectedAttendanceEvent
+        );
         
-        details.push({
-          event: randomEvent,
-          semester: randomSemester,
-          fine: '₱' + (Math.random() * 500).toFixed(2),
-          date: randomDate.toISOString()
-        });
+        const data = response.data;
+        this.attendanceBarData = {
+          labels: data.map(d => d.course),
+          datasets: [
+            {
+              label: 'Attended',
+              backgroundColor: '#2196F3',
+              data: data.map(d => d.attended),
+              borderRadius: 6
+            },
+            {
+              label: 'Absent',
+              backgroundColor: '#F44336',
+              data: data.map(d => d.absent),
+              borderRadius: 6
+            }
+          ]
+        };
+      } catch (error) {
+        console.error('Error updating attendance data:', error);
       }
-      
-      return details;
     },
+
+      async updateAreaChartData() {
+      try {
+        const response = await DashboardServices.getFinesOverTime(
+          this.selectedSchoolYear
+        );
+        
+        const data = response.data;
+        const orderedSemesters = ['1st Semester', '2nd Semester', 'Summer'];
+        
+        this.areaChartData = {
+          labels: orderedSemesters,
+          datasets: [{
+            label: 'Fines Collected',
+            data: orderedSemesters.map(sem => data[sem] || 0),
+            backgroundColor: 'rgba(33, 150, 243, 0.3)',
+            borderColor: '#2196F3',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4
+          }]
+        };
+        
+        // Calculate growth percentage (simplified)
+        const currentTotal = Object.values(data).reduce((a, b) => a + b, 0);
+        const previousTotal = currentTotal * 0.8; // Mock previous data
+        this.currentGrowthRate = ((currentTotal - previousTotal) / previousTotal * 100).toFixed(1);
+      } catch (error) {
+        console.error('Error updating area chart data:', error);
+      }
+    },
+
 
     formatDate(dateString) {
       return dateString ? format(new Date(dateString), 'MMM dd, yyyy') : 'N/A';
@@ -896,6 +980,20 @@ export default {
 
 
   watch: {
+
+
+      fineEvents: {
+    immediate: true,
+    handler(newVal) {
+      if (newVal.length > 0) {
+        this.selectedFineEvent = this.fineEvents[0].eventId;
+        this.selectedAttendanceEvent = this.attendanceEvents[0].eventId;
+        this.updateFineData();
+        this.updateAttendanceData();
+      }
+    }
+  },
+
     selectedFineEvent(newVal) {
       this.updateFineData(newVal);
     },

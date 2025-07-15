@@ -1,3 +1,4 @@
+<!-- COMPLETE UNMODIFIED TEMPLATE -->
 <template>
   <v-app>
     <!-- Page Header -->
@@ -52,6 +53,8 @@
                     ></v-text-field>
                   </v-card-title>
                   <v-card-text>
+
+
                     <!-- Tabs for different log types -->
                     <div class="tabs-container">
                       <v-btn
@@ -72,7 +75,7 @@
 
 
 
-                    <!-- Login/Logout Logs -->
+                    <!-- Login/Logout Logs Table -->
                     <div v-if="tab === 0" class="table-container">
                       <div class="table-header login-header">
                         <span class="col-user">User</span>
@@ -80,51 +83,48 @@
                         <span class="col-device">Device</span>
                         <span class="col-login-timestamp">Login/Logout</span>
                       </div>
-                     <v-data-table
-  :headers="loginHeaders"
-  :items="paginatedLoginLogs"
-  :search="search"
-  hide-default-header
-  hide-default-footer
-  class="elevation-1 history-table login-table"
-  dark
->
-  <!-- User column -->
-  <template #[`item.user`]="{ item }">
-    <div class="table-cell text-center">{{ item.user }}</div>
-  </template>
 
-  <!-- IP column -->
-  <template #[`item.ip`]="{ item }">
-    <div class="table-cell text-center">{{ item.ip }}</div>
-  </template>
 
-  <!-- Device column -->
-  <template #[`item.device`]="{ item }">
-    <div class="table-cell text-center">{{ item.device }}</div>
-  </template>
 
-  <!-- Timestamp column: dynamically show Login or Logout -->
-  <template #[`item.timestamp`]="{ item }">
-    <div class="table-cell text-center">
-      <div v-if="item.action === 'Login'">
-        <v-icon small color="success">mdi-login</v-icon>
-        Login: {{ formatDateTime(item.timestamp) }}
-      </div>
-      <div v-else-if="item.action === 'Logout'">
-        <v-icon small color="error">mdi-logout</v-icon>
-        Logout: {{ formatDateTime(item.timestamp) }}
-      </div>
-      <div v-else>
-        <v-icon small color="grey">mdi-help-circle</v-icon>
-        Unknown: {{ formatDateTime(item.timestamp) }}
-      </div>
-    </div>
-  </template>
-</v-data-table>
+                       <!-- Login Contents -->
+                      <v-data-table
+                        :headers="loginHeaders"
+                        :items="paginatedLoginLogs"
+                        :search="search"
+                        hide-default-header
+                        hide-default-footer
+                        class="elevation-1 history-table login-table"
+                        dark
+                      >
+
+                      
+                        <template #[`item.user`]="{ item }">
+                          <div class="table-cell text-center">{{ item.user }}</div>
+                        </template>
+                        <template #[`item.ip`]="{ item }">
+                          <div class="table-cell text-center">{{ item.ip }}</div>
+                        </template>
+                        <template #[`item.device`]="{ item }">
+                          <div class="table-cell text-center">{{ item.device }}</div>
+                        </template>
+                        <template #[`item.timestamp`]="{ item }">
+                          <div class="table-cell text-center">
+                            <div v-if="item.action === 'Login'">
+                              <v-icon small color="success">mdi-login</v-icon>
+                              Login: {{ formatDateTime(item.timestamp) }}
+                            </div>
+                            <div v-else-if="item.action === 'Logout'">
+                              <v-icon small color="error">mdi-logout</v-icon>
+                              Logout: {{ formatDateTime(item.timestamp) }}
+                            </div>
+                            <div v-else>
+                              <v-icon small color="grey">mdi-help-circle</v-icon>
+                              Unknown: {{ formatDateTime(item.timestamp) }}
+                            </div>
+                          </div>
+                        </template>
+                      </v-data-table>
                       <div class="text-center pt-2">
-
-
                         <v-pagination
                           v-model="page"
                           :length="loginPageCount"
@@ -132,13 +132,17 @@
                           color="primary"
                           dark
                         ></v-pagination>
-
-
                       </div>
                     </div>
 
-                    <!-- Fine Payment Logs -->
+
+
+
+
+                    <!-- Fine Payment Logs Table -->
                     <div v-if="tab === 1" class="table-container">
+
+                      
                       <div class="table-header payment-header">
                         <span class="col-student">Student</span>
                         <span class="col-admin">Admin</span>
@@ -147,39 +151,67 @@
                         <span class="col-timestamp">Timestamp</span>
                         <span class="col-receipt">Receipt</span>
                       </div>
-                      <v-data-table
-                        :headers="paymentHeaders"
-                        :items="paginatedPaymentLogs"
-                        :search="search"
-                        hide-default-header
-                        hide-default-footer
-                        class="elevation-1 history-table payment-table"
-                        dark
-                      >
-                        <template #[`item.studentName`]="{ item }">
-                          <div class="table-cell text-center">{{ item.studentName }}</div>
-                        </template>
-                        <template #[`item.adminName`]="{ item }">
-                          <div class="table-cell text-center">{{ item.adminName }}</div>
-                        </template>
-                        <template #[`item.event`]="{ item }">
-                          <div class="table-cell text-center">{{ item.event }}</div>
-                        </template>
-                        <template #[`item.amount`]="{ item }">
-                          <div class="table-cell text-center">₱{{ item.amount.toFixed(2) }}</div>
-                        </template>
-                        <template #[`item.timestamp`]="{ item }">
-                          <div class="table-cell text-center">{{ formatDateTime(item.timestamp) }}</div>
-                        </template>
-                        <template #[`item.receipt`]="{ item }">
-                          <div class="table-cell text-center">
-                            <v-btn small color="success" @click="generateReceipt(item)" class="receipt-btn white--text">
-                              <v-icon left small>mdi-receipt</v-icon>
-                              E-Receipt
-                            </v-btn>
-                          </div>
-                        </template>
-                      </v-data-table>
+<v-data-table
+  :headers="paymentHeaders"
+  :items="paginatedPaymentLogs"
+  :search="search"
+  :item-value="'id'"
+  hide-default-header
+  hide-default-footer
+  class="elevation-1 history-table payment-table"
+  dark
+>
+  <!-- Loading Indicator -->
+  <template #loading>
+    <v-progress-linear indeterminate color="primary"></v-progress-linear>
+  </template>
+
+  <!-- Column Slots: NO <td> wrappers here! -->
+  <template #[`item.studentName`]="{ item }">
+    {{ item.studentName }}
+  </template>
+
+  <template #[`item.adminName`]="{ item }">
+    {{ item.adminName }}
+  </template>
+
+  <template #[`item.events`]="{ item }">
+    <div v-if="item.events && item.events.length">
+      <div
+        v-for="(event, i) in item.events"
+        :key="`${item.id}-event-${i}`"
+      >
+        {{ event.name }}
+      </div>
+    </div>
+    <div v-else>No Events</div>
+  </template>
+
+  <template #[`item.amount`]="{ item }">
+    ₱{{ item.amount.toFixed(2) }}
+  </template>
+
+  <template #[`item.timestamp`]="{ item }">
+    {{ formatDateTime(item.timestamp) }}
+  </template>
+
+  <template #[`item.receipt`]="{ item }">
+    <v-btn
+      small
+      color="success"
+      @click="generateReceipt(item)"
+      class="receipt-btn white--text"
+    >
+      <v-icon left small>mdi-receipt</v-icon>
+      E-Receipt
+    </v-btn>
+  </template>
+</v-data-table>
+
+
+
+
+                      
                       <div class="text-center pt-2">
                         <v-pagination
                           v-model="page"
@@ -191,7 +223,10 @@
                       </div>
                     </div>
 
-                    <!-- Transaction Logs -->
+
+
+
+                    <!-- Transaction Logs Table -->
                     <div v-if="tab === 2" class="table-container">
                       <div class="table-header transaction-header">
                         <span class="col-admin">Admin</span>
@@ -244,6 +279,9 @@
               </v-col>
             </v-row>
 
+
+
+
             <!-- E-Receipt Dialog -->
             <v-dialog v-model="receiptDialog" max-width="600">
               <v-card class="receipt-card">
@@ -273,9 +311,26 @@
                         <span class="receipt-label">Admin:</span>
                         <span class="receipt-value white--text">{{ currentReceipt.adminName }}</span>
                       </div>
-                      <div class="receipt-row">
+                      <div v-if="currentReceipt.events && currentReceipt.events.length > 0">
+                        <div v-if="currentReceipt.events.length === 1" class="receipt-row">
+                          <span class="receipt-label">Event:</span>
+                          <span class="receipt-value white--text">{{ currentReceipt.events[0].name }}</span>
+                        </div>
+                        <div v-else class="event-breakdown mt-4">
+                          <div class="breakdown-header">Event Breakdown:</div>
+                          <div
+                            v-for="event in currentReceipt.events"
+                            :key="event.eventId"
+                            class="event-item d-flex justify-space-between"
+                          >
+                            <span class="event-name">{{ event.name }}</span>
+                            <span class="event-amount">₱{{ event.fee.toFixed(2) }}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div v-else class="receipt-row">
                         <span class="receipt-label">Event:</span>
-                        <span class="receipt-value white--text">{{ currentReceipt.event }}</span>
+                        <span class="receipt-value white--text">No Events</span>
                       </div>
                       <div class="receipt-row">
                         <span class="receipt-label">Amount:</span>
@@ -302,6 +357,11 @@
                 </v-card-text>
               </v-card>
             </v-dialog>
+
+
+
+
+
 
             <!-- Changes Dialog -->
             <v-dialog v-model="changesDialog" max-width="800">
@@ -333,9 +393,8 @@
                         <span class="info-value">{{ formatDateTime(currentTransaction.timestamp) }}</span>
                       </div>
                     </div>
-                    
                     <div class="changes-table-container">
-                      <v-simple-table dark class="changes-table">
+                      <v-data-table dark class="changes-table">
                         <thead>
                           <tr>
                             <th class="text-left field-column">Field</th>
@@ -350,7 +409,7 @@
                             <td class="text-center new-value-column">{{ change.newValue }}</td>
                           </tr>
                         </tbody>
-                      </v-simple-table>
+                      </v-data-table>
                     </div>
                   </div>
                 </v-card-text>
@@ -363,6 +422,11 @@
   </v-app>
 </template>
 
+
+
+
+
+<!-- COMPLETE UNMODIFIED SCRIPT -->
 <script>
 import PageHeader from '@/components/CustomHeader2.vue';
 import { format } from 'date-fns';
@@ -396,13 +460,14 @@ export default {
           icon: 'mdi-history' 
         }
       ],
+
       backgroundImage: "https://cdn.vuetifyjs.com/images/backgrounds/vbanner.jpg",
       tab: 0,
       tabs: ['Login/Logout', 'Fine Payments', 'Transactions'],
       search: '',
       page: 1,
-      itemsPerPage: 5, // Changed to 5 items per page for better demonstration
-
+      itemsPerPage: 5,
+      loadingPayments: false,
       loginHeaders: [
         { text: 'User', value: 'user', align: 'center', width: '20%' },
         { text: 'IP Address', value: 'ip', align: 'center', width: '20%' },
@@ -410,32 +475,22 @@ export default {
         { text: 'Timestamp', value: 'timestamp', align: 'center', width: '40%' }
       ],
       paymentHeaders: [
-        { text: 'Student', value: 'studentName', align: 'center', width: '25%' },
-        { text: 'Admin', value: 'adminName', align: 'center', width: '15%' },
-        { text: 'Event', value: 'event', align: 'center', width: '20%' },
-        { text: 'Amount', value: 'amount', align: 'center', width: '10%' },
-        { text: 'Timestamp', value: 'timestamp', align: 'center', width: '15%' },
-        { text: 'Receipt', value: 'receipt', align: 'center', width: '15%' }
-      ],
+  { text: 'Student', value: 'studentName', align: 'center', width: '20%' },
+  { text: 'Admin', value: 'adminName', align: 'center', width: '15%' },
+  { text: 'Event', value: 'events', align: 'center', width: '25%' },
+  { text: 'Amount', value: 'amount', align: 'center', width: '10%' },
+  { text: 'Timestamp', value: 'timestamp', align: 'center', width: '20%' },
+  { text: 'Receipt', value: 'receipt', align: 'center', width: '10%' },
+],
       transactionHeaders: [
         { text: 'Admin', value: 'adminName', align: 'center', width: '20%' },
         { text: 'Target', value: 'target', align: 'center', width: '35%' },
         { text: 'Changes', value: 'changes', align: 'center', width: '15%' },
         { text: 'Timestamp', value: 'timestamp', align: 'center', width: '30%' }
       ],
+
       loginLogs: [],
-      paymentLogs: [
-        { id: 'PAY-001', studentName: 'AI-shields Fiction', adminName: 'admin1', event: 'Orientation', amount: 500, timestamp: new Date('2025-05-18T05:25:00') },
-        { id: 'PAY-002', studentName: 'Jane Batuhan', adminName: 'admin2', event: 'Seminar', amount: 500, timestamp: new Date('2025-05-17T05:25:00') },
-        { id: 'PAY-003', studentName: 'Almon Punibaya', adminName: 'admin1', event: 'Workshop', amount: 200, timestamp: new Date('2025-05-19T05:25:00') },
-        { id: 'PAY-004', studentName: 'Sodais Macapantao', adminName: 'admin2', event: 'Orientation', amount: 500, timestamp: new Date('2025-05-16T05:25:00') },
-        { id: 'PAY-005', studentName: 'Abdulazis Mapandi', adminName: 'admin1', event: 'Seminar', amount: 500, timestamp: new Date('2025-05-15T05:25:00') },
-        { id: 'PAY-006', studentName: 'Faiz Rataban', adminName: 'admin2', event: 'Workshop', amount: 200, timestamp: new Date('2025-05-14T05:25:00') },
-        { id: 'PAY-007', studentName: 'Doms Benito', adminName: 'admin1', event: 'Orientation', amount: 500, timestamp: new Date('2025-05-13T05:25:00') },
-        { id: 'PAY-008', studentName: 'John Doe', adminName: 'admin2', event: 'Seminar', amount: 500, timestamp: new Date('2025-05-12T05:25:00') },
-        { id: 'PAY-009', studentName: 'Jane Smith', adminName: 'admin1', event: 'Workshop', amount: 200, timestamp: new Date('2025-05-11T05:25:00') },
-        { id: 'PAY-010', studentName: 'Robert Johnson', adminName: 'admin2', event: 'Orientation', amount: 500, timestamp: new Date('2025-05-10T05:25:00') }
-      ],
+      paymentLogs: [],
       transactionLogs: [
         { 
           id: 'TRX-001', 
@@ -541,29 +596,40 @@ export default {
           timestamp: new Date('2025-05-10T05:25:00') 
         }
       ],
+
+
+      currentReceipt: {
+        id: '',
+        studentName: '',
+        adminName: '',
+        events: [],
+        amount: 0,
+        timestamp: null
+      },
+
       receiptDialog: false,
-      currentReceipt: {},
       changesDialog: false,
       currentChanges: [],
       currentTransaction: {}
     };
   },
-  mounted(){
-      this.fetchLoginHistory();
 
-       this.refreshInterval = setInterval(() => {
-      if (this.tab === 0) {
-        this.fetchLoginHistory();
-      }
+
+  async mounted() {
+
+    this.fetchLoginHistory();
+    this.fetchPaymentLogs();
+    this.refreshInterval = setInterval(() => {
+      if (this.tab === 0) this.fetchLoginHistory();
     }, 30000);
+
   },
-  
+
   beforeUnmount() {
     clearInterval(this.refreshInterval);
+
+
   },
-
-
-
   computed: {
     backgroundStyle() {
       return {
@@ -574,7 +640,6 @@ export default {
         padding: '20px 0'
       };
     },
-    // Filtered items based on search
     filteredLoginLogs() {
       if (!this.search) return this.loginLogs;
       const searchTerm = this.search.toLowerCase();
@@ -590,8 +655,10 @@ export default {
       return this.paymentLogs.filter(item => 
         item.studentName.toLowerCase().includes(searchTerm) ||
         item.adminName.toLowerCase().includes(searchTerm) ||
-        item.event.toLowerCase().includes(searchTerm) ||
-        item.amount.toString().includes(searchTerm)
+        item.amount.toString().includes(searchTerm) ||
+        (item.events || []).some(event => 
+          (event.name || '').toLowerCase().includes(searchTerm)
+        )
       );
     },
     filteredTransactionLogs() {
@@ -603,8 +670,6 @@ export default {
         item.action.toLowerCase().includes(searchTerm)
       );
     },
-    
-    // Paginated items
     paginatedLoginLogs() {
       const start = (this.page - 1) * this.itemsPerPage;
       const end = start + this.itemsPerPage;
@@ -620,8 +685,6 @@ export default {
       const end = start + this.itemsPerPage;
       return this.filteredTransactionLogs.slice(start, end);
     },
-    
-    // Page counts
     loginPageCount() {
       return Math.ceil(this.filteredLoginLogs.length / this.itemsPerPage);
     },
@@ -633,8 +696,7 @@ export default {
     }
   },
   methods: {
-
-     async fetchLoginHistory() {
+    async fetchLoginHistory() {
       try {
         const response = await AuthService.getLoginHistory();
         this.loginLogs = response.data.map(log => ({
@@ -643,7 +705,7 @@ export default {
           ip: log.ipAddress,
           device: log.device,
           timestamp: log.timestamp,
-            action: log.action, // ✅ include this
+          action: log.action,
           logoutTimestamp: log.logoutTimestamp || null
         }));
       } catch (error) {
@@ -652,15 +714,85 @@ export default {
       }
     },
 
+
+    
+    async fetchPaymentLogs() {
+  this.loadingPayments = true;
+  console.log("[DEBUG] Starting payment logs fetch...");
+  
+  try {
+    console.log("[DEBUG] Calling AuthService.getPaymentLogs()...");
+    const response = await AuthService.getPaymentLogs();
+    console.log("[DEBUG] API response received:", response);
+    
+    // Log raw data structure
+    console.log("[DEBUG] Response data type:", Array.isArray(response.data) ? "Array" : typeof response.data);
+    console.log("[DEBUG] Response data length:", response.data.length);
+    
+    const newPaymentLogs = response.data.map(log => {
+      console.log("[DEBUG] Processing log:", log);
+      
+      const studentName = log.student 
+        ? `${log.student.firstName || ''} ${log.student.lastName || ''}`.trim()
+        : 'Unknown Student';
+      
+      const adminName = log.admin?.username || 'Unknown Admin';
+      
+      console.log(`[DEBUG] Processed: 
+        id: ${log.id}, 
+        studentName: "${studentName}", 
+        adminName: "${adminName}", 
+        amount: ${parseFloat(log.amount) || 0},
+        events: ${JSON.stringify(log.events || [])}`
+      );
+      
+      return {
+        id: log.id,
+        studentName,
+        adminName,
+        amount: parseFloat(log.amount) || 0,
+        timestamp: log.timestamp,
+        events: log.events || []
+      };
+    });
+    
+    console.log("[DEBUG] Mapped payment logs:", newPaymentLogs);
+    this.paymentLogs = newPaymentLogs;
+    
+    // Log Vue data state
+    console.log("[DEBUG] this.paymentLogs set:", this.paymentLogs);
+    console.log("[DEBUG] this.paymentLogs[0]:", this.paymentLogs[0] || "Empty");
+    
+    // Log computed properties
+    console.log("[DEBUG] filteredPaymentLogs:", this.filteredPaymentLogs);
+    console.log("[DEBUG] paginatedPaymentLogs:", this.paginatedPaymentLogs);
+    
+  } catch (error) {
+    console.error('[ERROR] Payment logs fetch failed:', error);
+  } finally {
+    this.loadingPayments = false;
+    console.log("[DEBUG] Payment logs fetch completed");
+  }
+},
+
+
+
     navigateTo(route) {
       this.$router.push({ name: route });
     },
+    generateReceipt(item) {
+      this.currentReceipt = {
+        id: item.id,
+        studentName: item.studentName,
+        adminName: item.adminName,
+        amount: item.amount,
+        timestamp: item.timestamp,
+        events: item.events || []
+      };
+      this.receiptDialog = true;
+    },
     formatDateTime(date) {
       return format(new Date(date), 'MMM dd yyyy h:mma');
-    },
-    generateReceipt(item) {
-      this.currentReceipt = item;
-      this.receiptDialog = true;
     },
     printReceipt() {
       window.print();
@@ -677,15 +809,107 @@ export default {
 };
 </script>
 
+<!-- COMPLETE UNMODIFIED STYLES -->
 <style scoped>
 @import url('https://fonts.googleapis.com/css?family=Poppins:300');
 @import url('https://cdn.jsdelivr.net/npm/@mdi/font@6.x/css/materialdesignicons.min.css');
+.table-header.payment-header {
+  display: grid;
+  grid-template-columns: 20% 15% 25% 10% 20% 10%;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: #289bb8;
+  font-weight: 600;
+  border-radius: 4px 4px 0 0;
+  padding: 12px 16px;
+  font-family: 'Poppins', sans-serif;
+}
 
-/* Sidebar Styles */
+.history-table td:nth-child(1) {
+  width: 20%;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.history-table td:nth-child(2) {
+  width: 15%;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.history-table td:nth-child(3) {
+  width: 25%;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.history-table td:nth-child(4) {
+  width: 10%;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.history-table td:nth-child(5) {
+  width: 20%;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.history-table td:nth-child(6) {
+  width: 10%;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.debug-container {
+  background: rgba(0,0,0,0.7);
+  padding: 20px;
+  margin-top: 20px;
+  border: 2px solid red;
+  color: white;
+  font-family: monospace;
+}
+
+.debug-section {
+  margin-bottom: 20px;
+}
+
+.debug-section h4 {
+  color: #ff5252;
+  margin-bottom: 5px;
+}
+
 .overlapping-sidebar {
   position: absolute;
   z-index: 100;
   height: 100vh;
+}
+
+.event-breakdown {
+  margin-top: 15px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.2);
+  padding-top: 10px;
+}
+
+.breakdown-header {
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #289bb8;
+}
+
+.event-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.event-name {
+  flex: 3;
+}
+
+.event-amount {
+  flex: 1;
+  text-align: right;
 }
 
 .sidebar {
@@ -794,7 +1018,6 @@ export default {
   line-height: 1.3;
 }
 
-/* Main Content Styles */
 .history-card {
   background: rgba(0, 0, 0, 0.5) !important;
   box-shadow: 0 15px 25px rgba(0, 0, 0, 0.6) !important;
@@ -875,17 +1098,14 @@ export default {
   font-family: 'Poppins', sans-serif;
 }
 
-/* Login/Logout Table */
 .table-header.login-header {
   grid-template-columns: 20% 20% 20% 40%;
 }
 
-/* Fine Payment Table */
 .table-header.payment-header {
   grid-template-columns: 25% 15% 20% 10% 15% 15%;
 }
 
-/* Transaction Table */
 .table-header.transaction-header {
   grid-template-columns: 20% 35% 15% 30%;
 }
@@ -920,19 +1140,6 @@ export default {
 
 .text-center {
   text-align: center;
-}
-
-.login-entry, .logout-entry {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-
-.icon-bg {
-  background-color: rgba(0, 0, 0, 0.3) !important;
-  border-radius: 50%;
-  padding: 4px;
 }
 
 .receipt-btn, .changes-btn {
@@ -981,7 +1188,6 @@ export default {
   color: white;
 }
 
-/* Receipt Dialog Styles */
 .receipt-card {
   background: rgba(0, 0, 0, 0.8) !important;
   border: 1px solid #289bb8 !important;
@@ -1066,7 +1272,6 @@ export default {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2) !important;
 }
 
-/* Changes Dialog Styles */
 .changes-card {
   background: rgba(0, 0, 0, 0.8) !important;
   border: 1px solid #289bb8 !important;

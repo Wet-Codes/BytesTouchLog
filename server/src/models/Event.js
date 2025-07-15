@@ -29,5 +29,21 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false
     }
   });
+
+
+Event.associate = (models) => {
+  Event.belongsToMany(models.PaymentLog, {
+    through: 'PaymentEvents',
+    foreignKey: 'eventId', // Changed from 'eventIds' to 'eventId'
+    as: 'payments'
+  });
+};
+
+
+
+
   return Event;
+
+
+  
 };

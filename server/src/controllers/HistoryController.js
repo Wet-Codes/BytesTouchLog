@@ -1,4 +1,4 @@
-const { HistoryLog, User } = require('../models');
+const { HistoryLog, User, PaymentLog, Student, Event } = require('../models');
 const deviceParser = require('../utils/deviceParser');
 
 module.exports = {
@@ -75,5 +75,58 @@ async recordLogout(req, res) {
       console.error('Error fetching session logs:', error);
       return [];
     }
+  },
+
+async recordPayment(req, res) {
+  try {
+    const { adminId, studentId, amount, events } = req.body;
+    
+    // Create payment log with associated events
+    const payment = await PaymentLog.create({
+      adminId,
+      studentId,
+      amount
+    });
+    
+    // Associate events with the payment
+    await payment.addEvents(events.map(e => e.id));
+    
+    return res.status(200).json({ success: true });
+  } catch (error) {
+    console.error('Payment recording failed:', error);
+    return res.status(500).json({ success: false, error: error.message });
   }
+},
+async getPaymentLogs(req, res) {
+  try {
+    const logs = await PaymentLog.findAll({
+      attributes: ['id', 'adminId', 'studentId', 'amount', 'timestamp'],
+      include: [
+        {
+          model: Student,
+          as: 'student',
+          attributes: ['firstName', 'lastName']
+        },
+        {
+          model: User,
+          as: 'admin',
+          attributes: ['username']
+        },
+        {
+          model: Event,
+          as: 'events',
+          attributes: ['eventId', 'name', 'fee'],
+          through: { attributes: [] }
+        }
+      ],
+      order: [['timestamp', 'DESC']]
+    });
+    
+    // ACTUALLY SEND THE RESPONSE
+    res.status(200).json(logs);
+  } catch (error) {
+    console.error('Error fetching payment logs:', error);
+    res.status(500).json({ error: 'Failed to fetch payment logs' });
+  }
+}
 };

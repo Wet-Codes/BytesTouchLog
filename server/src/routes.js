@@ -10,7 +10,7 @@ const adminMiddleware = require('./middlewares/adminMiddleware');
 const fineController = require('./controllers/FineController')
 const HistoryController = require('./controllers/HistoryController');
 const NoteController = require('./controllers/NoteController');
-
+const DashboardController = require('./controllers/DashboardController');
 
 const app = express();
 
@@ -142,5 +142,25 @@ app.post('/api/notes/mark-read',
   NoteController.markAsRead
 );
 
+//Payment logs
 
+ app.post('/api/history/record-payment', 
+    authMiddleware,
+    HistoryController.recordPayment
+  );
+
+ app.get('/api/history/payment-logs', 
+  authMiddleware,
+  (req, res) => HistoryController.getPaymentLogs(req, res) // Proper invocation
+);
+
+
+
+//Graph
+
+
+  app.get('/api/dashboard/fines-distribution', DashboardController.getFinesDistribution);
+  app.get('/api/dashboard/fines-over-time', DashboardController.getFinesOverTime);
+  app.get('/api/dashboard/attendance-by-course', DashboardController.getAttendanceByCourse);
+  app.get('/api/dashboard/student-distribution', DashboardController.getStudentDistribution);
 }

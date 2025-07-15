@@ -145,6 +145,39 @@ getNotes() {
 
 markNotesRead() {
   return Api.post('/api/notes/mark-read');
-}
+},
+
+ recordPayment(paymentPayload) {
+    return Api.post('/api/history/record-payment', paymentPayload);
+  },
+
+getPaymentLogs() {
+  return Api.get('/api/history/payment-logs')
+    .then(response => response) // Return the full response
+    .catch(error => {
+      console.error('API Error:', error);
+      throw error;
+    });
+},
+
+ getFinesDistribution(eventId) {
+    return Api.get(`/api/dashboard/fines-distribution?eventId=${eventId}`);
+  },
+  
+  getFinesOverTime(schoolYear) {
+    return Api.get(`/api/dashboard/fines-over-time?schoolYear=${schoolYear}`);
+  },
+  
+  getAttendanceByCourse(eventId) {
+    return Api.get(`/api/dashboard/attendance-by-course?eventId=${eventId}`);
+  },
+  
+  getStudentDistribution() {
+    return Api.get('/api/dashboard/student-distribution');
+  },
+  
+  getEvent() {
+    return Api.get('/events');
+  }
 
 };
